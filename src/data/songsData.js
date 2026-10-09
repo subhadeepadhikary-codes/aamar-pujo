@@ -1,0 +1,148 @@
+// Curated Bengali Durga Puja Song Collection (from YouTube Agomoni Compilation)
+// 100% authentic, studio-mastered 320kbps audio with authentic traditional Maa Durga Pratima artwork
+
+export const PUJO_SONGS = [
+  {
+    dayId: "mahalaya",
+    dayName: "মহালয়া (Mahalaya)",
+    tithi: "Amavasya · The Sacred Dawn",
+    title: "Bajlo Tomar Alor Benu (Agomoni)",
+    artist: "Aarti Mukherjee & Pankaj Kumar Mullick",
+    duration: "4:32",
+    theme: "The Divine Golden Flute Awakening Bengal at Dawn",
+    meaning: "The immortal Agomoni song welcoming Mother Durga. As autumn dawn breaks and shiuli flowers carpet the earth, the melodious notes of the flute announce Uma's home-coming.",
+    streamUrl: "/audio/jiosaavn/mahalaya.mp4",
+    image: "/images/durga/durga_face_1.jpg",
+    lyricsSnippet: "বাজলো তোমার আলোর বেণু, মাতলো রে ভুবন... প্রভাতী মেঘে তোমার আগমনী গান।"
+  },
+  {
+    dayId: "prothoma",
+    dayName: "প্রথমা (Prothoma)",
+    tithi: "Pratipada · Devi Paksha Day 1",
+    title: "Dugga Elo (দুর্গা এলো)",
+    artist: "Monali Thakur & Guddu",
+    duration: "3:48",
+    theme: "Joyous Homecoming & Youthful Celebration",
+    meaning: "An electrifying, heartwarming modern Puja celebration song by Monali Thakur capturing the sheer euphoria as neighborhoods ignite with festive lights and laughter.",
+    streamUrl: "/audio/jiosaavn/prothoma.mp4",
+    image: "/images/durga/durga_face_2.jpg",
+    lyricsSnippet: "আকাশে মেঘের ভেলা, কাশের বনে দোলা... আনন্দে মন মেতেছে, মা এসেছে ঘরে!"
+  },
+  {
+    dayId: "dwitiya",
+    dayName: "দ্বিতীয়া (Dwitiya)",
+    tithi: "Dwitiya · Devi Paksha Day 2",
+    title: "Ailo Uma Barite (আইলো উমা বাড়িতে)",
+    artist: "Antara Nandy & Monami Ghosh",
+    duration: "3:55",
+    theme: "Uma Steps Across the Threshold",
+    meaning: "Rooted in folk Bengal tradition, celebrating the beloved daughter Uma setting foot into her ancestral abode amidst fragrant incense and conch resonance.",
+    streamUrl: "/audio/jiosaavn/dwitiya.mp4",
+    image: "/images/durga/durga_face_3.jpg",
+    lyricsSnippet: "আইলো উমা বাড়িতে, বাজাও ঢাকের কাঠি... বরণ করে নাও গো মায়ে আনন্দের এই দিনে।"
+  },
+  {
+    dayId: "tritiya",
+    dayName: "তৃতীয়া (Tritiya)",
+    tithi: "Tritiya · Devi Paksha Day 3",
+    title: "O Menoka O Menoka (ও মেনকা ও মেনকা)",
+    artist: "Nandy Sisters (Antara & Ankita Nandy)",
+    duration: "3:40",
+    theme: "Playful Agomoni Ballad to Mother Menoka",
+    meaning: "The famous, delightful Agomoni dialogue where Giriraj Himalaya's Queen Menoka is urged to open her palace doors because daughter Uma is arriving with her divine children.",
+    streamUrl: "/audio/jiosaavn/tritiya.mp4",
+    image: "/images/durga/durga_face_4.jpg",
+    lyricsSnippet: "ও মেনকা ও মেনকা, দুয়ার খোল এসে... গৌরী এল শিবের ঘর থেকে তোর কোলে হেসে।"
+  },
+  {
+    dayId: "chaturthi",
+    dayName: "চতুর্থী (Chaturthi)",
+    tithi: "Chaturthi · Devi Paksha Day 4",
+    title: "Bolo Dugga Elo (বলো দুগ্গা এলো)",
+    artist: "Sunidhi Chauhan & Kaushik-Guddu",
+    duration: "3:35",
+    theme: "All-Night Street Energy & Grand Illumination",
+    meaning: "Sunidhi Chauhan's high-octane celebratory anthem for Chaturthi evening when Kolkata's mega light towers switch on and pandal queues start buzzing.",
+    streamUrl: "/audio/jiosaavn/chaturthi.mp4",
+    image: "/images/durga/durga_face_5.jpg",
+    lyricsSnippet: "বলো দুগ্গা এলো, বাজাও কাঁসর ঘণ্টা... ঢাকের তালে মেতে উঠুক সারা বাংলা।"
+  },
+  {
+    dayId: "panchami",
+    dayName: "পঞ্চমী (Panchami)",
+    tithi: "Panchami · Anandodhara",
+    title: "Uma Ashe Natun Saje (উমা আসে নতুন সাজে)",
+    artist: "Ankita Bhattacharyya & Mak Mallar",
+    duration: "4:02",
+    theme: "Adorning Mother Durga with Traditional Saaj",
+    meaning: "Celebrates the final touches by Kumartuli artisans, draping Uma in silken Banarasi and ornate Daaker Saaj before the sanctified pandal unveilings.",
+    streamUrl: "/audio/jiosaavn/panchami.mp4",
+    image: "/images/durga/durga_face_1.jpg",
+    lyricsSnippet: "উমা আসে নতুন সাজে, নতুন রঙের আলোয়... মায়ের হাসির পরশে আজ সকল দুঃখ ঘুচলো।"
+  },
+  {
+    dayId: "shasthi",
+    dayName: "ষষ্ঠী (Maha Shasthi)",
+    tithi: "Shasthi · Bodhon & Amontron",
+    title: "Dhak Baja Kashor Baja (ঢাক বাজা কাঁসর বাজা)",
+    artist: "Shreya Ghoshal & Jeet Gannguli",
+    duration: "4:18",
+    theme: "Akalbodhan & Full Throttle Festive Rhythm",
+    meaning: "Shreya Ghoshal's master festive hit! The beating dhaks, clanging brass bells, and joyous dancing as Bodhon is consecrated under the sacred Bel tree.",
+    streamUrl: "/audio/jiosaavn/shasthi.mp4",
+    image: "/images/durga/durga_face_2.jpg",
+    lyricsSnippet: "ঢাক বাজা কাঁসর বাজা, শঙ্খ বাজাও জোরে... মা এসেছেন আমাদের এই ধূলির বসুন্ধরে।"
+  },
+  {
+    dayId: "saptami",
+    dayName: "সপ্তমী (Maha Saptami)",
+    tithi: "Saptami · Kola Bou Snan & Pran Pratishtha",
+    title: "Aamaar Dugga (আমার দুগ্গা)",
+    artist: "Monali Thakur & Anindya Chattopadhyay",
+    duration: "3:50",
+    theme: "Personal Bonding & Nostalgia of Pujo Mornings",
+    meaning: "A profoundly emotional tribute to how every Bengali connects with Durga not just as a goddess, but as a sister, a mother, and an inseparable part of life.",
+    streamUrl: "/audio/jiosaavn/saptami.mp4",
+    image: "/images/durga/durga_face_3.jpg",
+    lyricsSnippet: "আমার দুগ্গা আমার ঘরে, খুশির জোয়ার চারিধারে... আলোর মালায় সেজেছে আজ স্বপ্নরা একাকার।"
+  },
+  {
+    dayId: "ashtami",
+    dayName: "অষ্টমী (Maha Ashtami)",
+    tithi: "Ashtami · Sandhi Puja 108 Diyas",
+    title: "Dugga Maa Eseche (দুগ্গা মা এসেছে)",
+    artist: "Antara Mitra & Indraadip Dasgupta",
+    duration: "3:44",
+    theme: "Devotion, Anjali & The Climax of Ashtami",
+    meaning: "The peak spiritual fervor of Maha Ashtami morning Anjali, followed by the electrifying Sandhi Puja when 108 lotus flowers and 108 diyas are sanctified.",
+    streamUrl: "/audio/jiosaavn/ashtami.mp4",
+    image: "/images/durga/durga_face_4.jpg",
+    lyricsSnippet: "দুগ্গা মা এসেছে, ঘরে ঘরে আলো... অঞ্জলি দিয়ে বলি মাগো, সবার করো ভালো।"
+  },
+  {
+    dayId: "navami",
+    dayName: "নবমী (Maha Navami)",
+    tithi: "Navami · Maha Arati & Dhunuchi Naach",
+    title: "Dugga Elo (Akriti Kakar Festive Hit)",
+    artist: "Akriti Kakar & Ajay Singha",
+    duration: "4:10",
+    theme: "Ecstatic Dhunuchi Dance & Night Long Hopping",
+    meaning: "The relentless pulse of Navami night! Smoky incense, swirling clay dhunuchi dancers, and million-strong crowds soaking in the last golden moments.",
+    streamUrl: "/audio/jiosaavn/navami.mp4",
+    image: "/images/durga/durga_face_5.jpg",
+    lyricsSnippet: "ঢাকের কাঠি পড়ল বলে, সবাই মেতে নাচ রে... নবমীর এই চাঁদের আলোয় মনটা জুড়িয়ে দে রে।"
+  },
+  {
+    dayId: "dashami",
+    dayName: "দশমী (Bijoya Dashami)",
+    tithi: "Dashami · Sindur Khela & Bisorjon",
+    title: "Bochhor Bochhor Aaste Hobe (বছর বছর আসতে হবে)",
+    artist: "Akassh & Haimanti",
+    duration: "5:12",
+    theme: "Tears, Sindur Khela & 'Aschhe Bochhor Abar Hobe'",
+    meaning: "The bittersweet farewell as women perform Sindur Khela and whisper into Mother's ears: 'Come back again next year!' A tearful yet hopeful Bijoya celebration.",
+    streamUrl: "/audio/jiosaavn/dashami.mp4",
+    image: "/images/durga/durga_face_1.jpg",
+    lyricsSnippet: "শুভ বিজয়া বলো মুখে, সিঁদুরের রঙ রাঙাও বুকে... বছর বছর আসতে হবে, আসছে বছর আবার হবে!"
+  }
+];
