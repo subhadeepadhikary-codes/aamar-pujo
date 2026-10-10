@@ -83,7 +83,7 @@ export const FEATURED_SLIDES = [
     bengaliName: "শ্রীভূমি স্পোর্টিং ক্লাব",
     zone: "North-East Kolkata",
     locality: "Lake Town / VIP Road",
-    image: "https://images.unsplash.com/photo-1634704784915-aacf363b021f?auto=format&fit=crop&w=1600&q=80",
+    image: "https://pandalgo.in/storage/uploads/pandals/hero/813ac693-d5ee-4eb2-ae5f-6e67ce6a317f.jpg",
     theme: "Grand Royal Temple Replica & Diamond Chandelier Lighting",
     lat: 22.6012,
     lng: 88.3976,

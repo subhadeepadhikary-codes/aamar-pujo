@@ -7,7 +7,6 @@ import PujoAudioPlayer from "./components/PujoAudioPlayer";
 import PandalExplorer from "./components/PandalExplorer";
 import PandalMap from "./components/PandalMap";
 import AboutSection from "./components/AboutSection";
-import ReviewSection from "./components/ReviewSection";
 import Footer from "./components/Footer";
 import PandalModal from "./components/PandalModal";
 import FestiveWelcomeModal from "./components/FestiveWelcomeModal";
@@ -312,11 +311,10 @@ export default function App() {
           </div>
         )}
 
-        {/* PAGE 6: ABOUT CREATOR & REVIEWS (Subhadeep's Story + Review Board) */}
+        {/* PAGE 6: ABOUT CREATOR & COMMUNITY FEEDBACK (Subhadeep's Story) */}
         {currentPage === "about" && (
           <div className="animate-fadeIn">
             <AboutSection />
-            <ReviewSection />
           </div>
         )}
 

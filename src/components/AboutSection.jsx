@@ -10,7 +10,9 @@ import {
   Code2, 
   CheckCircle2,
   HelpCircle,
-  ShieldCheck
+  ShieldCheck,
+  MessageSquareHeart,
+  ExternalLink
 } from "lucide-react";
 
 export default function AboutSection() {
@@ -190,6 +192,50 @@ export default function AboutSection() {
             ))}
           </div>
 
+        </div>
+
+        {/* User Feedback & Suggestions Card (Google Form) */}
+        <div className="mt-14 glass-card rounded-3xl p-6 sm:p-10 border-2 border-amber-500/40 shadow-2xl relative overflow-hidden bg-gradient-to-br from-[#1B1126] via-[#130B1C] to-[#0A070D]">
+          <div className="absolute top-0 right-0 w-80 h-80 bg-amber-500/10 rounded-full blur-3xl pointer-events-none"></div>
+          
+          <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-6">
+            <div className="space-y-3 max-w-2xl text-center md:text-left">
+              <div className="inline-flex items-center space-x-2 px-3.5 py-1 rounded-full bg-amber-500/15 border border-amber-500/30 text-amber-300 text-xs font-semibold">
+                <MessageSquareHeart className="w-4 h-4 text-rose-500 fill-current" />
+                <span>Tomader Motamot & Suggestions (তোমাদের মতামত)</span>
+              </div>
+              
+              <h3 className="font-heritage text-2xl sm:text-3xl font-black text-white">
+                Help Us Make <span className="text-gold-gradient">Aamar Pujo</span> Even Better!
+              </h3>
+              
+              <p className="text-xs sm:text-sm text-slate-300 leading-relaxed font-sans">
+                Kono pandal ki miss hoye geche? Kono rasta ba metro route-e vul ache? Ba notun kono feature chai? 
+                Please share your honest feedback, pandal updates, or ideas with Subhadeep directly through this Google Form. 
+                Every single response is read and valued!
+              </p>
+
+              <div className="flex flex-wrap items-center justify-center md:justify-start gap-3 pt-1 text-xs text-amber-200/80 font-medium">
+                <span className="flex items-center gap-1">✨ 1-Minute Quick Form</span>
+                <span>•</span>
+                <span className="flex items-center gap-1">📍 Request New Pandals</span>
+                <span>•</span>
+                <span className="flex items-center gap-1">💡 Suggest Features</span>
+              </div>
+            </div>
+
+            <div className="flex-shrink-0">
+              <a
+                href="https://forms.gle/qpq8CS3kgwwcpkri7"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="group relative inline-flex items-center gap-2.5 px-7 py-3.5 rounded-2xl bg-gradient-to-r from-amber-500 via-rose-600 to-amber-600 text-white font-heritage font-bold text-sm sm:text-base shadow-xl shadow-rose-950/50 hover:scale-105 active:scale-95 transition-all duration-300 border border-amber-300/40"
+              >
+                <span>Share Your Feedback</span>
+                <ExternalLink className="w-4 h-4 group-hover:translate-x-1 transition duration-200" />
+              </a>
+            </div>
+          </div>
         </div>
 
         {/* Legal, Fair Use & Non-Commercial Heritage Notice */}

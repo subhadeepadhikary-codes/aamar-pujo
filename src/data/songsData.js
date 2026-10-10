@@ -136,13 +136,13 @@ export const PUJO_SONGS = [
     dayId: "dashami",
     dayName: "দশমী (Bijoya Dashami)",
     tithi: "Dashami · Sindur Khela & Bisorjon",
-    title: "Bochhor Bochhor Aaste Hobe (বছর বছর আসতে হবে)",
-    artist: "Akassh & Haimanti",
-    duration: "5:12",
-    theme: "Tears, Sindur Khela & 'Aschhe Bochhor Abar Hobe'",
-    meaning: "The bittersweet farewell as women perform Sindur Khela and whisper into Mother's ears: 'Come back again next year!' A tearful yet hopeful Bijoya celebration.",
+    title: "Maa Go Tui (মা গো তুই)",
+    artist: "Manomay Bhattacharyya & Somchanda Bhattacharya (SVF Music)",
+    duration: "3:41",
+    theme: "Tears, Sindur Khela & Bisorjon - Durgeshgorer Guptodhon",
+    meaning: "The iconic, heart-touching farewell from Durgeshgorer Guptodhon composed by Bickram Ghosh. As vermilion colors the air during Sindur Khela, every eye wells with tears whispering 'Aschhe bochhor abar hobe!'.",
     streamUrl: "/audio/jiosaavn/dashami.mp4",
     image: "/images/durga/durga_face_1.jpg",
-    lyricsSnippet: "শুভ বিজয়া বলো মুখে, সিঁদুরের রঙ রাঙাও বুকে... বছর বছর আসতে হবে, আসছে বছর আবার হবে!"
+    lyricsSnippet: "মা গো তুই আবার আসিস ঘরে, আলো দিয়ে ভরিয়ে দিস মন... আসছে বছর আবার হবে তোরই আবাহন।"
   }
 ];

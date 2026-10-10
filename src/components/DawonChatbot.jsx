@@ -20,86 +20,12 @@ import {
   ExternalLink
 } from "lucide-react";
 
-// Pre-packaged Kolkata Puja Transit Knowledge Base for instantaneous offline replies
-const TRANSIT_KNOWLEDGE_BASE = [
-  {
-    keywords: ["sreebhumi", "sribhumi", "lake town", "howrah to sreebhumi"],
-    title: "Howrah Station / Central to Sreebhumi Sporting Club (Lake Town)",
-    route: [
-      { type: "metro", text: "Take Green Line Metro from Howrah Station to Sealdah (underwater tunnel route, ~8 mins) OR from Central take Blue Line to Dum Dum Metro." },
-      { type: "auto", text: "From Dum Dum Metro (Platform 1 Exit), take direct auto/shuttle to VIP Road / Lake Town Clock Tower crossing (₹20-₹25)." },
-      { type: "walk", text: "Walk 450m down Lake Town VIP Road entrance corridor. Follow police one-way pedestrian ropes to Sreebhumi pandal." },
-      { type: "food", text: "Food Pitstop: Stop at VIP Sweets or Lake Town fast food stalls for egg-chicken rolls & kachori." },
-      { type: "tip", text: "Pro-Tip: Sreebhumi gets massive crowds after 5 PM. Best time to visit is afternoon 1:30 PM - 4:00 PM!" }
-    ]
-  },
-  {
-    keywords: ["bagbazar", "kumartuli", "ahiritola", "north kolkata route", "sovabazar"],
-    title: "Classic North Kolkata Heritage Trail (Bagbazar -> Kumartuli -> Ahiritola)",
-    route: [
-      { type: "metro", text: "Take Blue Line Metro to Shyambazar Station (Exit Gate 1) or Shobhabazar Sutanuti (Exit Gate 2)." },
-      { type: "walk", text: "Start at Bagbazar Sarbojanin (6 min walk from Shyambazar down Girish Avenue). Pure traditional sabeki pratima." },
-      { type: "walk", text: "Walk 10 mins south along Rabindra Sarani to Kumartuli Park & Kumartuli Sarbojanin." },
-      { type: "walk", text: "Continue 6 mins towards Ganges ghat to reach Ahiritola Jubak Brinda & Beniatola." },
-      { type: "food", text: "Food Pitstop: Mitra Cafe (Sovabazar) for legendary Diamond Fish Fry & Mutton Kabiraji, or Golbari for Kosha Mangsho!" },
-      { type: "tip", text: "Bonus: Shobhabazar Rajbari is right next door (entry free during daytime)." }
-    ]
-  },
-  {
-    keywords: ["kalighat to gariahat", "deshapriya", "tridhara", "ekdalia", "ballygunge", "south kolkata"],
-    title: "South Kolkata Mega Circuit (Deshapriya Park -> Tridhara -> Ekdalia -> Singhi Park)",
-    route: [
-      { type: "metro", text: "Take Blue Line Metro to Kalighat Metro Station (Exit Gate 2 - Rashbehari Avenue)." },
-      { type: "walk", text: "Walk 400m east along Rashbehari Avenue to reach Deshapriya Park & Priya Cinema junction." },
-      { type: "walk", text: "Cross over to Manohar Pukur Road (3 mins walk) for Tridhara Sammilani." },
-      { type: "walk", text: "Walk 6 mins through Gariahat under the flyover to Ekdalia Evergreen Club & Singhi Park." },
-      { type: "food", text: "Food Pitstop: Campari (Gariahat) for Fish Roll, Bedouin for King Rolls, or Maharani for Hing Kochuri & Jalebi." },
-      { type: "tip", text: "Pro-Tip: Avoid cabs along Rashbehari; police closes vehicle movement. Walking this trail takes only ~20 mins total." }
-    ]
-  },
-  {
-    keywords: ["esplanade", "dharmatala", "central", "new market", "college square", "md ali park"],
-    title: "Central Kolkata Aquatic & Royal Illuminations Trail",
-    route: [
-      { type: "metro", text: "Get down at Esplanade Metro Station (Interchange for Blue Line & Green Line)." },
-      { type: "walk", text: "Walk 5 mins (450m) to Rani Rashmoni Family Rajbari Puja at Janbazar (SN Banerjee Road)." },
-      { type: "walk", text: "Walk 400m north to Subodh Mallick Square (Wellington Nagarik Kalyan)." },
-      { type: "metro", text: "Hop onto Blue Line from Central / Chandni Chowk 1 stop north to MG Road Metro." },
-      { type: "walk", text: "Visit Muhammad Ali Park (famous for palatial replicas) and College Square (grand illuminated reflections on the lake)." },
-      { type: "food", text: "Food Pitstop: Chitto Babur Dokan (Dacres Lane) for Chicken Stew & Toast, Anadi Cabin for Mughlai Paratha, or Putiram for Radhaballabhi." }
-    ]
-  },
-  {
-    keywords: ["salt lake", "fd block", "bj block", "sealdah to salt lake", "city centre"],
-    title: "Salt Lake Mega Pandals (FD Block, BJ Block, AK Block)",
-    route: [
-      { type: "metro", text: "Take Green Line Metro to City Centre Station or Central Park Station." },
-      { type: "walk", text: "From City Centre Metro, walk 5 mins to BJ Block or take a local toto/rickshaw (₹15) to FD Block." },
-      { type: "walk", text: "FD Block is Salt Lake's most famous grand theme pandal with massive open park space." },
-      { type: "food", text: "Food Pitstop: Saptapadi (Salt Lake Sector 1), Oudh 1590 (near FD Block), or Chowman Sector 2." }
-    ]
-  },
-  {
-    keywords: ["behala", "south west", "barisha", "taratala"],
-    title: "South-West Kolkata & Behala Circuit",
-    route: [
-      { type: "metro", text: "Take Purple Line Metro to Behala Chowrasta or Taratala Metro Station." },
-      { type: "walk", text: "Visit Barisha Club, Behala Nutan Dal, and Behala Club (all within 5-10 mins walk from Chowrasta)." },
-      { type: "auto", text: "Take auto from Chowrasta to Parnasree Pally (₹15) for award-winning theme pujos." },
-      { type: "food", text: "Food Pitstop: Mitra Cafe Behala Chowrasta for Fish Fry, Parnasree Roll Corner for Chicken Rolls, or Haji Saheb for Biryani." }
-    ]
-  },
-  {
-    keywords: ["roll", "rolls", "food", "kathi roll", "street food", "eat"],
-    title: "Kolkata's Legendary Street Food & Roll Trail",
-    route: [
-      { type: "metro", text: "Park Street Metro: Kusum Rolls (flaky Kathi rolls) and Hot Kathi Roll." },
-      { type: "metro", text: "Esplanade Metro: Nizam's (the 1932 birthplace of Kathi Rolls) and Dacres Lane Chicken Stew." },
-      { type: "metro", text: "Gariahat / Kalighat: Bedouin King Rolls & Campari Fried Cutlets." },
-      { type: "metro", text: "College Street: Kalika Mukhorochak for Fish Chop and Mutton Chop with pungent Kasundi." }
-    ]
-  }
-];
+import { 
+  parseRouteQuery, 
+  generateDynamicRoute, 
+  handleOpenEndedQuery,
+  identifyHub 
+} from "../utils/transitEngine";
 
 export default function DawonChatbot({ userLocation, onNavigateToPandal }) {
   const [isOpen, setIsOpen] = useState(false);
@@ -154,18 +80,30 @@ export default function DawonChatbot({ userLocation, onNavigateToPandal }) {
     ]);
   };
 
-  // Local Knowledge Route Matcher
-  const findLocalRoute = (query) => {
-    const q = query.toLowerCase();
-    for (const item of TRANSIT_KNOWLEDGE_BASE) {
-      if (item.keywords.some((kw) => q.includes(kw))) {
-        return item;
+  // Dynamic Route Resolver using Transit Engine
+  const resolveQueryRoute = (query) => {
+    // 1. Try parsing origin and destination (e.g. "how to reach sreebhumi from behala thana")
+    const parsed = parseRouteQuery(query);
+    if (parsed) {
+      const dynamicRoute = generateDynamicRoute(parsed.originQuery, parsed.destinationQuery, userLocation);
+      if (dynamicRoute) {
+        return dynamicRoute;
       }
     }
+
+    // 2. Try identifying single hub or pandal mentioned in query (e.g. "sreebhumi" or "bagbazar")
+    const hub = identifyHub(query);
+    if (hub) {
+      const dynamicRoute = generateDynamicRoute(null, hub.name, userLocation);
+      if (dynamicRoute) {
+        return dynamicRoute;
+      }
+    }
+
     return null;
   };
 
-  // Send message handler (Ollama with Smart Local Fallback)
+  // Send message handler (Ollama with Dynamic Local Fallback)
   const handleSendMessage = async (textToSend = inputMessage) => {
     const text = textToSend.trim();
     if (!text) return;
@@ -181,10 +119,7 @@ export default function DawonChatbot({ userLocation, onNavigateToPandal }) {
     setInputMessage("");
     setIsTyping(true);
 
-    // 1. Try local knowledge first for instant accurate routing
-    const localMatch = findLocalRoute(text);
-
-    // 2. Attempt Ollama API call if configured
+    // 1. Attempt Ollama API call if configured
     let aiResponse = null;
     const cleanUrl = (ollamaUrl || "http://localhost:11434").replace(/\/+$/, "");
 
@@ -239,38 +174,64 @@ Highlight any famous food or roll stops nearby. Be concise, cheerful, and use co
           time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
         }
       ]);
-    } else if (localMatch) {
+      return;
+    }
+
+    // 2. Check for Open-Ended Puja Knowledge Query (Anjali, Sandhi Puja, Metro timing, VIP passes, Biryani)
+    const openEndedAnswer = handleOpenEndedQuery(text);
+    if (openEndedAnswer) {
       setMessages((prev) => [
         ...prev,
         {
           id: `dawon-${Date.now()}`,
           sender: "dawon",
-          routeData: localMatch,
+          text: openEndedAnswer.text,
+          source: "Dawon Pujo Guide",
+          time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+        }
+      ]);
+      return;
+    }
+
+    // 3. Check for Dynamic Transit Route (Parses exact origin & destination)
+    const dynamicRoute = resolveQueryRoute(text);
+    if (dynamicRoute) {
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: `dawon-${Date.now()}`,
+          sender: "dawon",
+          routeData: dynamicRoute,
           source: "Dawon Kolkata Transit Engine",
           time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
         }
       ]);
-    } else {
-      // General Transit Advice
-      setMessages((prev) => [
-        ...prev,
-        {
-          id: `dawon-${Date.now()}`,
-          sender: "dawon",
-          text: `Eita cover korar shobcheye shundor rasta holo:\n1. 🚇 Kolkata Metro dhore nearest station-e nambo (Blue Line for North-South, Green Line for East-West).\n2. 🛺 Platform exit gate-er baire theke shared auto pabe (pujo fare ₹15-₹20).\n3. 🚶 Bamboo barricade one-way line follow kore 5-10 mins walk.\n\nSpecific kono pandal (e.g. Sreebhumi, Bagbazar, Deshapriya Park, FD Block, Behala) ba food trail jante chaile niche click koro!`,
-          source: "Dawon Smart Guide",
-          time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-        }
-      ]);
+      return;
     }
+
+    // 4. Conversational General Fallback
+    setMessages((prev) => [
+      ...prev,
+      {
+        id: `dawon-${Date.now()}`,
+        sender: "dawon",
+        text: `Kolkata-r kono specific pandal ba station-e jete chao? 
+Bolo: "How to reach Sreebhumi from Behala Thana" ba "Bagbazar from Garia". 
+Ami tomake exact Metro line, feeder auto, walk distance ar food pitstop bole debo!
+
+Ba jiggesh korte paro: "Ashtami anjali timing", "Metro night timings", ba "Where to eat best biryani?"`,
+        source: "Dawon Smart Guide",
+        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+      }
+    ]);
   };
 
   const quickPrompts = [
-    "How to reach Sreebhumi from Howrah?",
-    "North Kolkata trail: Bagbazar to Kumartuli",
-    "South Kolkata: Kalighat to Gariahat pandals",
-    "Central: Esplanade to College Square & Md Ali Park",
-    "Where to eat best rolls near Park Street?"
+    "How to reach Sreebhumi from Behala Thana?",
+    "How to reach Bagbazar from Garia?",
+    "Maha Ashtami Anjali Timings & Rules",
+    "Midnight Metro schedule during Pujo",
+    "Where to eat best biryani and rolls?"
   ];
 
   return (

@@ -113,8 +113,13 @@ export default function Footer() {
                 </a>
               </li>
               <li>
-                <a href="#reviews" className="hover:text-amber-300 transition">
-                  ⭐ Leave Website Review
+                <a 
+                  href="https://forms.gle/qpq8CS3kgwwcpkri7" 
+                  target="_blank" 
+                  rel="noopener noreferrer" 
+                  className="hover:text-amber-300 transition text-amber-400 font-semibold flex items-center gap-1"
+                >
+                  📝 Share Feedback & Suggestions
                 </a>
               </li>
             </ul>
