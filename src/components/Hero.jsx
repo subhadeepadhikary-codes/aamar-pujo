@@ -32,6 +32,7 @@ export default function Hero({
 
   const quickHotspots = [
     { label: "📍 Near Me (GPS)", action: () => { onToggleNearMe(); if (onNavigate) onNavigate("pandals"); }, highlight: isNearMeActive },
+    { label: "🚇 Pujo by Metro", action: () => { if (onNavigate) onNavigate("pandals"); }, isMetro: true },
     { label: "South Kolkata (179)", action: () => { onSelectZone("south"); if (onNavigate) onNavigate("pandals"); } },
     { label: "North Kolkata (98)", action: () => { onSelectZone("north"); if (onNavigate) onNavigate("pandals"); } },
     { label: "Central Heritage (62)", action: () => { onSelectZone("central"); if (onNavigate) onNavigate("pandals"); } },
@@ -117,7 +118,9 @@ export default function Hero({
                 key={i}
                 onClick={h.action}
                 className={`text-xs px-3.5 py-1.5 rounded-full font-medium transition-all ${
-                  h.highlight
+                  h.isMetro
+                    ? "bg-blue-600/30 text-blue-200 border-2 border-blue-400 font-bold shadow-md shadow-blue-600/30 hover:bg-blue-600/50 hover:text-white"
+                    : h.highlight
                     ? "bg-rose-600 text-white shadow-md shadow-rose-600/30 ring-2 ring-rose-400"
                     : "bg-white/5 hover:bg-white/10 text-slate-300 border border-white/10 hover:border-amber-400/40 hover:text-amber-200"
                 }`}
@@ -161,7 +164,7 @@ export default function Hero({
               className="glass-card rounded-2xl p-4 text-left border-emerald-500/20 hover:border-emerald-400/50 transition group"
             >
               <Info className="w-6 h-6 text-emerald-400 mb-2 group-hover:scale-110 transition" />
-              <div className="font-heritage text-lg font-bold text-white">About & Reviews</div>
+              <div className="font-heritage text-lg font-bold text-white">About & Feedback</div>
               <div className="text-[11px] text-slate-400">Subhadeep's Story ➔</div>
             </button>
           </div>

@@ -211,7 +211,7 @@ export default function App() {
       />
 
       {/* Main View Container: STRICT PAGE-BY-PAGE SEGREGATION */}
-      <main className="flex-1 w-full max-w-full overflow-x-hidden">
+      <main className={`flex-1 w-full max-w-full overflow-x-hidden ${isAudioPlaying && currentPage !== "melodies" ? "pb-28 sm:pb-16" : ""}`}>
         
         {/* PAGE 1: HOME (Hero Carousel + Search & Portal) */}
         {currentPage === "home" && (
@@ -334,7 +334,7 @@ export default function App() {
 
       {/* Persistent Mini Audio Player Strip (Mobile Responsive & Never Cuts Off) */}
       {isAudioPlaying && currentPage !== "melodies" && (
-        <div className="fixed bottom-4 left-3 right-3 sm:left-6 sm:right-auto sm:w-[410px] max-w-[calc(100vw-24px)] z-40 rounded-2xl p-3 sm:p-3.5 border-2 border-amber-500/50 shadow-2xl shadow-black/90 flex items-center justify-between animate-fadeIn bg-[#100B18]/95 backdrop-blur-xl">
+        <div className="fixed bottom-3 left-3 right-3 sm:left-6 sm:right-auto sm:w-[410px] max-w-[calc(100vw-24px)] z-40 rounded-2xl p-2.5 sm:p-3 border-2 border-amber-500/50 shadow-2xl shadow-black/90 flex items-center justify-between animate-fadeIn bg-[#100B18]/95 backdrop-blur-xl">
           <div 
             onClick={() => {
               setCurrentPage("melodies");
@@ -343,7 +343,7 @@ export default function App() {
             className="flex items-center space-x-2.5 sm:space-x-3 cursor-pointer group flex-1 min-w-0 mr-2 sm:mr-3"
             title="Click to open Daily Melodies Lounge"
           >
-            <div className="relative w-11 h-11 sm:w-12 sm:h-12 rounded-xl overflow-hidden flex-shrink-0 border border-amber-500/40 shadow-md">
+            <div className="relative w-10 h-10 sm:w-11 sm:h-11 rounded-xl overflow-hidden flex-shrink-0 border border-amber-500/40 shadow-md">
               <img 
                 src={currentSong.image || "/images/durga/durga_face_1.jpg"} 
                 alt={currentSong.title}
@@ -354,7 +354,7 @@ export default function App() {
                 className="w-full h-full object-cover group-hover:scale-110 transition duration-300"
               />
               <div className="absolute inset-0 bg-black/25 flex items-center justify-center">
-                <Disc3 className="w-5 h-5 text-amber-300 animate-spin" />
+                <Disc3 className="w-4 h-4 sm:w-5 sm:h-5 text-amber-300 animate-spin" />
               </div>
             </div>
             
@@ -409,6 +409,7 @@ export default function App() {
           setCurrentPage("pandals");
           window.scrollTo({ top: 0, behavior: "smooth" });
         }}
+        isAudioPlaying={isAudioPlaying && currentPage !== "melodies"}
       />
 
     </div>

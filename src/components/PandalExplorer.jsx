@@ -406,6 +406,51 @@ export default function PandalExplorer({
             )}
           </div>
 
+          {/* Quick Metro Station Filter Bar (High Mobile Discoverability) */}
+          <div className="flex items-center space-x-2 overflow-x-auto pb-1 scrollbar-thin">
+            <span className="text-[11px] font-bold text-blue-300 flex items-center space-x-1 flex-shrink-0 bg-blue-950/60 px-2.5 py-1.5 rounded-xl border border-blue-500/40">
+              <Train className="w-3.5 h-3.5 text-blue-400 mr-1" />
+              <span>Metro Stations:</span>
+            </span>
+
+            {[
+              { id: "all", name: "All Stations" },
+              { id: "esplanade", name: "Esplanade" },
+              { id: "kalighat", name: "Kalighat" },
+              { id: "dum_dum", name: "Dum Dum" },
+              { id: "shobhabazar", name: "Sovabazar" },
+              { id: "shyambazar", name: "Shyambazar" },
+              { id: "howrah", name: "Howrah" },
+              { id: "sealdah", name: "Sealdah" },
+              { id: "city_centre", name: "City Centre" },
+              { id: "rabindra_sarobar", name: "Rabindra Sarobar" }
+            ].map((st) => {
+              const stationObj = st.id === "all" ? null : METRO_STATIONS.find(s => s.id === st.id);
+              const isSelected = st.id === "all" ? !selectedMetroStation : selectedMetroStation?.id === st.id;
+              return (
+                <button
+                  key={st.id}
+                  onClick={() => {
+                    if (onSelectMetroStation) {
+                      onSelectMetroStation(stationObj);
+                      if (stationObj) {
+                        setSelectedZone("all");
+                        setSearchQuery("");
+                      }
+                    }
+                  }}
+                  className={`flex-shrink-0 px-3 py-1.5 rounded-xl text-xs font-semibold transition border ${
+                    isSelected
+                      ? "bg-blue-600 text-white font-bold border-blue-400 shadow-md shadow-blue-600/30"
+                      : "bg-[#141022] text-slate-300 border-white/10 hover:border-blue-400/40 hover:text-white"
+                  }`}
+                >
+                  {st.name}
+                </button>
+              );
+            })}
+          </div>
+
           {/* Zone Selector Tabs (Scrollable on mobile) */}
           <div className="flex items-center space-x-2 overflow-x-auto pb-2 scrollbar-thin">
             {currentZones.map((zone) => (

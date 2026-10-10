@@ -27,7 +27,7 @@ import {
   identifyHub 
 } from "../utils/transitEngine";
 
-export default function DawonChatbot({ userLocation, onNavigateToPandal }) {
+export default function DawonChatbot({ userLocation, onNavigateToPandal, isAudioPlaying }) {
   const [isOpen, setIsOpen] = useState(false);
   const [isMinimized, setIsMinimized] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
@@ -235,7 +235,11 @@ Ba jiggesh korte paro: "Ashtami anjali timing", "Metro night timings", ba "Where
   ];
 
   return (
-    <div className="fixed bottom-5 right-5 sm:bottom-6 sm:right-6 z-50 font-sans">
+    <div className={`fixed z-50 font-sans transition-all duration-300 ${
+      isAudioPlaying 
+        ? "bottom-24 right-3 sm:bottom-6 sm:right-6" 
+        : "bottom-4 right-3 sm:bottom-6 sm:right-6"
+    }`}>
       
       {/* Floating Action Mascot Button */}
       {!isOpen && (
@@ -244,21 +248,21 @@ Ba jiggesh korte paro: "Ashtami anjali timing", "Metro night timings", ba "Where
             setIsOpen(true);
             setIsMinimized(false);
           }}
-          className="relative group flex items-center space-x-2.5 px-4 py-3 rounded-full bg-gradient-to-r from-amber-500 via-rose-600 to-amber-500 text-slate-950 font-black shadow-2xl shadow-rose-600/50 border-2 border-amber-300 hover:scale-105 active:scale-95 transition-all cursor-pointer"
+          className="relative group flex items-center space-x-2 px-3.5 py-2.5 sm:px-4 sm:py-3 rounded-full bg-gradient-to-r from-amber-500 via-rose-600 to-amber-500 text-slate-950 font-black shadow-2xl shadow-rose-600/50 border-2 border-amber-300 hover:scale-105 active:scale-95 transition-all cursor-pointer"
           title="Open Dawon - AI Pujo Transit Guide"
         >
-          <div className="w-8 h-8 rounded-full bg-slate-950 flex items-center justify-center text-lg flex-shrink-0 border border-amber-300/40 shadow-inner">
+          <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-slate-950 flex items-center justify-center text-base sm:text-lg flex-shrink-0 border border-amber-300/40 shadow-inner">
             🦁
           </div>
-          <div className="text-left hidden sm:block">
+          <div className="text-left">
             <span className="block text-xs font-black tracking-wide leading-tight text-slate-950">
-              Ask Dawon
+              Dawon AI
             </span>
-            <span className="block text-[9px] font-bold text-slate-900/80 leading-tight">
-              AI Transit & Pandal Guide
+            <span className="hidden sm:block text-[9px] font-bold text-slate-900/80 leading-tight">
+              Transit & Pandal Guide
             </span>
           </div>
-          <span className="relative flex h-2.5 w-2.5">
+          <span className="relative flex h-2.5 w-2.5 ml-0.5">
             <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-200 opacity-75"></span>
             <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-400"></span>
           </span>
@@ -268,8 +272,8 @@ Ba jiggesh korte paro: "Ashtami anjali timing", "Metro night timings", ba "Where
       {/* Expanded Chat Window */}
       {isOpen && (
         <div 
-          className={`w-[92vw] sm:w-[410px] bg-[#120A1A] border-2 border-amber-400/60 rounded-3xl shadow-2xl shadow-black/95 flex flex-col overflow-hidden transition-all duration-300 ${
-            isMinimized ? "h-16" : "h-[540px] max-h-[85vh]"
+          className={`w-[94vw] sm:w-[410px] max-w-md bg-[#120A1A] border-2 border-amber-400/60 rounded-3xl shadow-2xl shadow-black/95 flex flex-col overflow-hidden transition-all duration-300 ${
+            isMinimized ? "h-16" : "h-[540px] max-h-[82vh]"
           }`}
         >
           {/* Top Bar Header */}
