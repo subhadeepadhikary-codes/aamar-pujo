@@ -114,7 +114,7 @@ export default function HeroCarousel({ userLocation, onSelectPandal, onNavigateT
   const prevSlide = () => setCurrentSlide((prev) => (prev - 1 + FEATURED_SLIDES.length) % FEATURED_SLIDES.length);
 
   return (
-    <div className="relative w-full h-[460px] sm:h-[540px] md:h-[620px] bg-black overflow-hidden group">
+    <div className="relative w-full h-[380px] sm:h-[500px] md:h-[620px] bg-black overflow-hidden group">
       
       {/* Background Slides with Cross-Fade */}
       {FEATURED_SLIDES.map((item, index) => (
@@ -159,10 +159,10 @@ export default function HeroCarousel({ userLocation, onSelectPandal, onNavigateT
 
           {/* Title & Bengali Script */}
           <div>
-            <h2 className="font-heritage text-3xl sm:text-5xl md:text-6xl font-black text-white tracking-tight drop-shadow-md">
+            <h2 className="font-heritage text-xl sm:text-3xl md:text-5xl font-black text-white tracking-tight drop-shadow-md">
               {slide.name}
             </h2>
-            <p className="font-bengali text-xl sm:text-2xl font-bold text-amber-400 mt-1">
+            <p className="font-bengali text-base sm:text-xl font-bold text-amber-400 mt-1">
               {slide.bengaliName}
             </p>
           </div>

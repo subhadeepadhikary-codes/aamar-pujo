@@ -73,12 +73,12 @@ export default function Hero({
           </div>
 
           {/* Main Title */}
-          <h1 className="font-heritage text-4xl sm:text-6xl md:text-7xl font-extrabold tracking-tight text-white mb-3 leading-tight">
+          <h1 className="font-heritage text-3xl sm:text-5xl md:text-7xl font-extrabold tracking-tight text-white mb-3 leading-tight">
             Aamar <span className="text-gold-gradient">Pujo</span>
           </h1>
 
           {/* Bengali Tagline */}
-          <p className="font-bengali text-xl sm:text-2xl md:text-3xl font-bold text-amber-300/90 mb-3 tracking-wide">
+          <p className="font-bengali text-base sm:text-xl md:text-3xl font-bold text-amber-300/90 mb-3 tracking-wide">
             “এবার পুজো, অন্য ভাবে — এক ক্লিকে গোটা বাংলার পুজো ম্যাপ”
           </p>
           <p className="text-sm sm:text-base text-slate-300 max-w-2xl mx-auto mb-7 font-normal leading-relaxed">

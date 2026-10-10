@@ -251,64 +251,64 @@ export default function PandalExplorer({
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         
         {/* Section Title Header */}
-        <div className="flex flex-col md:flex-row md:items-end justify-between mb-8 pb-6 border-b border-white/10 gap-4">
+        <div className="flex flex-col md:flex-row md:items-end justify-between mb-6 pb-4 sm:pb-6 border-b border-white/10 gap-3 sm:gap-4">
           <div>
-            <div className="inline-flex items-center space-x-2 px-3.5 py-1 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-300 text-xs font-semibold mb-2">
-              <Compass className="w-3.5 h-3.5" />
+            <div className="inline-flex items-center space-x-1.5 px-3 py-0.5 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-300 text-[10px] sm:text-xs font-semibold mb-2">
+              <Compass className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
               <span>Full Bengal Directory · 503 Pandals & 65+ Famous Eateries</span>
             </div>
-            <h2 className="font-heritage text-3xl sm:text-4xl md:text-5xl font-black text-white">
+            <h2 className="font-heritage text-xl sm:text-3xl md:text-5xl font-black text-white">
               Pujo & Food <span className="text-gold-gradient">Navigation Hub</span>
             </h2>
-            <p className="text-xs sm:text-sm text-slate-300 mt-1">
+            <p className="text-[11px] sm:text-sm text-slate-300 mt-0.5 sm:mt-1">
               Navigate pandals and legendary food joints by live GPS distance, metro stations, and districts.
             </p>
           </div>
 
           {/* Near Me GPS Master Switch */}
-          <div className="flex items-center space-x-3">
+          <div className="flex items-center space-x-2">
             <button
               onClick={onToggleNearMe}
-              className={`px-5 py-3 rounded-2xl text-xs sm:text-sm font-bold flex items-center space-x-2 transition-all shadow-xl ${
+              className={`px-3.5 py-2 sm:px-5 sm:py-3 rounded-xl sm:rounded-2xl text-xs sm:text-sm font-bold flex items-center space-x-1.5 sm:space-x-2 transition-all shadow-xl ${
                 isNearMeActive
                   ? "bg-rose-600 text-white shadow-rose-600/30 ring-2 ring-rose-400"
                   : "bg-[#181122] hover:bg-[#221730] text-amber-300 border border-amber-500/30"
               }`}
             >
-              <Navigation className={`w-4 h-4 ${isNearMeActive ? "text-white animate-spin" : "text-amber-400"}`} />
+              <Navigation className={`w-3.5 h-3.5 sm:w-4 sm:h-4 ${isNearMeActive ? "text-white animate-spin" : "text-amber-400"}`} />
               <span>{isNearMeActive ? "📍 Near Me (Active GPS)" : "📍 Sort By Near Me (GPS)"}</span>
             </button>
           </div>
         </div>
 
         {/* Tab Switcher: Pandals Directory vs Food Near Me */}
-        <div className="flex flex-wrap sm:flex-nowrap items-center gap-2.5 sm:gap-3 mb-6">
+        <div className="grid grid-cols-2 gap-2 sm:gap-3 mb-6">
           <button
             onClick={() => handleTabSwitch("pandals")}
-            className={`flex-1 min-w-[160px] flex items-center justify-center space-x-2 px-4 sm:px-5 py-3 rounded-2xl text-xs sm:text-sm font-bold transition border ${
+            className={`flex items-center justify-center space-x-1.5 sm:space-x-2 px-3 sm:px-5 py-2.5 sm:py-3 rounded-xl sm:rounded-2xl text-xs sm:text-sm font-bold transition border min-w-0 ${
               activeTab === "pandals"
                 ? "bg-gradient-to-r from-amber-500 to-rose-600 text-slate-950 border-amber-400 shadow-lg shadow-amber-500/20"
                 : "bg-[#140E1B] text-slate-300 border-white/10 hover:border-amber-400/30"
             }`}
           >
-            <Compass className="w-4 h-4 flex-shrink-0" />
-            <span>🏯 503+ Puja Pandals</span>
-            <span className="text-[10px] px-2 py-0.5 rounded-full bg-black/30 font-mono">
+            <Compass className="w-3.5 h-3.5 sm:w-4 sm:h-4 flex-shrink-0" />
+            <span className="truncate">🏯 503+ Pandals</span>
+            <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-black/30 font-mono flex-shrink-0">
               {filteredPandals.length}
             </span>
           </button>
 
           <button
             onClick={() => handleTabSwitch("food")}
-            className={`flex-1 min-w-[200px] flex items-center justify-center space-x-2 px-4 sm:px-5 py-3 rounded-2xl text-xs sm:text-sm font-bold transition border ${
+            className={`flex items-center justify-center space-x-1.5 sm:space-x-2 px-3 sm:px-5 py-2.5 sm:py-3 rounded-xl sm:rounded-2xl text-xs sm:text-sm font-bold transition border min-w-0 ${
               activeTab === "food"
                 ? "bg-gradient-to-r from-amber-500 to-rose-600 text-slate-950 border-amber-400 shadow-lg shadow-amber-500/20"
                 : "bg-[#140E1B] text-slate-300 border-white/10 hover:border-amber-400/30"
             }`}
           >
-            <Utensils className="w-4 h-4 flex-shrink-0" />
-            <span>🍽️ Restaurants Near Me</span>
-            <span className="text-[10px] px-2 py-0.5 rounded-full bg-black/30 font-mono">
+            <Utensils className="w-3.5 h-3.5 sm:w-4 sm:h-4 flex-shrink-0" />
+            <span className="truncate">🍽️ Restaurants</span>
+            <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-black/30 font-mono flex-shrink-0">
               {filteredRestaurants.length}
             </span>
           </button>
@@ -316,21 +316,24 @@ export default function PandalExplorer({
 
         {/* Active Metro Filter Banner (if selected) */}
         {selectedMetroStation && (
-          <div className="mb-6 p-4 rounded-2xl bg-[#1B1128] border-2 border-amber-400/60 flex items-center justify-between gap-3 shadow-xl animate-fadeIn">
-            <div className="flex items-center space-x-3">
-              <div className="w-10 h-10 rounded-xl bg-amber-500/20 flex items-center justify-center text-amber-300 flex-shrink-0">
-                <Train className="w-5 h-5" />
+          <div className="mb-6 p-3 sm:p-4 rounded-2xl bg-[#1B1128] border-2 border-amber-400/60 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-xl animate-fadeIn">
+            <div className="flex items-start sm:items-center space-x-2.5 sm:space-x-3 min-w-0 flex-1">
+              <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-amber-500/20 flex items-center justify-center text-amber-300 flex-shrink-0 mt-0.5 sm:mt-0">
+                <Train className="w-4 h-4 sm:w-5 sm:h-5" />
               </div>
-              <div>
-                <div className="flex items-center space-x-2">
-                  <span className="text-xs font-bold text-amber-300">
-                    🚇 Filtered by Metro Station: {selectedMetroStation.name} ({selectedMetroStation.bengaliName})
+              <div className="min-w-0 flex-1">
+                <div className="flex flex-wrap items-center gap-1.5">
+                  <span className="text-xs sm:text-sm font-bold text-amber-300">
+                    🚇 Filtered by Metro: {selectedMetroStation.name}
                   </span>
-                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-400/20 text-amber-200 border border-amber-400/30 font-semibold">
+                  <span className="text-[10px] text-amber-200/80 font-bengali">
+                    ({selectedMetroStation.bengaliName})
+                  </span>
+                  <span className="text-[9px] px-2 py-0.5 rounded-md bg-amber-400/20 text-amber-200 border border-amber-400/30 font-semibold inline-block">
                     {selectedMetroStation.lineName}
                   </span>
                 </div>
-                <p className="text-[11px] text-slate-300 mt-0.5">
+                <p className="text-[10px] sm:text-[11px] text-slate-300 mt-1 line-clamp-2">
                   {selectedMetroStation.description}
                 </p>
               </div>
@@ -338,7 +341,7 @@ export default function PandalExplorer({
 
             <button
               onClick={() => onSelectMetroStation && onSelectMetroStation(null)}
-              className="px-3 py-1.5 rounded-xl bg-white/10 hover:bg-rose-600 text-white text-xs font-bold transition flex items-center space-x-1 flex-shrink-0"
+              className="w-full sm:w-auto px-3 py-2 sm:py-1.5 rounded-xl bg-white/10 hover:bg-rose-600 text-white text-xs font-bold transition flex items-center justify-center space-x-1 flex-shrink-0 border border-white/10"
             >
               <X className="w-3.5 h-3.5" />
               <span>Clear Metro Filter</span>

@@ -177,7 +177,7 @@ export default function PandalMap({ userLocation, onOpenModal, selectedZone }) {
               <Globe className="w-3.5 h-3.5" />
               <span>West Bengal Geospatial Map · 503 Verified Pandals</span>
             </div>
-            <h2 className="font-heritage text-3xl sm:text-4xl md:text-5xl font-black text-white">
+            <h2 className="font-heritage text-2xl sm:text-3xl md:text-5xl font-black text-white">
               West Bengal <span className="text-gold-gradient">Pandal Map</span>
             </h2>
             <p className="text-xs sm:text-sm text-slate-300 mt-1">

@@ -96,36 +96,49 @@ export default function Navbar({
   });
 
   return (
-    <header className="sticky top-0 z-50 bg-[#0A070D]/95 backdrop-blur-xl border-b border-amber-500/20 transition-all">
-      <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-16 sm:h-20 gap-2 sm:gap-3">
+    <header className="sticky top-0 z-50 bg-[#0A070D]/95 backdrop-blur-xl border-b border-amber-500/20 transition-all overflow-x-hidden">
+      <div className="max-w-7xl mx-auto px-2 sm:px-6 lg:px-8">
+        <div className="flex items-center justify-between h-14 sm:h-20 gap-1 sm:gap-3">
           
-          {/* Logo & Brand Identity */}
-          <div 
-            onClick={() => handleNavClick("home")}
-            className="flex items-center space-x-2 sm:space-x-3 cursor-pointer group flex-shrink-0"
-          >
-            <div className="relative">
-              <div className="absolute -inset-1 bg-gradient-to-r from-amber-500 to-rose-600 rounded-full blur-sm opacity-60 group-hover:opacity-100 transition duration-300" />
-              <img 
-                src={logoImg} 
-                alt="Aamar Pujo Logo" 
-                className="relative w-9 h-9 sm:w-11 sm:h-11 object-contain rounded-full bg-[#120D17] border border-amber-400/40 p-0.5 transform group-hover:scale-105 transition duration-300" 
-              />
-            </div>
-            <div>
-              <div className="flex items-center space-x-1 sm:space-x-1.5">
-                <span className="font-heritage text-lg sm:text-2xl font-black tracking-tight text-white group-hover:text-amber-300 transition">
-                  Aamar<span className="text-amber-400">Pujo</span>
-                </span>
-                <span className="inline-flex items-center px-1.5 py-0.2 rounded text-[9px] sm:text-[10px] font-bold bg-amber-500/15 text-amber-300 border border-amber-500/30">
-                  <Flame className="w-2.5 h-2.5 mr-0.5 text-rose-500 animate-pulse" />
-                  Live
-                </span>
+          {/* LEFT: Menu Button (Mobile) + Logo & Brand */}
+          <div className="flex items-center space-x-1.5 sm:space-x-3 flex-shrink-0 min-w-0">
+            {/* ☰ Menu Toggle (Mobile/Tablet) - LEFT SIDE */}
+            <button
+              onClick={() => setMobileMenuOpen(true)}
+              className="lg:hidden flex items-center justify-center w-9 h-9 rounded-xl bg-gradient-to-r from-amber-500/25 via-rose-500/25 to-amber-500/25 text-amber-300 border border-amber-400/80 shadow-md hover:scale-105 active:scale-95 transition flex-shrink-0"
+              aria-label="Open side column navigation menu"
+              title="Open Navigation Menu"
+            >
+              <Menu className="w-4.5 h-4.5 text-amber-400" />
+            </button>
+
+            {/* Logo & Brand Identity */}
+            <div 
+              onClick={() => handleNavClick("home")}
+              className="flex items-center space-x-1.5 sm:space-x-3 cursor-pointer group flex-shrink-0 min-w-0"
+            >
+              <div className="relative flex-shrink-0">
+                <div className="absolute -inset-1 bg-gradient-to-r from-amber-500 to-rose-600 rounded-full blur-sm opacity-60 group-hover:opacity-100 transition duration-300" />
+                <img 
+                  src={logoImg} 
+                  alt="Aamar Pujo Logo" 
+                  className="relative w-8 h-8 sm:w-11 sm:h-11 object-contain rounded-full bg-[#120D17] border border-amber-400/40 p-0.5 transform group-hover:scale-105 transition duration-300" 
+                />
               </div>
-              <p className="hidden md:block text-[11px] font-bengali text-amber-200/80 tracking-wide">
-                এবার পুজো, অন্য ভাবে · <span className="font-sans text-[10px] text-slate-400">One Click Away</span>
-              </p>
+              <div className="min-w-0">
+                <div className="flex items-center space-x-1 sm:space-x-1.5">
+                  <span className="font-heritage text-base sm:text-2xl font-black tracking-tight text-white group-hover:text-amber-300 transition truncate">
+                    Aamar<span className="text-amber-400">Pujo</span>
+                  </span>
+                  <span className="inline-flex items-center px-1 py-0.5 rounded text-[8px] sm:text-[10px] font-bold bg-amber-500/15 text-amber-300 border border-amber-500/30 flex-shrink-0">
+                    <Flame className="w-2 h-2 sm:w-2.5 sm:h-2.5 mr-0.5 text-rose-500 animate-pulse" />
+                    Live
+                  </span>
+                </div>
+                <p className="hidden md:block text-[11px] font-bengali text-amber-200/80 tracking-wide">
+                  এবার পুজো, অন্য ভাবে · <span className="font-sans text-[10px] text-slate-400">One Click Away</span>
+                </p>
+              </div>
             </div>
           </div>
 
@@ -218,50 +231,47 @@ export default function Navbar({
             </div>
           </nav>
 
-          {/* Right Action Controls (Ultra Compact & Mobile Friendly - Never Overflows) */}
-          <div className="flex items-center space-x-1.5 sm:space-x-2 flex-shrink-0">
+          {/* RIGHT: Compact Action Controls - fits within 150px on mobile */}
+          <div className="flex items-center space-x-1 sm:space-x-2 flex-shrink-0">
             
-            {/* 🚇 Pujo by Metro Quick Access Button (Always Visible on Mobile & Desktop) */}
+            {/* 🚇 Metro Quick Access */}
             <button
               onClick={() => setMetroModalOpen(true)}
-              className={`flex items-center space-x-1 sm:space-x-1.5 px-2.5 py-1.5 sm:px-3 sm:py-2 rounded-xl text-xs font-bold transition-all border shadow-sm ${
+              className={`flex items-center space-x-0.5 sm:space-x-1.5 px-2 py-1.5 sm:px-3 sm:py-2 rounded-xl text-xs font-bold transition-all border shadow-sm ${
                 selectedMetroStation
-                  ? "bg-blue-600/40 text-blue-200 border-blue-400 ring-2 ring-blue-400/40 animate-pulse"
+                  ? "bg-blue-600/40 text-blue-200 border-blue-400 ring-1 ring-blue-400/40"
                   : "bg-[#141226] text-blue-300 border-blue-500/40 hover:border-blue-400 hover:bg-[#1E1B38]"
               }`}
               title="Filter Pandals by Kolkata Metro Stations"
             >
               <Train className="w-3.5 h-3.5 text-blue-400 flex-shrink-0" />
-              <span className="text-[11px] sm:text-xs">
+              <span className="text-[10px] sm:text-xs">
                 {selectedMetroStation ? selectedMetroStation.name.split(" ")[0] : "Metro"}
               </span>
-              {selectedMetroStation && (
-                <span className="w-1.5 h-1.5 rounded-full bg-blue-400 animate-ping" />
-              )}
             </button>
 
-            {/* 📍 Near Me GPS Button */}
+            {/* 📍 Near Me GPS */}
             <button
               onClick={() => {
                 onToggleNearMe();
                 setCurrentPage("pandals");
                 window.scrollTo({ top: 0, behavior: "smooth" });
               }}
-              className={`flex items-center space-x-1 sm:space-x-1.5 px-2.5 py-1.5 sm:px-3 sm:py-2 rounded-xl text-xs font-bold transition-all border shadow-sm ${
+              className={`flex items-center space-x-0.5 px-2 py-1.5 sm:px-3 sm:py-2 rounded-xl text-xs font-bold transition-all border shadow-sm ${
                 isNearMeActive
-                  ? "bg-rose-600 text-white border-rose-400 ring-2 ring-rose-400/40 animate-pulse"
+                  ? "bg-rose-600 text-white border-rose-400 ring-1 ring-rose-400/40"
                   : "bg-[#1E0D1A] text-rose-200 border-rose-500/50 hover:border-rose-400 hover:bg-[#2A1224]"
               }`}
               title="Track nearest pandals from your current GPS location"
             >
               <MapPin className={`w-3.5 h-3.5 ${isNearMeActive ? "text-white" : "text-rose-400"} flex-shrink-0`} />
-              <span className="text-[11px] sm:text-xs">GPS</span>
+              <span className="text-[10px] sm:text-xs">GPS</span>
             </button>
 
-            {/* 🔊 Audio Toggle Button */}
+            {/* 🔊 Audio Toggle - Icon only on mobile */}
             <button
               onClick={onToggleAudio}
-              className={`flex items-center space-x-1 sm:space-x-1.5 px-2 sm:px-3 py-1.5 sm:py-2 rounded-xl text-xs font-bold transition border shadow-sm ${
+              className={`flex items-center justify-center w-8 h-8 sm:w-auto sm:h-auto sm:space-x-1.5 sm:px-3 sm:py-2 rounded-xl text-xs font-bold transition border shadow-sm ${
                 isAudioPlaying 
                   ? "bg-[#25170B] text-amber-300 border-amber-400 ring-1 ring-amber-400/30"
                   : "bg-[#181122] text-slate-300 border-white/20 hover:border-amber-400/60 hover:bg-[#20152D]"
@@ -271,29 +281,55 @@ export default function Navbar({
               {isAudioPlaying ? (
                 <>
                   <Volume2 className="w-3.5 h-3.5 text-amber-400 animate-pulse" />
-                  <span className="hidden md:inline text-[11px] text-amber-300 font-semibold">Audio</span>
+                  <span className="hidden sm:inline text-[11px] text-amber-300 font-semibold">Audio</span>
                 </>
               ) : (
                 <>
                   <VolumeX className="w-3.5 h-3.5 text-slate-400" />
-                  <span className="hidden md:inline text-[11px] text-slate-400 font-semibold">Audio</span>
+                  <span className="hidden sm:inline text-[11px] text-slate-400 font-semibold">Audio</span>
                 </>
               )}
             </button>
 
-            {/* ☰ Prominent Side Column Drawer Toggle Button (Mobile / Tablet) */}
-            <button
-              onClick={() => setMobileMenuOpen(true)}
-              className="lg:hidden flex items-center space-x-1 px-2.5 py-1.5 rounded-xl bg-gradient-to-r from-amber-500/25 via-rose-500/25 to-amber-500/25 text-amber-300 border-2 border-amber-400/80 shadow-md hover:scale-105 active:scale-95 transition"
-              aria-label="Open side column navigation menu"
-              title="Open Navigation Menu"
-            >
-              <Menu className="w-4 h-4 text-amber-400" />
-              <span className="text-[11px] font-black uppercase tracking-wider font-heritage text-white">Menu</span>
-            </button>
-
           </div>
 
+        </div>
+      </div>
+
+      {/* ========================================================================= */}
+      {/* 📱 MOBILE PERSISTENT QUICK-NAV STRIP (Horizontally scrollable, always visible) */}
+      {/* ========================================================================= */}
+      <div className="lg:hidden overflow-x-auto scrollbar-thin border-t border-white/5 bg-[#0A070D]/90">
+        <div className="flex items-center gap-1 px-2 py-1.5 min-w-max">
+          {navItems.map((item) => {
+            const Icon = item.icon;
+            const isActive = currentPage === item.id;
+            return (
+              <button
+                key={item.id}
+                onClick={() => handleNavClick(item.id)}
+                className={`flex items-center space-x-1 px-2.5 py-1 rounded-lg text-[10px] font-bold transition-all whitespace-nowrap flex-shrink-0 ${
+                  isActive
+                    ? "bg-amber-500/25 text-amber-300 border border-amber-400/70 shadow-sm"
+                    : "bg-white/5 text-slate-400 border border-transparent hover:text-white hover:bg-white/10"
+                }`}
+              >
+                <Icon className={`w-3 h-3 ${isActive ? "text-amber-400" : "text-slate-500"}`} />
+                <span>{item.label.split(" ")[0]}</span>
+              </button>
+            );
+          })}
+          <button
+            onClick={() => setMetroModalOpen(true)}
+            className={`flex items-center space-x-1 px-2.5 py-1 rounded-lg text-[10px] font-bold transition-all whitespace-nowrap flex-shrink-0 ${
+              selectedMetroStation
+                ? "bg-blue-500/25 text-blue-300 border border-blue-400/70 shadow-sm"
+                : "bg-white/5 text-slate-400 border border-transparent hover:text-white hover:bg-white/10"
+            }`}
+          >
+            <Train className="w-3 h-3 text-blue-400" />
+            <span>Metro</span>
+          </button>
         </div>
       </div>
 
@@ -308,8 +344,8 @@ export default function Navbar({
             className="fixed inset-0 bg-black/80 backdrop-blur-md transition-opacity"
           />
 
-          {/* Slide-out Drawer Panel */}
-          <div className="fixed top-0 right-0 bottom-0 w-80 sm:w-96 max-w-[88vw] bg-gradient-to-b from-[#180E24] via-[#100A1A] to-[#0A0512] border-l-2 border-amber-500/40 z-50 shadow-2xl flex flex-col animate-slideInRight overflow-hidden">
+          {/* Slide-out Drawer Panel - LEFT SIDE */}
+          <div className="fixed top-0 left-0 bottom-0 w-80 sm:w-96 max-w-[88vw] bg-gradient-to-b from-[#180E24] via-[#100A1A] to-[#0A0512] border-r-2 border-amber-500/40 z-50 shadow-2xl flex flex-col animate-slideInLeft overflow-hidden">
             
             {/* Drawer Header */}
             <div className="p-4 bg-gradient-to-r from-[#221233] via-[#170C24] to-[#221233] border-b border-amber-500/20 flex items-center justify-between">

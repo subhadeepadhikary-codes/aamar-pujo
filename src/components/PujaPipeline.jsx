@@ -187,7 +187,7 @@ export default function PujaPipeline({ onPlayDaySong }) {
             <Clock className="w-3.5 h-3.5" />
             <span>Devi Paksha Flow · মহালয়া থেকে দশমী</span>
           </div>
-          <h2 className="font-heritage text-3xl sm:text-4xl md:text-5xl font-black text-white mb-3">
+          <h2 className="font-heritage text-2xl sm:text-3xl md:text-5xl font-black text-white mb-3">
             Pujo <span className="text-gold-gradient">Pipeline Countdown</span>
           </h2>
           <p className="text-sm sm:text-base text-slate-300">

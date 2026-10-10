@@ -237,8 +237,8 @@ Ba jiggesh korte paro: "Ashtami anjali timing", "Metro night timings", ba "Where
   return (
     <div className={`fixed z-50 font-sans transition-all duration-300 ${
       isAudioPlaying 
-        ? "bottom-24 right-3 sm:bottom-6 sm:right-6" 
-        : "bottom-4 right-3 sm:bottom-6 sm:right-6"
+        ? "bottom-20 right-3 sm:bottom-6 sm:right-6" 
+        : "bottom-5 right-3 sm:bottom-6 sm:right-6"
     }`}>
       
       {/* Floating Action Mascot Button */}

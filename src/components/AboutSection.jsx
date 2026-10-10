@@ -86,10 +86,10 @@ export default function AboutSection() {
               </div>
 
               <div>
-                <h3 className="font-heritage text-3xl sm:text-4xl font-extrabold text-white">
+                <h3 className="font-heritage text-2xl sm:text-4xl font-extrabold text-white">
                   Subhadeep Adhikary
                 </h3>
-                <p className="text-amber-400 font-heritage font-bold text-base sm:text-lg mt-1 italic">
+                <p className="text-amber-400 font-heritage font-bold text-sm sm:text-lg mt-1 italic">
                   “About? Tomader motoi pujo lover ar kichu noi!”
                 </p>
               </div>
