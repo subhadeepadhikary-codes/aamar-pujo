@@ -9,7 +9,7 @@ export const KOLKATA_TRANSIT_HUBS = {
   // --- South-West Kolkata ---
   "behala": {
     name: "Behala",
-    aliases: ["behala", "behala thana", "behala chowrasta", "behala tram depot", "sakher bazar", "thakurpukur", "taratala", "james long", "diamond harbour road", "dh road", "kadamtala behala"],
+    aliases: ["behala", "behala thana", "behala chowrasta", "behala tram depot", "sakher bazar", "thakurpukur", "james long", "diamond harbour road", "dh road", "kadamtala behala"],
     zone: "South-West Kolkata",
     nearestMetro: "Kalighat / Rabindra Sarobar (Blue Line)",
     metroLine: "blue",
@@ -20,12 +20,12 @@ export const KOLKATA_TRANSIT_HUBS = {
   },
   "taratala": {
     name: "Taratala / New Alipore",
-    aliases: ["taratala", "taratola", "new alipore", "majerhat", "alipore"],
+    aliases: ["taratala", "taratola", "taratala crossing", "new alipore", "majerhat", "alipore", "taratala mint"],
     zone: "South-West Kolkata",
     nearestMetro: "Rabindra Sarobar / Kalighat (Blue Line)",
     metroLine: "blue",
-    feederToMetro: "Take shared auto or bus along Taratala crossing to Rabindra Sarobar Metro (~10 mins, ₹15).",
-    lastMileFromMetro: "Take auto from Rabindra Sarobar Metro to Taratala crossing / New Alipore (~10 mins, ₹15).",
+    feederToMetro: "Take a shared auto or bus along Taratala crossing down Diamond Harbour Road / Rashbehari connector directly to Rabindra Sarobar Metro (~10 mins, ₹15).",
+    lastMileFromMetro: "Take an auto from Rabindra Sarobar Metro along Rashbehari connector to Taratala crossing / New Alipore (~10 mins, ₹15).",
     famousFoods: "New Alipore roll stalls, Chai Break, local street cutlets.",
     topPandals: ["Suruchi Sangha (New Alipore)", "Chetla Agrani"]
   },
@@ -220,21 +220,79 @@ export const KOLKATA_TRANSIT_HUBS = {
   }
 };
 
+// 2. Searchable Transit Hubs & Pandals for UI Autocomplete Dropdowns
+export const SEARCHABLE_LOCATIONS = [
+  // South-West & South Hubs
+  { id: "taratala", name: "Taratala / New Alipore", category: "Hub", zone: "South-West Kolkata" },
+  { id: "behala", name: "Behala Chowrasta / Thana", category: "Hub", zone: "South-West Kolkata" },
+  { id: "suruchi", name: "Suruchi Sangha (New Alipore)", category: "Pandal", zone: "South-West Kolkata" },
+  { id: "chetla", name: "Chetla Agrani Club", category: "Pandal", zone: "South Kolkata" },
+  { id: "gariahat", name: "Gariahat Crossing (Ekdalia / Singhi)", category: "Hub", zone: "South Kolkata" },
+  { id: "ballygunge", name: "Ballygunge Cultural Association", category: "Pandal", zone: "South Kolkata" },
+  { id: "mudiali", name: "Mudiali Club & Shiv Mandir", category: "Pandal", zone: "South Kolkata" },
+  { id: "jodhpur_park", name: "Jodhpur Park & Babubagan", category: "Pandal", zone: "South Kolkata" },
+  { id: "kalighat", name: "Kalighat Temple / Metro", category: "Hub", zone: "South Kolkata" },
+  { id: "garia", name: "Garia (Kavi Nazrul / Mahamayatala)", category: "Hub", zone: "South Kolkata" },
+
+  // North-East & Lake Town Hubs
+  { id: "sreebhumi", name: "Sreebhumi Sporting Club (Lake Town)", category: "Pandal", zone: "North-East Kolkata" },
+  { id: "dumdum_park", name: "Dum Dum Park (Tarun Dal & Bharat Chakra)", category: "Pandal", zone: "North-East Kolkata" },
+  { id: "ultadanga", name: "Ultadanga / Telengabagan", category: "Hub", zone: "North-East Kolkata" },
+  { id: "airport", name: "Kolkata Airport (CCU / Jessore Rd)", category: "Hub", zone: "North Kolkata" },
+
+  // North Kolkata Heritage
+  { id: "bagbazar", name: "Bagbazar Sarbojanin", category: "Pandal", zone: "North Kolkata" },
+  { id: "kumartuli", name: "Kumartuli & Ahiritola", category: "Pandal", zone: "North Kolkata" },
+  { id: "hatibagan", name: "Hatibagan / Kashi Bose Lane", category: "Pandal", zone: "North Kolkata" },
+  { id: "shyambazar", name: "Shyambazar 5-Point Crossing", category: "Hub", zone: "North Kolkata" },
+
+  // Central & Stations
+  { id: "college_square", name: "College Square & Md Ali Park", category: "Pandal", zone: "Central Kolkata" },
+  { id: "santosh_mitra", name: "Santosh Mitra Square (Bowbazar)", category: "Pandal", zone: "Central Kolkata" },
+  { id: "esplanade", name: "Esplanade / New Market", category: "Hub", zone: "Central Kolkata" },
+  { id: "howrah", name: "Howrah Railway Station", category: "Hub", zone: "Howrah" },
+  { id: "sealdah", name: "Sealdah Railway Station", category: "Hub", zone: "Central Kolkata" },
+  { id: "park_street", name: "Park Street / Camac Street", category: "Hub", zone: "Central Kolkata" },
+
+  // East & Salt Lake
+  { id: "salt_lake", name: "Salt Lake (FD, BJ, AK Block)", category: "Pandal", zone: "East Kolkata" }
+];
+
 /**
- * Identify transit hub from user input text
+ * Identify transit hub from user input text with exact and partial matching
  */
 export function identifyHub(text) {
   if (!text) return null;
-  const q = text.toLowerCase();
+  const q = text.toLowerCase().trim();
   
-  // Specific checks with score
+  // 1. Direct exact hub key or name match
+  if (KOLKATA_TRANSIT_HUBS[q]) {
+    return { key: q, ...KOLKATA_TRANSIT_HUBS[q], matchedAlias: q };
+  }
+
   let bestMatch = null;
   let maxScore = 0;
 
   for (const [key, hub] of Object.entries(KOLKATA_TRANSIT_HUBS)) {
+    // Check exact name match
+    if (q === hub.name.toLowerCase() || hub.name.toLowerCase().includes(q)) {
+      const score = 150 + hub.name.length;
+      if (score > maxScore) {
+        maxScore = score;
+        bestMatch = { key, ...hub, matchedAlias: hub.name.toLowerCase() };
+      }
+    }
+
+    // Check aliases
     for (const alias of hub.aliases) {
-      if (q.includes(alias)) {
-        const score = alias.length; // longer alias match is more specific
+      if (q === alias) {
+        const score = 100 + alias.length; // Exact alias match bonus
+        if (score > maxScore) {
+          maxScore = score;
+          bestMatch = { key, ...hub, matchedAlias: alias };
+        }
+      } else if (q.includes(alias) || alias.includes(q)) {
+        const score = alias.length; // Substring match
         if (score > maxScore) {
           maxScore = score;
           bestMatch = { key, ...hub, matchedAlias: alias };

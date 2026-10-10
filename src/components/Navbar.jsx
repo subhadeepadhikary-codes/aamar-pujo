@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from "react";
+import { createPortal } from "react-dom";
 import logoImg from "../assets/logo.png";
 import { METRO_STATIONS } from "../data/metroData";
 import { 
@@ -96,12 +97,12 @@ export default function Navbar({
   });
 
   return (
-    <header className="sticky top-0 z-50 bg-[#0A070D]/95 backdrop-blur-xl border-b border-amber-500/20 transition-all overflow-x-hidden">
-      <div className="max-w-7xl mx-auto px-2 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-14 sm:h-20 gap-1 sm:gap-3">
+    <header className="sticky top-0 z-50 bg-[#0A070D]/95 backdrop-blur-xl border-b border-amber-500/20 transition-all">
+      <div className="max-w-7xl mx-auto px-2.5 sm:px-6 lg:px-8">
+        <div className="flex items-center justify-between h-14 sm:h-20 gap-2 sm:gap-3">
           
           {/* LEFT: Menu Button (Mobile) + Logo & Brand */}
-          <div className="flex items-center space-x-1.5 sm:space-x-3 flex-shrink-0 min-w-0">
+          <div className="flex items-center space-x-2 sm:space-x-3 flex-shrink-0 min-w-0">
             {/* ☰ Menu Toggle (Mobile/Tablet) - LEFT SIDE */}
             <button
               onClick={() => setMobileMenuOpen(true)}
@@ -130,7 +131,7 @@ export default function Navbar({
                   <span className="font-heritage text-base sm:text-2xl font-black tracking-tight text-white group-hover:text-amber-300 transition truncate">
                     Aamar<span className="text-amber-400">Pujo</span>
                   </span>
-                  <span className="inline-flex items-center px-1 py-0.5 rounded text-[8px] sm:text-[10px] font-bold bg-amber-500/15 text-amber-300 border border-amber-500/30 flex-shrink-0">
+                  <span className="inline-flex items-center px-1.5 py-0.2 rounded text-[8px] sm:text-[10px] font-bold bg-amber-500/15 text-amber-300 border border-amber-500/30 flex-shrink-0">
                     <Flame className="w-2 h-2 sm:w-2.5 sm:h-2.5 mr-0.5 text-rose-500 animate-pulse" />
                     Live
                   </span>
@@ -231,25 +232,9 @@ export default function Navbar({
             </div>
           </nav>
 
-          {/* RIGHT: Compact Action Controls - fits within 150px on mobile */}
-          <div className="flex items-center space-x-1 sm:space-x-2 flex-shrink-0">
+          {/* RIGHT: Action Controls (Only GPS & Audio — Never Crowded or Cut Off) */}
+          <div className="flex items-center space-x-1.5 sm:space-x-2 flex-shrink-0">
             
-            {/* 🚇 Metro Quick Access */}
-            <button
-              onClick={() => setMetroModalOpen(true)}
-              className={`flex items-center space-x-0.5 sm:space-x-1.5 px-2 py-1.5 sm:px-3 sm:py-2 rounded-xl text-xs font-bold transition-all border shadow-sm ${
-                selectedMetroStation
-                  ? "bg-blue-600/40 text-blue-200 border-blue-400 ring-1 ring-blue-400/40"
-                  : "bg-[#141226] text-blue-300 border-blue-500/40 hover:border-blue-400 hover:bg-[#1E1B38]"
-              }`}
-              title="Filter Pandals by Kolkata Metro Stations"
-            >
-              <Train className="w-3.5 h-3.5 text-blue-400 flex-shrink-0" />
-              <span className="text-[10px] sm:text-xs">
-                {selectedMetroStation ? selectedMetroStation.name.split(" ")[0] : "Metro"}
-              </span>
-            </button>
-
             {/* 📍 Near Me GPS */}
             <button
               onClick={() => {
@@ -257,36 +242,36 @@ export default function Navbar({
                 setCurrentPage("pandals");
                 window.scrollTo({ top: 0, behavior: "smooth" });
               }}
-              className={`flex items-center space-x-0.5 px-2 py-1.5 sm:px-3 sm:py-2 rounded-xl text-xs font-bold transition-all border shadow-sm ${
+              className={`flex items-center space-x-1 px-2.5 py-1.5 sm:px-3 sm:py-2 rounded-xl text-xs font-bold transition-all border shadow-sm ${
                 isNearMeActive
-                  ? "bg-rose-600 text-white border-rose-400 ring-1 ring-rose-400/40"
+                  ? "bg-rose-600 text-white border-rose-400 ring-2 ring-rose-400/40"
                   : "bg-[#1E0D1A] text-rose-200 border-rose-500/50 hover:border-rose-400 hover:bg-[#2A1224]"
               }`}
               title="Track nearest pandals from your current GPS location"
             >
               <MapPin className={`w-3.5 h-3.5 ${isNearMeActive ? "text-white" : "text-rose-400"} flex-shrink-0`} />
-              <span className="text-[10px] sm:text-xs">GPS</span>
+              <span className="text-xs font-bold">GPS</span>
             </button>
 
-            {/* 🔊 Audio Toggle - Icon only on mobile */}
+            {/* 🔊 Audio Toggle */}
             <button
               onClick={onToggleAudio}
-              className={`flex items-center justify-center w-8 h-8 sm:w-auto sm:h-auto sm:space-x-1.5 sm:px-3 sm:py-2 rounded-xl text-xs font-bold transition border shadow-sm ${
+              className={`flex items-center space-x-1 px-2.5 py-1.5 sm:px-3 sm:py-2 rounded-xl text-xs font-bold transition border shadow-sm ${
                 isAudioPlaying 
-                  ? "bg-[#25170B] text-amber-300 border-amber-400 ring-1 ring-amber-400/30"
+                  ? "bg-[#25170B] text-amber-300 border-amber-400 ring-2 ring-amber-400/30"
                   : "bg-[#181122] text-slate-300 border-white/20 hover:border-amber-400/60 hover:bg-[#20152D]"
               }`}
               title={isAudioPlaying ? "Mute Bengali Pujo Audio" : "Play Bengali Pujo Audio"}
             >
               {isAudioPlaying ? (
                 <>
-                  <Volume2 className="w-3.5 h-3.5 text-amber-400 animate-pulse" />
-                  <span className="hidden sm:inline text-[11px] text-amber-300 font-semibold">Audio</span>
+                  <Volume2 className="w-3.5 h-3.5 text-amber-400 animate-pulse flex-shrink-0" />
+                  <span className="text-xs text-amber-300 font-bold">Audio</span>
                 </>
               ) : (
                 <>
-                  <VolumeX className="w-3.5 h-3.5 text-slate-400" />
-                  <span className="hidden sm:inline text-[11px] text-slate-400 font-semibold">Audio</span>
+                  <VolumeX className="w-3.5 h-3.5 text-slate-400 flex-shrink-0" />
+                  <span className="text-xs text-slate-400 font-bold">Audio</span>
                 </>
               )}
             </button>
@@ -297,47 +282,10 @@ export default function Navbar({
       </div>
 
       {/* ========================================================================= */}
-      {/* 📱 MOBILE PERSISTENT QUICK-NAV STRIP (Horizontally scrollable, always visible) */}
+      {/* 📱 SIDE COLUMN-WISE OFF-CANVAS DRAWER (Teleported to document.body) */}
       {/* ========================================================================= */}
-      <div className="lg:hidden overflow-x-auto scrollbar-thin border-t border-white/5 bg-[#0A070D]/90">
-        <div className="flex items-center gap-1 px-2 py-1.5 min-w-max">
-          {navItems.map((item) => {
-            const Icon = item.icon;
-            const isActive = currentPage === item.id;
-            return (
-              <button
-                key={item.id}
-                onClick={() => handleNavClick(item.id)}
-                className={`flex items-center space-x-1 px-2.5 py-1 rounded-lg text-[10px] font-bold transition-all whitespace-nowrap flex-shrink-0 ${
-                  isActive
-                    ? "bg-amber-500/25 text-amber-300 border border-amber-400/70 shadow-sm"
-                    : "bg-white/5 text-slate-400 border border-transparent hover:text-white hover:bg-white/10"
-                }`}
-              >
-                <Icon className={`w-3 h-3 ${isActive ? "text-amber-400" : "text-slate-500"}`} />
-                <span>{item.label.split(" ")[0]}</span>
-              </button>
-            );
-          })}
-          <button
-            onClick={() => setMetroModalOpen(true)}
-            className={`flex items-center space-x-1 px-2.5 py-1 rounded-lg text-[10px] font-bold transition-all whitespace-nowrap flex-shrink-0 ${
-              selectedMetroStation
-                ? "bg-blue-500/25 text-blue-300 border border-blue-400/70 shadow-sm"
-                : "bg-white/5 text-slate-400 border border-transparent hover:text-white hover:bg-white/10"
-            }`}
-          >
-            <Train className="w-3 h-3 text-blue-400" />
-            <span>Metro</span>
-          </button>
-        </div>
-      </div>
-
-      {/* ========================================================================= */}
-      {/* 📱 SIDE COLUMN-WISE OFF-CANVAS DRAWER (Mobile Navigation Experience) */}
-      {/* ========================================================================= */}
-      {mobileMenuOpen && (
-        <div className="fixed inset-0 z-50 lg:hidden animate-fadeIn">
+      {mobileMenuOpen && typeof document !== "undefined" && createPortal(
+        <div className="fixed inset-0 z-[90] lg:hidden animate-fadeIn">
           {/* Frosted Backdrop */}
           <div 
             onClick={() => setMobileMenuOpen(false)}
@@ -345,7 +293,7 @@ export default function Navbar({
           />
 
           {/* Slide-out Drawer Panel - LEFT SIDE */}
-          <div className="fixed top-0 left-0 bottom-0 w-80 sm:w-96 max-w-[88vw] bg-gradient-to-b from-[#180E24] via-[#100A1A] to-[#0A0512] border-r-2 border-amber-500/40 z-50 shadow-2xl flex flex-col animate-slideInLeft overflow-hidden">
+          <div className="fixed top-0 left-0 bottom-0 w-80 sm:w-96 max-w-[88vw] h-full bg-gradient-to-b from-[#180E24] via-[#100A1A] to-[#0A0512] border-r-2 border-amber-500/40 z-[95] shadow-2xl flex flex-col animate-slideInLeft overflow-hidden">
             
             {/* Drawer Header */}
             <div className="p-4 bg-gradient-to-r from-[#221233] via-[#170C24] to-[#221233] border-b border-amber-500/20 flex items-center justify-between">
@@ -523,14 +471,15 @@ export default function Navbar({
             </div>
 
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* ========================================================================= */}
-      {/* 🚇 FULL METRO STATION SELECTOR MODAL / BOTTOM SHEET (Mobile & Desktop) */}
+      {/* 🚇 FULL METRO STATION SELECTOR MODAL / BOTTOM SHEET (Teleported to document.body) */}
       {/* ========================================================================= */}
-      {metroModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 animate-fadeIn">
+      {metroModalOpen && typeof document !== "undefined" && createPortal(
+        <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center p-0 sm:p-4 animate-fadeIn">
           {/* Backdrop */}
           <div 
             onClick={() => setMetroModalOpen(false)}
@@ -538,7 +487,7 @@ export default function Navbar({
           />
 
           {/* Sheet Container */}
-          <div className="relative w-full sm:w-[560px] max-h-[85vh] bg-gradient-to-b from-[#180F25] via-[#120B1C] to-[#0A0612] border-t-2 sm:border-2 border-blue-400/50 rounded-t-3xl sm:rounded-3xl p-4 sm:p-6 shadow-2xl flex flex-col z-50 animate-slideUp overflow-hidden">
+          <div className="relative w-full sm:w-[560px] max-h-[85vh] bg-gradient-to-b from-[#180F25] via-[#120B1C] to-[#0A0612] border-t-2 sm:border-2 border-blue-400/50 rounded-t-3xl sm:rounded-3xl p-4 sm:p-6 shadow-2xl flex flex-col z-[105] animate-slideUp overflow-hidden">
             
             {/* Modal Header */}
             <div className="flex items-center justify-between pb-3 border-b border-white/10">
@@ -667,7 +616,8 @@ export default function Navbar({
             )}
 
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
     </header>

@@ -17,20 +17,30 @@ import {
   RotateCcw,
   Flame,
   CheckCircle2,
-  ExternalLink
+  ExternalLink,
+  ArrowDownUp
 } from "lucide-react";
 
 import { 
   parseRouteQuery, 
   generateDynamicRoute, 
   handleOpenEndedQuery,
-  identifyHub 
+  identifyHub,
+  SEARCHABLE_LOCATIONS
 } from "../utils/transitEngine";
 
 export default function DawonChatbot({ userLocation, onNavigateToPandal, isAudioPlaying }) {
   const [isOpen, setIsOpen] = useState(false);
   const [isMinimized, setIsMinimized] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
+  const [plannerMode, setPlannerMode] = useState(true); // Default to Journey Planner
+
+  // Journey Planner state
+  const [originInput, setOriginInput] = useState("");
+  const [destInput, setDestInput] = useState("");
+  const [showOriginSuggestions, setShowOriginSuggestions] = useState(false);
+  const [showDestSuggestions, setShowDestSuggestions] = useState(false);
+  const [activeRoutePlan, setActiveRoutePlan] = useState(null);
   
   // Ollama Settings
   const [ollamaUrl, setOllamaUrl] = useState(() => localStorage.getItem("aamar_pujo_ollama_url") || "http://localhost:11434");
@@ -101,6 +111,61 @@ export default function DawonChatbot({ userLocation, onNavigateToPandal, isAudio
     }
 
     return null;
+  };
+
+  // Autocomplete suggestion filters
+  const filteredOriginSuggestions = originInput.trim()
+    ? SEARCHABLE_LOCATIONS.filter(l => 
+        l.name.toLowerCase().includes(originInput.toLowerCase()) || 
+        l.zone.toLowerCase().includes(originInput.toLowerCase())
+      ).slice(0, 5)
+    : SEARCHABLE_LOCATIONS.slice(0, 5);
+
+  const filteredDestSuggestions = destInput.trim()
+    ? SEARCHABLE_LOCATIONS.filter(l => 
+        l.name.toLowerCase().includes(destInput.toLowerCase()) || 
+        l.zone.toLowerCase().includes(destInput.toLowerCase())
+      ).slice(0, 5)
+    : SEARCHABLE_LOCATIONS.slice(0, 5);
+
+  const handleSwapLocations = () => {
+    const temp = originInput;
+    setOriginInput(destInput);
+    setDestInput(temp);
+  };
+
+  const handlePlanRoute = (e) => {
+    if (e) e.preventDefault();
+    if (!destInput.trim()) return;
+
+    setShowOriginSuggestions(false);
+    setShowDestSuggestions(false);
+    setIsTyping(true);
+
+    setTimeout(() => {
+      const dynamicRoute = generateDynamicRoute(originInput.trim() || null, destInput.trim(), userLocation);
+      setIsTyping(false);
+
+      if (dynamicRoute) {
+        setActiveRoutePlan(dynamicRoute);
+        setMessages(prev => [
+          ...prev,
+          {
+            id: `usr-${Date.now()}`,
+            sender: "user",
+            text: `Route from ${originInput.trim() || "My Location"} to ${destInput.trim()}`,
+            time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+          },
+          {
+            id: `dawon-${Date.now()}`,
+            sender: "dawon",
+            routeData: dynamicRoute,
+            source: "Dawon Kolkata Transit Engine",
+            time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+          }
+        ]);
+      }
+    }, 300);
   };
 
   // Send message handler (Ollama with Dynamic Local Fallback)
@@ -388,8 +453,275 @@ Ba jiggesh korte paro: "Ashtami anjali timing", "Metro night timings", ba "Where
             </div>
           )}
 
-          {/* Chat Messages Body */}
+          {/* Mode Switcher Tabs */}
           {!isMinimized && (
+            <div className="flex items-center border-b border-white/10 bg-[#160B22] p-1.5 gap-1.5">
+              <button
+                type="button"
+                onClick={() => setPlannerMode(true)}
+                className={`flex-1 py-1.5 px-2.5 rounded-xl text-xs font-bold transition flex items-center justify-center space-x-1.5 ${
+                  plannerMode
+                    ? "bg-gradient-to-r from-amber-500/25 via-rose-500/20 to-amber-500/25 text-amber-300 border border-amber-400/70 shadow-sm"
+                    : "text-slate-400 hover:text-white hover:bg-white/5"
+                }`}
+              >
+                <Compass className="w-3.5 h-3.5 text-amber-400" />
+                <span>Journey Planner</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setPlannerMode(false)}
+                className={`flex-1 py-1.5 px-2.5 rounded-xl text-xs font-bold transition flex items-center justify-center space-x-1.5 ${
+                  !plannerMode
+                    ? "bg-gradient-to-r from-amber-500/25 via-rose-500/20 to-amber-500/25 text-amber-300 border border-amber-400/70 shadow-sm"
+                    : "text-slate-400 hover:text-white hover:bg-white/5"
+                }`}
+              >
+                <MessageSquare className="w-3.5 h-3.5 text-rose-400" />
+                <span>Ask Dawon ({messages.length})</span>
+              </button>
+            </div>
+          )}
+
+          {/* TAB 1: INTERACTIVE JOURNEY PLANNER */}
+          {!isMinimized && plannerMode && (
+            <div className="flex-1 overflow-y-auto p-3.5 space-y-3.5 scrollbar-thin">
+              {/* Route Input Card */}
+              <div className="p-3 bg-[#180E24] rounded-2xl border border-amber-500/30 space-y-2.5 relative">
+                <span className="text-[11px] font-bold text-amber-300 block mb-1">
+                  🗺️ Plan Your Pujo Travel Path
+                </span>
+
+                {/* Origin Input */}
+                <div className="relative">
+                  <label className="text-[10px] text-slate-400 block mb-0.5 font-medium">
+                    Starting Location (From):
+                  </label>
+                  <div className="relative flex items-center">
+                    <span className="absolute left-2.5 text-slate-400 text-xs">📍</span>
+                    <input
+                      type="text"
+                      value={originInput}
+                      onChange={(e) => {
+                        setOriginInput(e.target.value);
+                        setShowOriginSuggestions(true);
+                      }}
+                      onFocus={() => setShowOriginSuggestions(true)}
+                      placeholder="e.g. Taratala, Howrah, Gariahat..."
+                      className="w-full py-1.5 pl-8 pr-2.5 bg-black/60 border border-white/10 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-amber-400"
+                    />
+                  </div>
+
+                  {/* Autocomplete Suggestions Dropdown for Origin */}
+                  {showOriginSuggestions && (
+                    <div className="absolute left-0 right-0 top-full mt-1 bg-[#1A0F26] border border-amber-400/50 rounded-xl shadow-2xl z-50 max-h-40 overflow-y-auto divide-y divide-white/5 scrollbar-thin">
+                      <div className="p-1.5 bg-black/40 text-[9px] text-amber-300/80 font-bold uppercase tracking-wider flex justify-between items-center">
+                        <span>Select Starting Point</span>
+                        <button 
+                          type="button"
+                          onClick={() => setShowOriginSuggestions(false)}
+                          className="text-slate-400 hover:text-white text-[10px] px-1"
+                        >
+                          ✕
+                        </button>
+                      </div>
+                      {filteredOriginSuggestions.map((loc) => (
+                        <button
+                          key={loc.id}
+                          type="button"
+                          onClick={() => {
+                            setOriginInput(loc.name);
+                            setShowOriginSuggestions(false);
+                          }}
+                          className="w-full p-2 text-left hover:bg-white/10 transition flex items-center justify-between text-xs"
+                        >
+                          <div>
+                            <span className="font-bold text-slate-200 block text-[11px]">{loc.name}</span>
+                            <span className="text-[9px] text-slate-400">{loc.zone}</span>
+                          </div>
+                          <span className="text-[9px] px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-300 font-mono">
+                            {loc.category}
+                          </span>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* Swap Button */}
+                <div className="flex justify-center -my-1">
+                  <button
+                    type="button"
+                    onClick={handleSwapLocations}
+                    className="p-1 rounded-full bg-white/10 hover:bg-amber-500 hover:text-slate-950 text-slate-300 transition border border-white/10"
+                    title="Swap Origin & Destination"
+                  >
+                    <ArrowDownUp className="w-3 h-3" />
+                  </button>
+                </div>
+
+                {/* Destination Input */}
+                <div className="relative">
+                  <label className="text-[10px] text-slate-400 block mb-0.5 font-medium">
+                    Destination Pandal / Area (To):
+                  </label>
+                  <div className="relative flex items-center">
+                    <span className="absolute left-2.5 text-slate-400 text-xs">🏯</span>
+                    <input
+                      type="text"
+                      value={destInput}
+                      onChange={(e) => {
+                        setDestInput(e.target.value);
+                        setShowDestSuggestions(true);
+                      }}
+                      onFocus={() => setShowDestSuggestions(true)}
+                      placeholder="e.g. Sreebhumi, Bagbazar, Suruchi..."
+                      className="w-full py-1.5 pl-8 pr-2.5 bg-black/60 border border-white/10 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-amber-400"
+                    />
+                  </div>
+
+                  {/* Autocomplete Suggestions Dropdown for Destination */}
+                  {showDestSuggestions && (
+                    <div className="absolute left-0 right-0 top-full mt-1 bg-[#1A0F26] border border-amber-400/50 rounded-xl shadow-2xl z-50 max-h-40 overflow-y-auto divide-y divide-white/5 scrollbar-thin">
+                      <div className="p-1.5 bg-black/40 text-[9px] text-amber-300/80 font-bold uppercase tracking-wider flex justify-between items-center">
+                        <span>Select Destination</span>
+                        <button 
+                          type="button"
+                          onClick={() => setShowDestSuggestions(false)}
+                          className="text-slate-400 hover:text-white text-[10px] px-1"
+                        >
+                          ✕
+                        </button>
+                      </div>
+                      {filteredDestSuggestions.map((loc) => (
+                        <button
+                          key={loc.id}
+                          type="button"
+                          onClick={() => {
+                            setDestInput(loc.name);
+                            setShowDestSuggestions(false);
+                          }}
+                          className="w-full p-2 text-left hover:bg-white/10 transition flex items-center justify-between text-xs"
+                        >
+                          <div>
+                            <span className="font-bold text-slate-200 block text-[11px]">{loc.name}</span>
+                            <span className="text-[9px] text-slate-400">{loc.zone}</span>
+                          </div>
+                          <span className="text-[9px] px-1.5 py-0.2 rounded bg-rose-500/20 text-rose-300 font-mono">
+                            {loc.category}
+                          </span>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* Submit Find Route Button */}
+                <button
+                  type="button"
+                  onClick={handlePlanRoute}
+                  disabled={!destInput.trim()}
+                  className="w-full py-2.5 px-4 rounded-xl bg-gradient-to-r from-amber-500 via-rose-600 to-amber-500 text-slate-950 font-black text-xs transition shadow-md shadow-rose-600/30 disabled:opacity-40 disabled:cursor-not-allowed hover:scale-[1.01] active:scale-95 cursor-pointer flex items-center justify-center space-x-1.5 mt-2"
+                >
+                  <Compass className="w-3.5 h-3.5" />
+                  <span>Get Step-by-Step Route</span>
+                </button>
+              </div>
+
+              {/* Active Route Plan Display */}
+              {activeRoutePlan ? (
+                <div className="p-3.5 bg-[#1B1128] rounded-2xl border-2 border-amber-400/60 shadow-xl space-y-3 animate-fadeIn">
+                  <div className="pb-2 border-b border-white/10 flex items-center justify-between">
+                    <div>
+                      <span className="text-[9px] uppercase font-bold tracking-wider text-amber-300 block">
+                        Verified Kolkata Transit Route
+                      </span>
+                      <h4 className="font-heritage text-sm font-black text-white">
+                        {activeRoutePlan.title}
+                      </h4>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setActiveRoutePlan(null)}
+                      className="text-[10px] text-slate-400 hover:text-white px-1.5 py-0.5 rounded bg-white/5"
+                    >
+                      Clear
+                    </button>
+                  </div>
+
+                  {/* Route Steps */}
+                  <div className="space-y-2.5">
+                    {activeRoutePlan.route.map((step, idx) => (
+                      <div key={idx} className="flex items-start space-x-2 text-xs">
+                        <span className="text-base flex-shrink-0 mt-0.5">
+                          {step.type === "metro" && "🚇"}
+                          {step.type === "auto" && "🛺"}
+                          {step.type === "walk" && "🚶"}
+                          {step.type === "food" && "🍽️"}
+                          {step.type === "tip" && "💡"}
+                        </span>
+                        <div className="min-w-0 flex-1">
+                          <p className="text-slate-200 leading-snug">{step.text}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Action row */}
+                  <div className="pt-2 border-t border-white/10 flex gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setPlannerMode(false)}
+                      className="flex-1 py-1.5 px-2 rounded-xl bg-white/5 hover:bg-white/10 text-slate-300 text-[11px] font-bold text-center border border-white/10"
+                    >
+                      View in Chat History
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                /* Quick One-Tap Suggestions */
+                <div className="space-y-2 pt-1">
+                  <span className="text-[10px] uppercase font-bold tracking-wider text-slate-400 block px-1">
+                    Popular Travel Connections:
+                  </span>
+                  <div className="grid grid-cols-1 gap-1.5">
+                    {[
+                      { from: "Taratala / New Alipore", to: "Sreebhumi Sporting Club (Lake Town)" },
+                      { from: "Howrah Railway Station", to: "Bagbazar Sarbojanin" },
+                      { from: "Garia (Kavi Nazrul / Mahamayatala)", to: "College Square & Md Ali Park" },
+                      { from: "Behala Chowrasta / Thana", to: "Santosh Mitra Square (Bowbazar)" }
+                    ].map((route, idx) => (
+                      <button
+                        key={idx}
+                        type="button"
+                        onClick={() => {
+                          setOriginInput(route.from);
+                          setDestInput(route.to);
+                          const dynamicRoute = generateDynamicRoute(route.from, route.to, userLocation);
+                          if (dynamicRoute) {
+                            setActiveRoutePlan(dynamicRoute);
+                          }
+                        }}
+                        className="p-2 rounded-xl bg-white/5 hover:bg-white/10 text-left text-xs transition border border-white/5 hover:border-amber-400/40 flex items-center justify-between"
+                      >
+                        <div className="truncate pr-2">
+                          <span className="text-amber-300 font-semibold">{route.from}</span>
+                          <span className="text-slate-400 mx-1">➔</span>
+                          <span className="text-white">{route.to.split("(")[0]}</span>
+                        </div>
+                        <span className="text-[10px] text-amber-400/80 font-bold flex-shrink-0">
+                          View ➔
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* TAB 2: CHAT MESSAGES BODY */}
+          {!isMinimized && !plannerMode && (
             <div className="flex-1 overflow-y-auto p-4 space-y-3.5 scrollbar-thin">
               {messages.map((m) => {
                 const isUser = m.sender === "user";
@@ -469,12 +801,13 @@ Ba jiggesh korte paro: "Ashtami anjali timing", "Metro night timings", ba "Where
             </div>
           )}
 
-          {/* Quick Prompt Suggestions Strip */}
-          {!isMinimized && (
+          {/* Quick Prompt Suggestions Strip (Only in Chat Mode) */}
+          {!isMinimized && !plannerMode && (
             <div className="px-3 py-1.5 bg-[#140C1D] border-t border-white/5 overflow-x-auto flex items-center space-x-1.5 scrollbar-thin">
               {quickPrompts.map((p, i) => (
                 <button
                   key={i}
+                  type="button"
                   onClick={() => handleSendMessage(p)}
                   className="flex-shrink-0 px-2.5 py-1 rounded-full bg-white/5 hover:bg-white/10 text-slate-300 hover:text-amber-300 border border-white/10 text-[10px] transition whitespace-nowrap"
                 >
@@ -484,8 +817,8 @@ Ba jiggesh korte paro: "Ashtami anjali timing", "Metro night timings", ba "Where
             </div>
           )}
 
-          {/* Message Input Form */}
-          {!isMinimized && (
+          {/* Message Input Form (Only in Chat Mode) */}
+          {!isMinimized && !plannerMode && (
             <form
               onSubmit={(e) => {
                 e.preventDefault();

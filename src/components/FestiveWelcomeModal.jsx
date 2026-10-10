@@ -66,27 +66,27 @@ export default function FestiveWelcomeModal({ onStartWithMusic, onExplore }) {
           </div>
           <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 px-2.5 py-0.5 rounded-full bg-rose-600 text-[10px] font-bold text-white shadow-md flex items-center space-x-1 whitespace-nowrap">
             <Flame className="w-3 h-3 text-amber-300" />
-            <span>শুভ দুর্গোৎসব</span>
+            <span>Subho Sharodiyo</span>
           </div>
         </div>
 
-        {/* Bengali Main Greeting */}
+        {/* English Main Greeting */}
         <div className="space-y-2 mb-5">
           <div className="inline-flex items-center space-x-1.5 px-3 py-1 rounded-full bg-amber-500/15 border border-amber-500/30 text-amber-300 text-xs font-semibold">
             <Sparkles className="w-3.5 h-3.5 text-amber-400 animate-spin" style={{ animationDuration: '6s' }} />
-            <span>শারদীয় আগমনী শুভেচ্ছা</span>
+            <span>Festive Season Greetings · Durga Puja 2026</span>
           </div>
 
-          <h2 className="font-bengali text-2xl sm:text-3xl font-extrabold text-amber-300 leading-snug pt-1">
-            শারদীয় দুর্গোৎসবের প্রীতি ও আন্তরিক শুভেচ্ছা!
+          <h2 className="font-heritage text-2xl sm:text-3xl font-black text-amber-300 leading-snug pt-1">
+            Wishing You a Joyous & Blessed Durga Puja!
           </h2>
 
           <p className="font-heritage text-sm sm:text-base font-bold text-white tracking-wide">
-            Wishing You a Joyous & Blessed Durga Puja!
+            Welcome to Aamar Pujo · Your Ultimate Bengal Pujo Companion
           </p>
 
-          <p className="font-bengali text-xs sm:text-sm text-slate-300 leading-relaxed max-w-md mx-auto pt-1 font-normal">
-            মায়ের আশীর্বাদে প্রতিটি ঘরে ভরে উঠুক আনন্দ ও শান্তি। ৫০৩+ পুজো প্যান্ডেল, মেট্রো নেভিগেশন এবং সেরা পুজোর খাওয়া-দাওয়া নিয়ে আপনার পুজো গাইড — <strong className="text-amber-300 font-semibold">এবার পুজো, অন্য ভাবে!</strong>
+          <p className="font-sans text-xs sm:text-sm text-slate-300 leading-relaxed max-w-md mx-auto pt-1 font-normal">
+            May Maa Durga bring peace, happiness, and prosperity to you and your family. Explore 503+ verified puja pandals, direct metro transit routing, and legendary food trails across West Bengal — <strong className="text-amber-300 font-semibold">Celebrate Pujo Like Never Before!</strong>
           </p>
         </div>
 
@@ -98,7 +98,7 @@ export default function FestiveWelcomeModal({ onStartWithMusic, onExplore }) {
             className="w-full py-3.5 px-5 rounded-2xl bg-gradient-to-r from-amber-500 via-rose-600 to-amber-500 hover:from-amber-400 hover:to-rose-500 text-slate-950 font-black text-xs sm:text-sm flex items-center justify-center space-x-2 transition-all shadow-xl shadow-rose-600/30 hover:scale-[1.02] cursor-pointer"
           >
             <Music className="w-4 h-4 fill-current text-slate-950" />
-            <span className="font-bengali">🎶 আগমনী গান চালিয়ে পুজো শুরু করুন</span>
+            <span>🎶 Start with Agomoni Melodies</span>
             <ChevronRight className="w-4 h-4" />
           </button>
 
@@ -108,14 +108,14 @@ export default function FestiveWelcomeModal({ onStartWithMusic, onExplore }) {
             className="w-full py-3 px-4 rounded-2xl bg-[#1A1126] hover:bg-[#251736] text-slate-300 hover:text-white font-bold text-xs flex items-center justify-center space-x-2 border border-white/10 transition cursor-pointer"
           >
             <Compass className="w-4 h-4 text-amber-400" />
-            <span className="font-bengali">🌟 পুজো এক্সপ্লোর করুন</span>
+            <span>🌟 Explore All 503 Pandals</span>
           </button>
         </div>
 
         {/* Traditional Touch Tagline */}
-        <p className="text-[11px] text-amber-200/60 font-bengali pt-4 flex items-center justify-center space-x-1">
+        <p className="text-[11px] text-amber-200/70 font-sans pt-4 flex items-center justify-center space-x-1">
           <Heart className="w-3 h-3 text-rose-500 fill-current" />
-          <span>শুভদীপ অধিকারী ও বাংলার সকল পুজোপ্রেমীদের পক্ষ থেকে</span>
+          <span>Curated with pride by Subhadeep Adhikary & Kolkata Pujo Lovers</span>
         </p>
 
       </div>
