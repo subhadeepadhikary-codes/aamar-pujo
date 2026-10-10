@@ -140,6 +140,8 @@ export default function RoutePlanner({
         p.name.toLowerCase().includes(q) ||
         (p.bengaliName && p.bengaliName.toLowerCase().includes(q)) ||
         (p.locality && p.locality.toLowerCase().includes(q)) ||
+        (p.aliases && p.aliases.some((a) => a.toLowerCase().includes(q) || normalizePhonetic(a).includes(normQ))) ||
+        ((q === "bonedi" || q === "bonedi bari" || q === "rajbari") && p.isBonediBari) ||
         normalizePhonetic(p.name).includes(normQ)
       );
     }).map((p) => ({

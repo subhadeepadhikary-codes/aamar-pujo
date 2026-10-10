@@ -90,6 +90,11 @@ export default function PandalCard({ pandal, userLocation, onOpenModal }) {
           <span className="px-2.5 py-0.5 rounded-md bg-[#120D1A]/90 text-amber-300 border border-amber-400/30 text-[10px] font-bold backdrop-blur-md">
             {pandal.zoneLabel}
           </span>
+          {pandal.isBonediBari && (
+            <span className="px-2 py-0.5 rounded-md bg-gradient-to-r from-amber-400 to-amber-600 text-slate-950 text-[10px] font-black flex items-center space-x-1 shadow-md shadow-amber-500/20">
+              <span>🏛️ Bonedi Bari {pandal.heritageYear ? `· ${pandal.heritageYear}` : ""}</span>
+            </span>
+          )}
           {pandal.award && (
             <span className="px-2 py-0.5 rounded-md bg-amber-500/95 text-slate-950 text-[10px] font-black flex items-center space-x-1 shadow-sm">
               <Award className="w-2.5 h-2.5" />

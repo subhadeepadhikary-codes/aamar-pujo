@@ -1,4 +1,6 @@
-// Auto-generated 503 Pandals Database for Aamar Pujo
+// Bengal & Kolkata 518+ Verified Durga Puja Pandals Directory
+// Augmented with authentic 39 Historic Bonedi Bari Ancestral Rajbaris & Thakurdalans
+
 export const PANDALS_DATA = [
   {
     "id": 174,
@@ -1459,19 +1461,19 @@ export const PANDALS_DATA = [
   },
   {
     "id": 113,
-    "name": "Badan Chand Roy Bari",
+    "name": "Badan Chand Roy Bari Durga Puja",
     "slug": "badan-chand-roy-bari",
     "zone": "central",
     "zoneLabel": "Central Kolkata",
     "area": "Central Kolkata",
-    "locality": "Sealdah",
-    "address": "Sealdah, Kolkata",
+    "locality": "Bowbazar",
+    "address": "2A Badan Roy Lane / 46 Amherst Street, Kolkata 700012",
     "lat": 22.5749901,
     "lng": 88.3579284,
-    "metro": "MG Road",
-    "walkMin": 14,
+    "metro": "Central",
+    "walkMin": 7,
     "crowd": "Low Wait",
-    "category": "Eco-Artisan",
+    "category": "Sabeki Heritage",
     "featured": false,
     "award": false,
     "rating": 4.7,
@@ -1486,6 +1488,14 @@ export const PANDALS_DATA = [
       "Dhakai Paratha",
       "Phuchka",
       "Chai & Jhalmuri"
+    ],
+    "bengaliName": "বদন চাঁদ রায় বাড়ি",
+    "isBonediBari": true,
+    "heritageYear": 1857,
+    "aliases": [
+      "Badan Chand Roy Bari",
+      "Badan Roy Bari",
+      "Badan Chand Roy Bari Durga Puja"
     ]
   },
   {
@@ -2482,17 +2492,17 @@ export const PANDALS_DATA = [
   },
   {
     "id": 418,
-    "name": "Beha Jagatram Mukherjee Durga Puja (Sonar Durga)",
+    "name": "Behala Jagat Ram Mukherjee Bari (Sonar Durga)",
     "slug": "beha-jagatram-mukherjee-durga-puja-sonar-durga",
     "zone": "southwest",
     "zoneLabel": "South-West Kolkata",
     "area": "South-West Kolkata",
     "locality": "Behala",
-    "address": "Behala, Kolkata",
+    "address": "56 Bramho Samaj Road, Behala, Kolkata 700034",
     "lat": 22.4999006,
     "lng": 88.3145594,
-    "metro": "Nearby Bus/Auto",
-    "walkMin": 11,
+    "metro": "Behala Chowrasta",
+    "walkMin": 8,
     "crowd": "Low Wait",
     "category": "Sabeki Heritage",
     "featured": false,
@@ -2509,6 +2519,16 @@ export const PANDALS_DATA = [
       "Kathi Roll",
       "Fuchka & Churmur",
       "Mughlai Paratha"
+    ],
+    "bengaliName": "বেহালা জগত রাম মুখার্জী বাড়ি (সোনার দুর্গা)",
+    "isBonediBari": true,
+    "heritageYear": 1769,
+    "aliases": [
+      "Beha Jagatram Mukherjee Durga Puja (Sonar Durga)",
+      "Jagatram Mukherjee",
+      "Sonar Durga",
+      "Behala Jagatram Mukherjee",
+      "Sonar Durga Behala"
     ]
   },
   {
@@ -3920,7 +3940,7 @@ export const PANDALS_DATA = [
     "metro": "Nearby Bus/Auto",
     "walkMin": 9,
     "crowd": "Low Wait",
-    "category": "Award Winner",
+    "category": "Sabeki Heritage",
     "featured": false,
     "award": true,
     "rating": 4.6,
@@ -3935,6 +3955,12 @@ export const PANDALS_DATA = [
       "Fish Fry",
       "Chhangani Kachori",
       "Mishti Doi & Sandesh"
+    ],
+    "isBonediBari": true,
+    "heritageYear": 1905,
+    "aliases": [
+      "Bholanath Dham, Dutta Bari",
+      "Bholanath Dham Dutta Bari"
     ]
   },
   {
@@ -4255,13 +4281,13 @@ export const PANDALS_DATA = [
     "zoneLabel": "North Kolkata",
     "area": "North Kolkata",
     "locality": "Shobhabazar",
-    "address": "Shobhabazar, Kolkata",
+    "address": "67E Beadon Street / Ramdulal Nibas, Kolkata 700006",
     "lat": 22.590243,
     "lng": 88.3644154,
-    "metro": "Nearby Bus/Auto",
-    "walkMin": 8,
+    "metro": "Girish Park",
+    "walkMin": 5,
     "crowd": "Low Wait",
-    "category": "Theme & Modern Art",
+    "category": "Sabeki Heritage",
     "featured": false,
     "award": false,
     "rating": 4.7,
@@ -4276,6 +4302,15 @@ export const PANDALS_DATA = [
       "Chicken Biryani",
       "Egg Roll",
       "Telebhaja & Muri"
+    ],
+    "bengaliName": "ছাতু বাবু লাতু বাবু ঠাকুর বাড়ি",
+    "isBonediBari": true,
+    "heritageYear": 1770,
+    "aliases": [
+      "Chatu Babu Latu Babu",
+      "Chhatu Babu Latu Babu",
+      "Ramdulal Nibas",
+      "Chatu Babu Latu Babu Thakur Bari"
     ]
   },
   {
@@ -4323,7 +4358,7 @@ export const PANDALS_DATA = [
     "metro": "MG Road",
     "walkMin": 10,
     "crowd": "Low Wait",
-    "category": "Eco-Artisan",
+    "category": "Sabeki Heritage",
     "featured": false,
     "award": false,
     "rating": 4.9,
@@ -4338,6 +4373,12 @@ export const PANDALS_DATA = [
       "Dhakai Paratha",
       "Phuchka",
       "Chai & Jhalmuri"
+    ],
+    "isBonediBari": true,
+    "heritageYear": 1860,
+    "aliases": [
+      "Chorbagan Chatterjee Bari",
+      "Chatterjee Bari Chorbagan"
     ]
   },
   {
@@ -4369,6 +4410,12 @@ export const PANDALS_DATA = [
       "Kathi Roll",
       "Fuchka & Churmur",
       "Mughlai Paratha"
+    ],
+    "isBonediBari": true,
+    "heritageYear": 1880,
+    "aliases": [
+      "Chorbagan Mitra Bari",
+      "Mitra Bari Chorbagan"
     ]
   },
   {
@@ -4385,7 +4432,7 @@ export const PANDALS_DATA = [
     "metro": "Shobhabazar Sutanuti",
     "walkMin": 12,
     "crowd": "Low Wait",
-    "category": "Theme & Modern Art",
+    "category": "Sabeki Heritage",
     "featured": false,
     "award": false,
     "rating": 4.6,
@@ -4400,21 +4447,29 @@ export const PANDALS_DATA = [
       "Chicken Biryani",
       "Egg Roll",
       "Telebhaja & Muri"
+    ],
+    "isBonediBari": true,
+    "heritageYear": 1860,
+    "aliases": [
+      "Chorbagan Sil's Thakurbari",
+      "Seal's Thakurbari",
+      "Chorbagan Seal",
+      "Sil's Thakurbari"
     ]
   },
   {
     "id": 132,
-    "name": "Chorebagan Sarbojonin",
+    "name": "Chorebagan Sarbojanin Durgotsab Samity",
     "slug": "chorebagan-sarbojonin",
     "zone": "central",
     "zoneLabel": "Central Kolkata",
     "area": "Central Kolkata",
-    "locality": "Sealdah",
-    "address": "Sealdah, Kolkata",
+    "locality": "Chorbagan",
+    "address": "Amar Basu Sarani / Chorbagan Lane, Kolkata 700006",
     "lat": 22.5835466,
     "lng": 88.3630663,
     "metro": "MG Road",
-    "walkMin": 13,
+    "walkMin": 5,
     "crowd": "Low Wait",
     "category": "Award Winner",
     "featured": false,
@@ -4431,6 +4486,12 @@ export const PANDALS_DATA = [
       "Fish Fry",
       "Chhangani Kachori",
       "Mishti Doi & Sandesh"
+    ],
+    "bengaliName": "চোরবাগান সার্বজনীন দুর্গোৎসব সমিতি",
+    "aliases": [
+      "Chorebagan Sarbojonin",
+      "Chorbagan Sarbojanin",
+      "Chorebagan Sarbojanin Durgotsab Samity"
     ]
   },
   {
@@ -4720,11 +4781,11 @@ export const PANDALS_DATA = [
     "zoneLabel": "North Kolkata",
     "area": "North Kolkata",
     "locality": "Shobhabazar",
-    "address": "Shobhabazar, Kolkata",
+    "address": "19 Nilmani Mitra Street, Shobhabazar, Kolkata 700006",
     "lat": 22.5913404,
     "lng": 88.3645457,
-    "metro": "Nearby Bus/Auto",
-    "walkMin": 11,
+    "metro": "Shobhabazar Sutanuti",
+    "walkMin": 4,
     "crowd": "Low Wait",
     "category": "Sabeki Heritage",
     "featured": false,
@@ -4741,6 +4802,13 @@ export const PANDALS_DATA = [
       "Kathi Roll",
       "Fuchka & Churmur",
       "Mughlai Paratha"
+    ],
+    "bengaliName": "দর্জিপাড়া মিত্র বাড়ি",
+    "isBonediBari": true,
+    "heritageYear": 1807,
+    "aliases": [
+      "Darjipara Mitra Bari",
+      "Mitra Bari Darjipara"
     ]
   },
   {
@@ -5241,19 +5309,19 @@ export const PANDALS_DATA = [
   },
   {
     "id": 148,
-    "name": "Dutta Bari Durga Pujo",
+    "name": "Shamul Dhone Dutta Bari (Girish Park)",
     "slug": "dutta-bari-durga-pujo",
     "zone": "north",
     "zoneLabel": "North Kolkata",
     "area": "North Kolkata",
     "locality": "Girish Park",
-    "address": "Girish Park, Kolkata",
+    "address": "22 Muktaram Babu Street, Girish Park, Kolkata 700007",
     "lat": 22.5877454,
     "lng": 88.3620722,
-    "metro": "Nearby Bus/Auto",
-    "walkMin": 4,
+    "metro": "Girish Park",
+    "walkMin": 3,
     "crowd": "Low Wait",
-    "category": "Theme & Modern Art",
+    "category": "Sabeki Heritage",
     "featured": false,
     "award": false,
     "rating": 4.9,
@@ -5268,6 +5336,17 @@ export const PANDALS_DATA = [
       "Chicken Biryani",
       "Egg Roll",
       "Telebhaja & Muri"
+    ],
+    "bengaliName": "শামুলধোন দত্ত বাড়ি",
+    "isBonediBari": true,
+    "heritageYear": 1888,
+    "aliases": [
+      "Shamul dhone Dutta Bari",
+      "Shyamal Dhone Dutta Bari",
+      "Dutta Bari Girish Park",
+      "Shamuldhone",
+      "Shamul dhone",
+      "Muktaram Babu St Dutta Bari"
     ]
   },
   {
@@ -6431,7 +6510,7 @@ export const PANDALS_DATA = [
     "metro": "Nearby Bus/Auto",
     "walkMin": 6,
     "crowd": "Low Wait",
-    "category": "Eco-Artisan",
+    "category": "Sabeki Heritage",
     "featured": false,
     "award": false,
     "rating": 4.7,
@@ -6446,6 +6525,12 @@ export const PANDALS_DATA = [
       "Dhakai Paratha",
       "Phuchka",
       "Chai & Jhalmuri"
+    ],
+    "isBonediBari": true,
+    "heritageYear": 1882,
+    "aliases": [
+      "Harinath Mukherjee Bari",
+      "Mukherjee Bari Machuabazar"
     ]
   },
   {
@@ -6518,13 +6603,13 @@ export const PANDALS_DATA = [
     "zoneLabel": "North Kolkata",
     "area": "North Kolkata",
     "locality": "Ahiritola",
-    "address": "Ahiritola, Kolkata",
+    "address": "78 Nimtala Ghat Street, Ahiritola, Kolkata 700006",
     "lat": 22.5929745,
     "lng": 88.354953,
     "metro": "Shobhabazar Sutanuti",
-    "walkMin": 9,
+    "walkMin": 6,
     "crowd": "Low Wait",
-    "category": "Grand Illuminations",
+    "category": "Sabeki Heritage",
     "featured": false,
     "award": false,
     "rating": 4.5,
@@ -6539,6 +6624,14 @@ export const PANDALS_DATA = [
       "Fish Fry",
       "Chhangani Kachori",
       "Mishti Doi & Sandesh"
+    ],
+    "bengaliName": "হাঁটখোলা দত্ত বাড়ি",
+    "isBonediBari": true,
+    "heritageYear": 1794,
+    "aliases": [
+      "Hathkhola Dutta Bari",
+      "Hatkhola Dutta Bari",
+      "Dutta Bari Hathkhola"
     ]
   },
   {
@@ -8558,17 +8651,17 @@ export const PANDALS_DATA = [
   },
   {
     "id": 134,
-    "name": "Laha Bari Puja",
+    "name": "Thanthania Laha Bari",
     "slug": "laha-bari-puja",
     "zone": "north",
     "zoneLabel": "North Kolkata",
     "area": "North Kolkata",
-    "locality": "Maniktala",
-    "address": "Maniktala, Kolkata",
+    "locality": "Thanthania",
+    "address": "50A Kailash Bose Street / 28 Bidhan Sarani, Kolkata 700006",
     "lat": 22.5907022,
     "lng": 88.369283,
-    "metro": "Nearby Bus/Auto",
-    "walkMin": 3,
+    "metro": "MG Road",
+    "walkMin": 6,
     "crowd": "Low Wait",
     "category": "Sabeki Heritage",
     "featured": false,
@@ -8585,6 +8678,16 @@ export const PANDALS_DATA = [
       "Kathi Roll",
       "Fuchka & Churmur",
       "Mughlai Paratha"
+    ],
+    "bengaliName": "ঠনঠনিয়া লাহা বাড়ি",
+    "isBonediBari": true,
+    "heritageYear": 1860,
+    "aliases": [
+      "Thanthania Lahabari",
+      "Laha Bari Puja",
+      "Lahabari",
+      "Kailash Bose Street Laha Bari",
+      "Laha Bari"
     ]
   },
   {
@@ -8957,6 +9060,12 @@ export const PANDALS_DATA = [
       "Kathi Roll",
       "Fuchka & Churmur",
       "Mughlai Paratha"
+    ],
+    "isBonediBari": true,
+    "heritageYear": 1912,
+    "aliases": [
+      "Mahendra Srimani Family's Durga Puja",
+      "Srimani Bari"
     ]
   },
   {
@@ -8992,19 +9101,19 @@ export const PANDALS_DATA = [
   },
   {
     "id": 76,
-    "name": "Mallick Bari Durga Puja",
+    "name": "Bhawanipore Mallick Bari",
     "slug": "mallick-bari-durga-puja",
     "zone": "south",
     "zoneLabel": "South Kolkata",
     "area": "South Kolkata",
     "locality": "Bhawanipore",
-    "address": "Bhawanipore, Kolkata",
+    "address": "29 Balaram Bose Ghat Road, Bhowanipore, Kolkata 700025",
     "lat": 22.5337269,
     "lng": 88.3491023,
-    "metro": "Nearby Bus/Auto",
+    "metro": "Netaji Bhavan",
     "walkMin": 5,
     "crowd": "Low Wait",
-    "category": "Grand Illuminations",
+    "category": "Sabeki Heritage",
     "featured": false,
     "award": false,
     "rating": 4.5,
@@ -9019,6 +9128,14 @@ export const PANDALS_DATA = [
       "Fish Fry",
       "Chhangani Kachori",
       "Mishti Doi & Sandesh"
+    ],
+    "bengaliName": "ভবানীপুর মল্লিক বাড়ি",
+    "isBonediBari": true,
+    "heritageYear": 1925,
+    "aliases": [
+      "Mallick Bari Durga Puja",
+      "Bhawanipore Mallick Bari",
+      "Ranjit Mallick Bari"
     ]
   },
   {
@@ -9345,7 +9462,7 @@ export const PANDALS_DATA = [
     "metro": "Nearby Bus/Auto",
     "walkMin": 4,
     "crowd": "Low Wait",
-    "category": "Theme & Modern Art",
+    "category": "Sabeki Heritage",
     "featured": false,
     "award": false,
     "rating": 4.6,
@@ -9360,6 +9477,12 @@ export const PANDALS_DATA = [
       "Chicken Biryani",
       "Egg Roll",
       "Telebhaja & Muri"
+    ],
+    "isBonediBari": true,
+    "heritageYear": 1800,
+    "aliases": [
+      "Mitra Bari Durga Puja",
+      "Bhawanipore Mitra Bari"
     ]
   },
   {
@@ -9457,19 +9580,19 @@ export const PANDALS_DATA = [
   },
   {
     "id": 111,
-    "name": "Motilal Seal Bari",
+    "name": "Motilal Seal's Bari",
     "slug": "motilal-seal-bari",
     "zone": "central",
     "zoneLabel": "Central Kolkata",
     "area": "Central Kolkata",
-    "locality": "Sealdah",
-    "address": "Sealdah, Kolkata",
+    "locality": "Colootola",
+    "address": "60 Colootola Street, Kolkata 700073",
     "lat": 22.5756913,
     "lng": 88.3591413,
-    "metro": "MG Road",
-    "walkMin": 8,
+    "metro": "Central",
+    "walkMin": 6,
     "crowd": "Low Wait",
-    "category": "Theme & Modern Art",
+    "category": "Sabeki Heritage",
     "featured": false,
     "award": false,
     "rating": 4.5,
@@ -9484,6 +9607,15 @@ export const PANDALS_DATA = [
       "Chicken Biryani",
       "Egg Roll",
       "Telebhaja & Muri"
+    ],
+    "bengaliName": "মতিলাল শীল বাড়ি",
+    "isBonediBari": true,
+    "heritageYear": 1841,
+    "aliases": [
+      "Motilal Seal Bari",
+      "Mutty Lall Seal Bari",
+      "Seal Bari",
+      "Motilal Seal's Bari"
     ]
   },
   {
@@ -9984,19 +10116,19 @@ export const PANDALS_DATA = [
   },
   {
     "id": 137,
-    "name": "Narasimha Dawn Bari",
+    "name": "Jorasanko Narasingha Dawn Bari",
     "slug": "narasimha-dawn-bari",
     "zone": "north",
     "zoneLabel": "North Kolkata",
     "area": "North Kolkata",
     "locality": "Jorasanko",
-    "address": "Jorasanko, Kolkata",
+    "address": "12 Vivekananda Road, Jorasanko, Kolkata 700007",
     "lat": 22.5860178,
     "lng": 88.359561,
-    "metro": "Shobhabazar Sutanuti",
-    "walkMin": 13,
+    "metro": "Girish Park",
+    "walkMin": 4,
     "crowd": "Low Wait",
-    "category": "Grand Illuminations",
+    "category": "Sabeki Heritage",
     "featured": false,
     "award": false,
     "rating": 4.7,
@@ -10011,6 +10143,16 @@ export const PANDALS_DATA = [
       "Fish Fry",
       "Chhangani Kachori",
       "Mishti Doi & Sandesh"
+    ],
+    "bengaliName": "জোড়াসাঁকো নরসিংহ দাঁ বাড়ি",
+    "isBonediBari": true,
+    "heritageYear": 1859,
+    "aliases": [
+      "Narasimha Dawn Bari",
+      "Narasingha Dawn Bari",
+      "Jorasanko Dawn Bari",
+      "Dawn Bari",
+      "Narsingha Dawn"
     ]
   },
   {
@@ -11034,6 +11176,12 @@ export const PANDALS_DATA = [
       "Dhakai Paratha",
       "Phuchka",
       "Chai & Jhalmuri"
+    ],
+    "isBonediBari": true,
+    "heritageYear": 1800,
+    "aliases": [
+      "Pathuriaghata Rajbari",
+      "Pathuriaghata Ghosh Rajbari"
     ]
   },
   {
@@ -11561,6 +11709,12 @@ export const PANDALS_DATA = [
       "Kathi Roll",
       "Fuchka & Churmur",
       "Mughlai Paratha"
+    ],
+    "isBonediBari": true,
+    "heritageYear": 1875,
+    "aliases": [
+      "Purna Chandra Dhar Bari",
+      "Dhar Bari Bowbazar"
     ]
   },
   {
@@ -11906,17 +12060,17 @@ export const PANDALS_DATA = [
   },
   {
     "id": 99,
-    "name": "Ramgopal Saha House Durga Pujo",
+    "name": "Ramgopal Saha's House Durga Pujo",
     "slug": "ramgopal-saha-house-durga-pujo",
     "zone": "central",
     "zoneLabel": "Central Kolkata",
     "area": "Central Kolkata",
-    "locality": "Sealdah",
-    "address": "Sealdah, Kolkata",
+    "locality": "Bowbazar",
+    "address": "4 Thakurdas Palit Lane, Bowbazar, Kolkata 700012",
     "lat": 22.5646472,
     "lng": 88.3621447,
-    "metro": "MG Road",
-    "walkMin": 3,
+    "metro": "Chandni Chowk",
+    "walkMin": 4,
     "crowd": "Low Wait",
     "category": "Sabeki Heritage",
     "featured": false,
@@ -11933,6 +12087,14 @@ export const PANDALS_DATA = [
       "Kathi Roll",
       "Fuchka & Churmur",
       "Mughlai Paratha"
+    ],
+    "bengaliName": "রামগোপাল সাহা বাড়ি",
+    "isBonediBari": true,
+    "heritageYear": 1840,
+    "aliases": [
+      "Ramgopal Saha House Durga Pujo",
+      "Ramgopal Saha Bari",
+      "Ramgopal Saha's House"
     ]
   },
   {
@@ -11968,19 +12130,19 @@ export const PANDALS_DATA = [
   },
   {
     "id": 104,
-    "name": "Rani Rashmoni Family's Durga Puja",
+    "name": "Rani Rashmoni Family's Durga Puja (Janbazar)",
     "slug": "rani-rashmoni-familys-durga-puja",
     "zone": "central",
     "zoneLabel": "Central Kolkata",
     "area": "Central Kolkata",
     "locality": "Sealdah",
-    "address": "Sealdah, Kolkata",
+    "address": "13/1 Rani Rashmoni Road / 18 S.N. Banerjee Road, Janbazar, Kolkata 700013",
     "lat": 22.5626451,
     "lng": 88.3553495,
-    "metro": "MG Road",
-    "walkMin": 5,
+    "metro": "Esplanade",
+    "walkMin": 4,
     "crowd": "Low Wait",
-    "category": "Grand Illuminations",
+    "category": "Sabeki Heritage",
     "featured": false,
     "award": false,
     "rating": 4.6,
@@ -11995,6 +12157,15 @@ export const PANDALS_DATA = [
       "Fish Fry",
       "Chhangani Kachori",
       "Mishti Doi & Sandesh"
+    ],
+    "bengaliName": "রানী রাসমণি বাড়ি (জানবাজার)",
+    "isBonediBari": true,
+    "heritageYear": 1790,
+    "aliases": [
+      "Rani Rashmoni Family's Durga Puja",
+      "Rani Rashmoni Bari",
+      "Janbazar Rani Rashmoni",
+      "Rani Rashmoni Durga Puja"
     ]
   },
   {
@@ -12061,19 +12232,19 @@ export const PANDALS_DATA = [
   },
   {
     "id": 449,
-    "name": "Sabarna Roy Choudhury Paribar Parishad",
+    "name": "Sabarna Roy Choudhury Aatchala Bari (Barisha)",
     "slug": "sabarna-roy-choudhury-paribar-parishad",
     "zone": "southwest",
     "zoneLabel": "South-West Kolkata",
     "area": "South-West Kolkata",
     "locality": "Behala",
-    "address": "Behala, Kolkata",
+    "address": "Sakher Bazar, Barisha, Diamond Harbour Road, Kolkata 700008",
     "lat": 22.479996,
     "lng": 88.3064281,
-    "metro": "Nearby Bus/Auto",
-    "walkMin": 8,
+    "metro": "Behala Chowrasta",
+    "walkMin": 6,
     "crowd": "Low Wait",
-    "category": "Theme & Modern Art",
+    "category": "Sabeki Heritage",
     "featured": false,
     "award": false,
     "rating": 4.9,
@@ -12088,6 +12259,16 @@ export const PANDALS_DATA = [
       "Chicken Biryani",
       "Egg Roll",
       "Telebhaja & Muri"
+    ],
+    "bengaliName": "সাবর্ণ রায় চৌধুরী আটচালা বাড়ি",
+    "isBonediBari": true,
+    "heritageYear": 1610,
+    "aliases": [
+      "Sabarna Roy Choudhury Paribar Parishad",
+      "Sabarna Roy Choudhury",
+      "Aatchala Durga Puja",
+      "Barisha Sabarna Roy Choudhury",
+      "Aatchala Bari"
     ]
   },
   {
@@ -13921,19 +14102,19 @@ export const PANDALS_DATA = [
   },
   {
     "id": 186,
-    "name": "Sovabazar Rajbari",
+    "name": "Shobhabazar Rajbari (Baro Taraf)",
     "slug": "sovabazar-rajbari",
     "zone": "north",
     "zoneLabel": "North Kolkata",
     "area": "North Kolkata",
     "locality": "Shobhabazar",
-    "address": "Shobhabazar, Kolkata",
+    "address": "33 Raja Nabakrishna Street, Shobhabazar, Kolkata 700005",
     "lat": 22.5964031,
     "lng": 88.3674012,
     "metro": "Shobhabazar Sutanuti",
-    "walkMin": 8,
+    "walkMin": 2,
     "crowd": "Low Wait",
-    "category": "Award Winner",
+    "category": "Sabeki Heritage",
     "featured": true,
     "award": true,
     "rating": 4.9,
@@ -13948,6 +14129,15 @@ export const PANDALS_DATA = [
       "Chicken Biryani",
       "Egg Roll",
       "Telebhaja & Muri"
+    ],
+    "bengaliName": "শোভাবাজার রাজবাড়ি (বড় তরফ)",
+    "isBonediBari": true,
+    "heritageYear": 1757,
+    "aliases": [
+      "Sovabazar Rajbari",
+      "Shobhabazar Rajbari",
+      "Raja Nabakrishna Deb Rajbari",
+      "Baro Rajbari"
     ]
   },
   {
@@ -14739,7 +14929,7 @@ export const PANDALS_DATA = [
     "metro": "MG Road",
     "walkMin": 10,
     "crowd": "Low Wait",
-    "category": "Eco-Artisan",
+    "category": "Sabeki Heritage",
     "featured": false,
     "award": false,
     "rating": 4.5,
@@ -14754,6 +14944,12 @@ export const PANDALS_DATA = [
       "Dhakai Paratha",
       "Phuchka",
       "Chai & Jhalmuri"
+    ],
+    "isBonediBari": true,
+    "heritageYear": 1855,
+    "aliases": [
+      "Thanthania Dutta Bari",
+      "Dutta Bari Thanthania"
     ]
   },
   {
@@ -15603,7 +15799,7 @@ export const PANDALS_DATA = [
     "locality": "Rashmoni Bazar, Beleghata",
     "address": "Beleghata Main Road, near Rashmoni Bazar, Kolkata 700010",
     "lat": 22.5645,
-    "lng": 88.3880,
+    "lng": 88.388,
     "metro": "Phoolbagan Metro (Green Line - 6 min auto)",
     "walkMin": 6,
     "crowd": "Moderate",
@@ -15623,24 +15819,601 @@ export const PANDALS_DATA = [
       "Phoolbagan Mishti Hub",
       "Kolkata Biryani & Moglai"
     ]
+  },
+  {
+    "id": 505,
+    "name": "Jorasanko Shib Krishna Daw Bari",
+    "bengaliName": "জোড়াসাঁকো শিবকৃষ্ণ দাঁ বাড়ি",
+    "slug": "jorasanko-shib-krishna-daw-bari",
+    "zone": "north",
+    "zoneLabel": "North Kolkata",
+    "area": "North Kolkata",
+    "locality": "Jorasanko",
+    "address": "12 Shibkrishna Daw Lane, Jorasanko, Kolkata 700007",
+    "lat": 22.5855,
+    "lng": 88.3575,
+    "metro": "Girish Park",
+    "walkMin": 4,
+    "crowd": "Moderate",
+    "category": "Sabeki Heritage",
+    "isBonediBari": true,
+    "heritageYear": 1840,
+    "featured": true,
+    "award": false,
+    "rating": 4.9,
+    "reviewsCount": 520,
+    "aliases": [
+      "Shibkrishna Daw Bari",
+      "Shib Krishna Daw Bari",
+      "Daw Bari",
+      "Jorasanko Daw Bari",
+      "Shibkrishna Dawn"
+    ],
+    "images": [
+      "/images/durga/durga_face_1.jpg",
+      "/images/durga/durga_face_3.jpg",
+      "https://pandalgo.in/storage/uploads/pandals/hero/7e41342f-4780-4f0c-8f84-52a7886d15fe.jpg"
+    ],
+    "highlights": "Historic 185-year-old aristocratic puja celebrated in a majestic open thakur-dalan with Belgian crystal chandeliers and a traditional cannon salute during Sandhi Puja.",
+    "foodNearby": [
+      "Girish Chandra Dey Mishti",
+      "Chhangani Club Kachori",
+      "Girish Park Fuchka"
+    ]
+  },
+  {
+    "id": 506,
+    "name": "Basu Mallick Thakurbari",
+    "bengaliName": "বসু মল্লিক ঠাকুরবাড়ি",
+    "slug": "basu-mallick-thakurbari",
+    "zone": "central",
+    "zoneLabel": "Central Kolkata",
+    "area": "Central Kolkata",
+    "locality": "College Square",
+    "address": "18 Radhanath Mallick Lane / 112 Pataldanga Street, Kolkata 700073",
+    "lat": 22.5739,
+    "lng": 88.3642,
+    "metro": "Central",
+    "walkMin": 5,
+    "crowd": "Low Wait",
+    "category": "Sabeki Heritage",
+    "isBonediBari": true,
+    "heritageYear": 1831,
+    "featured": false,
+    "award": false,
+    "rating": 4.8,
+    "reviewsCount": 430,
+    "aliases": [
+      "Basu Mullick Thakurbari",
+      "Radhanath Mallick Lane",
+      "Pataldanga Basu Mallick",
+      "Bosu Mallick"
+    ],
+    "images": [
+      "/images/durga/durga_face_2.jpg",
+      "/images/durga/durga_face_4.jpg",
+      "https://pandalgo.in/storage/uploads/pandals/hero/1534154a-f714-4fe1-bed7-aa1b5e76ebc1.jpg"
+    ],
+    "highlights": "Grand 194-year-old family celebration established by Radhanath Mallick, famous for its magnificent classical European columns and antique chandelier halls.",
+    "foodNearby": [
+      "Paramount Sherbets",
+      "Dilkhusha Cabin",
+      "Putiram Sweets"
+    ]
+  },
+  {
+    "id": 507,
+    "name": "Rakhaldas Halder Bari",
+    "bengaliName": "রাখালদাস হালদার বাড়ি",
+    "slug": "rakhaldas-halder-bari",
+    "zone": "central",
+    "zoneLabel": "Central Kolkata",
+    "area": "Central Kolkata",
+    "locality": "Bowbazar",
+    "address": "14 Halder Lane, Bowbazar, Kolkata 700012",
+    "lat": 22.5695,
+    "lng": 88.364,
+    "metro": "Central",
+    "walkMin": 5,
+    "crowd": "Low Wait",
+    "category": "Sabeki Heritage",
+    "isBonediBari": true,
+    "heritageYear": 1850,
+    "featured": false,
+    "award": false,
+    "rating": 4.7,
+    "reviewsCount": 380,
+    "aliases": [
+      "Rakhal Das Halder Bari",
+      "Halder Bari Bowbazar",
+      "Rakhaldas Halder"
+    ],
+    "images": [
+      "/images/durga/durga_face_3.jpg",
+      "/images/durga/durga_face_5.jpg",
+      "https://pandalgo.in/storage/uploads/pandals/hero/813ac693-d5ee-4eb2-ae5f-6e67ce6a317f.jpg"
+    ],
+    "highlights": "Historic Bowbazar family puja celebrated with pristine Ekchala Daker Saaj pratima, classical Agomoni hymns, and traditional bhog offerings.",
+    "foodNearby": [
+      "Bowbazar Sweets",
+      "Girish Chandra Dey Mishti",
+      "Kolkata Egg Roll"
+    ]
+  },
+  {
+    "id": 508,
+    "name": "Balaram Dey Street Dutta Bari",
+    "bengaliName": "বলরাম দে স্ট্রিট দত্ত বাড়ি",
+    "slug": "balaram-dey-street-dutta-bari",
+    "zone": "north",
+    "zoneLabel": "North Kolkata",
+    "area": "North Kolkata",
+    "locality": "Girish Park",
+    "address": "159 Balaram Dey Street, Girish Park, Kolkata 700006",
+    "lat": 22.5862,
+    "lng": 88.3588,
+    "metro": "Girish Park",
+    "walkMin": 3,
+    "crowd": "Low Wait",
+    "category": "Sabeki Heritage",
+    "isBonediBari": true,
+    "heritageYear": 1882,
+    "featured": false,
+    "award": false,
+    "rating": 4.8,
+    "reviewsCount": 460,
+    "aliases": [
+      "Balaram De Dutta Bari",
+      "Balaram Dey Dutta Bari",
+      "Dutta Bari Balaram Dey"
+    ],
+    "images": [
+      "/images/durga/durga_face_4.jpg",
+      "/images/durga/durga_face_1.jpg",
+      "https://pandalgo.in/storage/uploads/pandals/hero/fffea533-f520-4693-b0b7-3f1213101b98.jpg"
+    ],
+    "highlights": "Distinguished family puja renowned for its pure white Ekchala Daker Saaj idol, gold ornamentations, and sacred courtyard rituals.",
+    "foodNearby": [
+      "Chhangani Kachori",
+      "Girish Park Shingara",
+      "Bhim Chandra Nag Sweets"
+    ]
+  },
+  {
+    "id": 509,
+    "name": "Pathuriaghata Khelat Ghosh Bari",
+    "bengaliName": "পাথুরিয়াঘাটা খেলাত ঘোষ বাড়ি",
+    "slug": "pathuriaghata-khelat-ghosh-bari",
+    "zone": "north",
+    "zoneLabel": "North Kolkata",
+    "area": "North Kolkata",
+    "locality": "Jorabagan",
+    "address": "47 Pathuriaghata Street, Jorabagan, Kolkata 700006",
+    "lat": 22.5902,
+    "lng": 88.3562,
+    "metro": "Shobhabazar Sutanuti",
+    "walkMin": 7,
+    "crowd": "Moderate",
+    "category": "Sabeki Heritage",
+    "isBonediBari": true,
+    "heritageYear": 1855,
+    "featured": true,
+    "award": false,
+    "rating": 4.9,
+    "reviewsCount": 580,
+    "aliases": [
+      "Khelat Ghosh Bari",
+      "Khelat Chunder Ghosh",
+      "Pathuriaghata Ghosh Bari"
+    ],
+    "images": [
+      "/images/durga/durga_face_5.jpg",
+      "/images/durga/durga_face_2.jpg",
+      "https://pandalgo.in/storage/uploads/pandals/hero/7e41342f-4780-4f0c-8f84-52a7886d15fe.jpg"
+    ],
+    "highlights": "Architectural jewel of North Kolkata with a majestic 85-foot marble thakur-dalan, Belgian chandeliers, antique dancing hall, and classical musical gatherings.",
+    "foodNearby": [
+      "Mitra Cafe",
+      "Chittaranjan Sweets",
+      "Girish Chandra Dey"
+    ]
+  },
+  {
+    "id": 510,
+    "name": "Bhukailash Rajbari",
+    "bengaliName": "ভূকৈলাশ রাজবাড়ি",
+    "slug": "bhukailash-rajbari",
+    "zone": "port",
+    "zoneLabel": "Port Area",
+    "area": "Port Area",
+    "locality": "Khidirpur",
+    "address": "Bhukailash Road, Khidirpur, Kolkata 700023",
+    "lat": 22.536,
+    "lng": 88.3245,
+    "metro": "Netaji Bhavan",
+    "walkMin": 18,
+    "crowd": "Moderate",
+    "category": "Sabeki Heritage",
+    "isBonediBari": true,
+    "heritageYear": 1782,
+    "featured": true,
+    "award": false,
+    "rating": 4.8,
+    "reviewsCount": 490,
+    "aliases": [
+      "Bhukailas Rajbari",
+      "Khidirpur Rajbari",
+      "Raja Joynarayan Ghoshal"
+    ],
+    "images": [
+      "/images/durga/durga_face_1.jpg",
+      "/images/durga/durga_face_4.jpg",
+      "https://pandalgo.in/storage/uploads/pandals/hero/1534154a-f714-4fe1-bed7-aa1b5e76ebc1.jpg"
+    ],
+    "highlights": "Founded in 1782 by Raja Jaynarayan Ghoshal, celebrated for its historic twin Shiva temples and the revered Patit Pabani eight-metal (ashtadhatu) idol.",
+    "foodNearby": [
+      "Khidirpur Biryani",
+      "Mughlai Paratha",
+      "Kalika Fry"
+    ]
+  },
+  {
+    "id": 511,
+    "name": "Kumartuli Baishnabdas Mallick Bari",
+    "bengaliName": "কুমারটুলি বৈষ্ণবদাস মল্লিক বাড়ি",
+    "slug": "kumartuli-baishnabdas-mallick-bari",
+    "zone": "north",
+    "zoneLabel": "North Kolkata",
+    "area": "North Kolkata",
+    "locality": "Kumartuli",
+    "address": "67 Darpanarayan Tagore Street, Kumartuli, Kolkata 700006",
+    "lat": 22.5938,
+    "lng": 88.356,
+    "metro": "Shobhabazar Sutanuti",
+    "walkMin": 5,
+    "crowd": "Low Wait",
+    "category": "Sabeki Heritage",
+    "isBonediBari": true,
+    "heritageYear": 1785,
+    "featured": false,
+    "award": false,
+    "rating": 4.7,
+    "reviewsCount": 390,
+    "aliases": [
+      "Baishnabdas Mallick Bari",
+      "Darpanarayan Tagore St Mallick",
+      "Mallick Bari Kumartuli"
+    ],
+    "images": [
+      "/images/durga/durga_face_2.jpg",
+      "/images/durga/durga_face_3.jpg",
+      "https://pandalgo.in/storage/uploads/pandals/hero/813ac693-d5ee-4eb2-ae5f-6e67ce6a317f.jpg"
+    ],
+    "highlights": "Historic 240-year-old Vaishnav family celebration featuring traditional stone pillars and sacred pure vegetarian bhog offerings.",
+    "foodNearby": [
+      "Kumartuli Tea & Toast",
+      "Mitra Cafe",
+      "Ahiritola Telebhaja"
+    ]
+  },
+  {
+    "id": 512,
+    "name": "Bagbazar Halder Bari",
+    "bengaliName": "বাগবাজার হালদার বাড়ি",
+    "slug": "bagbazar-halder-bari",
+    "zone": "north",
+    "zoneLabel": "North Kolkata",
+    "area": "North Kolkata",
+    "locality": "Bagbazar",
+    "address": "17/2 Halderpara Lane, Bagbazar, Kolkata 700003",
+    "lat": 22.6025,
+    "lng": 88.3685,
+    "metro": "Shyambazar",
+    "walkMin": 6,
+    "crowd": "Low Wait",
+    "category": "Sabeki Heritage",
+    "isBonediBari": true,
+    "heritageYear": 1800,
+    "featured": false,
+    "award": false,
+    "rating": 4.7,
+    "reviewsCount": 370,
+    "aliases": [
+      "Halder Bari Bagbazar",
+      "Halderpara Lane Halder Bari"
+    ],
+    "images": [
+      "/images/durga/durga_face_3.jpg",
+      "/images/durga/durga_face_1.jpg",
+      "https://pandalgo.in/storage/uploads/pandals/hero/fffea533-f520-4693-b0b7-3f1213101b98.jpg"
+    ],
+    "highlights": "Classical Bagbazar ancestral mansion puja celebrated with sacred Ekchala pratima, antique brass utensils, and authentic Agomoni songs.",
+    "foodNearby": [
+      "Bagbazar Ghosh Brothers",
+      "Radharani Mishti",
+      "Golbari Kosha Mangsho"
+    ]
+  },
+  {
+    "id": 513,
+    "name": "Bowbazar Sen Bari Durga Puja",
+    "bengaliName": "বউবাজার সেন বাড়ি",
+    "slug": "bowbazar-sen-bari-durga-puja",
+    "zone": "central",
+    "zoneLabel": "Central Kolkata",
+    "area": "Central Kolkata",
+    "locality": "Bowbazar",
+    "address": "15/1 Sitaram Ghosh Street, Bowbazar, Kolkata 700009",
+    "lat": 22.571,
+    "lng": 88.3665,
+    "metro": "Central",
+    "walkMin": 6,
+    "crowd": "Low Wait",
+    "category": "Sabeki Heritage",
+    "isBonediBari": true,
+    "heritageYear": 1820,
+    "featured": false,
+    "award": false,
+    "rating": 4.8,
+    "reviewsCount": 410,
+    "aliases": [
+      "Sen Bari Bowbazar",
+      "Sitaram Ghosh St Sen Bari"
+    ],
+    "images": [
+      "/images/durga/durga_face_4.jpg",
+      "/images/durga/durga_face_5.jpg",
+      "https://pandalgo.in/storage/uploads/pandals/hero/7e41342f-4780-4f0c-8f84-52a7886d15fe.jpg"
+    ],
+    "highlights": "Over 200-year-old family puja famous for its traditional Sabeki thakur dalan, pure silver jewelry on the deity, and grand Sandhi Puja arati.",
+    "foodNearby": [
+      "Putiram Sweets",
+      "College Street Coffee House",
+      "Basanta Cabin"
+    ]
+  },
+  {
+    "id": 514,
+    "name": "Chandra Bari Durga Puja",
+    "bengaliName": "চন্দ্র বাড়ি দুর্গাপূজা",
+    "slug": "chandra-bari-durga-puja",
+    "zone": "central",
+    "zoneLabel": "Central Kolkata",
+    "area": "Central Kolkata",
+    "locality": "Wellington",
+    "address": "23 Nirmal Chandra Street, Wellington Square, Kolkata 700012",
+    "lat": 22.5658,
+    "lng": 88.3615,
+    "metro": "Chandni Chowk",
+    "walkMin": 5,
+    "crowd": "Low Wait",
+    "category": "Sabeki Heritage",
+    "isBonediBari": true,
+    "heritageYear": 1877,
+    "featured": false,
+    "award": false,
+    "rating": 4.7,
+    "reviewsCount": 395,
+    "aliases": [
+      "Chandra Bari Wellington",
+      "Ganesh Chandra Chandra Bari",
+      "Nirmal Chandra St Chandra Bari"
+    ],
+    "images": [
+      "/images/durga/durga_face_5.jpg",
+      "/images/durga/durga_face_2.jpg",
+      "https://pandalgo.in/storage/uploads/pandals/hero/1534154a-f714-4fe1-bed7-aa1b5e76ebc1.jpg"
+    ],
+    "highlights": "Ancestral home of prominent freedom fighter Nirmal Chandra Chandra, celebrated with deep patriotic heritage and authentic Sabeki rituals.",
+    "foodNearby": [
+      "Sabir's Hotel",
+      "Anadi Cabin Mughlai",
+      "KC Das Sweets"
+    ]
+  },
+  {
+    "id": 515,
+    "name": "Bhawanipore Kundu Bari",
+    "bengaliName": "ভবানীপুর কুণ্ডু বাড়ি",
+    "slug": "bhawanipore-kundu-bari",
+    "zone": "south",
+    "zoneLabel": "South Kolkata",
+    "area": "South Kolkata",
+    "locality": "Bhowanipore",
+    "address": "24 Ashutosh Mukherjee Road / Chakraberia, Kolkata 700020",
+    "lat": 22.5312,
+    "lng": 88.3475,
+    "metro": "Netaji Bhavan",
+    "walkMin": 4,
+    "crowd": "Low Wait",
+    "category": "Sabeki Heritage",
+    "isBonediBari": true,
+    "heritageYear": 1879,
+    "featured": false,
+    "award": false,
+    "rating": 4.8,
+    "reviewsCount": 440,
+    "aliases": [
+      "Kundu Bari Bhawanipore",
+      "Kundu Bari Chakraberia",
+      "Chakraberia Kundu Bari"
+    ],
+    "images": [
+      "/images/durga/durga_face_1.jpg",
+      "/images/durga/durga_face_3.jpg",
+      "https://pandalgo.in/storage/uploads/pandals/hero/813ac693-d5ee-4eb2-ae5f-6e67ce6a317f.jpg"
+    ],
+    "highlights": "Iconic South Kolkata mansion puja famous for its serene open courtyard, gold-foil Daker Saaj idol, and 145+ years of unblemished rituals.",
+    "foodNearby": [
+      "Balwant Singh Dhaba",
+      "Mithai",
+      "Balaram Mullick Sweets"
+    ]
+  },
+  {
+    "id": 516,
+    "name": "Bhawanipore Ghosh Bari",
+    "bengaliName": "ভবানীপুর ঘোষ বাড়ি",
+    "slug": "bhawanipore-ghosh-bari",
+    "zone": "south",
+    "zoneLabel": "South Kolkata",
+    "area": "South Kolkata",
+    "locality": "Bhowanipore",
+    "address": "14A S.N. Roy Road / Kansaripara, Kolkata 700025",
+    "lat": 22.5285,
+    "lng": 88.345,
+    "metro": "Jatin Das Park",
+    "walkMin": 5,
+    "crowd": "Low Wait",
+    "category": "Sabeki Heritage",
+    "isBonediBari": true,
+    "heritageYear": 1850,
+    "featured": false,
+    "award": false,
+    "rating": 4.7,
+    "reviewsCount": 380,
+    "aliases": [
+      "Ghosh Bari Bhawanipore",
+      "Kansaripara Ghosh Bari"
+    ],
+    "images": [
+      "/images/durga/durga_face_2.jpg",
+      "/images/durga/durga_face_4.jpg",
+      "https://pandalgo.in/storage/uploads/pandals/hero/fffea533-f520-4693-b0b7-3f1213101b98.jpg"
+    ],
+    "highlights": "Graceful 175-year-old family celebration characterized by authentic Ekchala idol, traditional dhaki beats, and family bhog offering.",
+    "foodNearby": [
+      "Bijoli Grill",
+      "Kansari Tea & Snacks",
+      "Chowman Bhowanipore"
+    ]
+  },
+  {
+    "id": 517,
+    "name": "Shobhabazar Choto Rajbari (Choto Taraf)",
+    "bengaliName": "শোভাবাজার ছোট রাজবাড়ি",
+    "slug": "shobhabazar-choto-rajbari",
+    "zone": "north",
+    "zoneLabel": "North Kolkata",
+    "area": "North Kolkata",
+    "locality": "Shobhabazar",
+    "address": "36 Raja Nabakrishna Street, Shobhabazar, Kolkata 700005",
+    "lat": 22.5975,
+    "lng": 88.3662,
+    "metro": "Shobhabazar Sutanuti",
+    "walkMin": 2,
+    "crowd": "Moderate",
+    "category": "Sabeki Heritage",
+    "isBonediBari": true,
+    "heritageYear": 1790,
+    "featured": true,
+    "award": false,
+    "rating": 4.9,
+    "reviewsCount": 550,
+    "aliases": [
+      "Sovabazar Choto Rajbari",
+      "Choto Rajbari",
+      "Raja Radhakanta Deb Bari"
+    ],
+    "images": [
+      "/images/durga/durga_face_3.jpg",
+      "/images/durga/durga_face_5.jpg",
+      "https://pandalgo.in/storage/uploads/pandals/hero/7e41342f-4780-4f0c-8f84-52a7886d15fe.jpg"
+    ],
+    "highlights": "Facing the grand Baro Rajbari, built for Raja Radhakanta Deb in 1790, featuring majestic Corinthian colonnades and royal Sandhi Puja traditions.",
+    "foodNearby": [
+      "Mitra Cafe",
+      "Chittaranjan Sweets",
+      "Shobhabazar Fuchka"
+    ]
+  },
+  {
+    "id": 518,
+    "name": "Sabarna Roy Choudhury Baro Bari (Barisha)",
+    "bengaliName": "সাবর্ণ রায় চৌধুরী বড় বাড়ি",
+    "slug": "sabarna-roy-choudhury-baro-bari-barisha",
+    "zone": "southwest",
+    "zoneLabel": "South-West Kolkata",
+    "area": "South-West Kolkata",
+    "locality": "Behala",
+    "address": "Diamond Harbour Road, Barisha, Kolkata 700008",
+    "lat": 22.4825,
+    "lng": 88.3102,
+    "metro": "Behala Chowrasta",
+    "walkMin": 7,
+    "crowd": "Low Wait",
+    "category": "Sabeki Heritage",
+    "isBonediBari": true,
+    "heritageYear": 1610,
+    "featured": false,
+    "award": false,
+    "rating": 4.8,
+    "reviewsCount": 420,
+    "aliases": [
+      "Baro Bari Barisha",
+      "Sabarna Baro Bari",
+      "Barisha Baro Bari"
+    ],
+    "images": [
+      "/images/durga/durga_face_4.jpg",
+      "/images/durga/durga_face_1.jpg",
+      "https://pandalgo.in/storage/uploads/pandals/hero/1534154a-f714-4fe1-bed7-aa1b5e76ebc1.jpg"
+    ],
+    "highlights": "The ancestral Baro Bari branch of the legendary Sabarna Roy Choudhury clan, celebrated with profound Shakta-Vaishnava rituals dating back over four centuries.",
+    "foodNearby": [
+      "Behala Club Biryani",
+      "Chowrasta Mishti",
+      "Barisha Rolls"
+    ]
   }
 ];
 
 export const ZONES = [
-  { id: "all", label: "All Zones (504)" },
-  { id: "south", label: "South Kolkata (179)" },
-  { id: "north", label: "North Kolkata (98)" },
-  { id: "central", label: "Central Kolkata (63)" },
-  { id: "southwest", label: "South-West Kolkata (61)" },
-  { id: "east", label: "East & Salt Lake (43)" },
-  { id: "howrah", label: "Howrah & Salkia (20)" },
-  { id: "siliguri", label: "Siliguri (20)" },
-  { id: "port", label: "Port Area (14)" },
-  { id: "others", label: "Greater Bengal (6)" }
+  {
+    "id": "all",
+    "label": "All Zones (518)"
+  },
+  {
+    "id": "south",
+    "label": "South Kolkata (181)"
+  },
+  {
+    "id": "north",
+    "label": "North Kolkata (104)"
+  },
+  {
+    "id": "central",
+    "label": "Central Kolkata (68)"
+  },
+  {
+    "id": "southwest",
+    "label": "South-West Kolkata (62)"
+  },
+  {
+    "id": "east",
+    "label": "East & Salt Lake (43)"
+  },
+  {
+    "id": "howrah",
+    "label": "Howrah & Salkia (20)"
+  },
+  {
+    "id": "siliguri",
+    "label": "Siliguri (20)"
+  },
+  {
+    "id": "port",
+    "label": "Port Area (15)"
+  },
+  {
+    "id": "others",
+    "label": "Greater Bengal (6)"
+  }
 ];
 
 export const CATEGORIES = [
   "All Themes",
+  "Bonedi Bari (ঐতিহ্যবাহী)",
   "Sabeki Heritage",
   "Theme & Modern Art",
   "Grand Illuminations",

@@ -125,7 +125,60 @@ export const HOMOPHONE_ALIASES = {
   "barisha": "Barisha Club",
   "barisha club": "Barisha Club",
   "parnasree": "Parnasree Pally",
-  "parnashree": "Parnasree Pally"
+  "parnashree": "Parnasree Pally",
+
+  // Iconic Bonedi Bari aliases & homophones
+  "shamul dhone": "Shamul Dhone Dutta Bari (Girish Park)",
+  "shamuldhone": "Shamul Dhone Dutta Bari (Girish Park)",
+  "shyamal dhone": "Shamul Dhone Dutta Bari (Girish Park)",
+  "shyamaldhone": "Shamul Dhone Dutta Bari (Girish Park)",
+  "shib krishna daw": "Jorasanko Shib Krishna Daw Bari",
+  "shibkrishna daw": "Jorasanko Shib Krishna Daw Bari",
+  "shib krishna dawn": "Jorasanko Shib Krishna Daw Bari",
+  "jorasanko daw bari": "Jorasanko Shib Krishna Daw Bari",
+  "daw bari": "Jorasanko Shib Krishna Daw Bari",
+  "narasingha dawn": "Jorasanko Narasingha Dawn Bari",
+  "narsingha dawn": "Jorasanko Narasingha Dawn Bari",
+  "narasimha dawn": "Jorasanko Narasingha Dawn Bari",
+  "dawn bari": "Jorasanko Narasingha Dawn Bari",
+  "thanthania lahabari": "Thanthania Laha Bari",
+  "thanthania laha": "Thanthania Laha Bari",
+  "lahabari": "Thanthania Laha Bari",
+  "laha bari": "Thanthania Laha Bari",
+  "khelat ghosh": "Pathuriaghata Khelat Ghosh Bari",
+  "khelat ghosh bari": "Pathuriaghata Khelat Ghosh Bari",
+  "khelat chunder ghosh": "Pathuriaghata Khelat Ghosh Bari",
+  "bhukailash": "Bhukailash Rajbari",
+  "bhukailas": "Bhukailash Rajbari",
+  "khidirpur rajbari": "Bhukailash Rajbari",
+  "basu mallick": "Basu Mallick Thakurbari",
+  "bosu mallick": "Basu Mallick Thakurbari",
+  "basu mullick": "Basu Mallick Thakurbari",
+  "motilal seal": "Motilal Seal's Bari",
+  "motilal sil": "Motilal Seal's Bari",
+  "mutty lall seal": "Motilal Seal's Bari",
+  "seal bari": "Motilal Seal's Bari",
+  "rakhaldas halder": "Rakhaldas Halder Bari",
+  "rakhal das halder": "Rakhaldas Halder Bari",
+  "chatu babu": "Chhatu Babu Latu Babu Thakur Bari",
+  "chhatu babu": "Chhatu Babu Latu Babu Thakur Bari",
+  "latu babu": "Chhatu Babu Latu Babu Thakur Bari",
+  "ramdulal nibas": "Chhatu Babu Latu Babu Thakur Bari",
+  "rani rashmoni": "Rani Rashmoni Family's Durga Puja (Janbazar)",
+  "janbazar rani rashmoni": "Rani Rashmoni Family's Durga Puja (Janbazar)",
+  "sonar durga": "Behala Jagat Ram Mukherjee Bari (Sonar Durga)",
+  "jagatram mukherjee": "Behala Jagat Ram Mukherjee Bari (Sonar Durga)",
+  "aatchala": "Sabarna Roy Choudhury Aatchala Bari (Barisha)",
+  "aatchala bari": "Sabarna Roy Choudhury Aatchala Bari (Barisha)",
+  "sabarna roy": "Sabarna Roy Choudhury Aatchala Bari (Barisha)",
+  "sabarna aatchala": "Sabarna Roy Choudhury Aatchala Bari (Barisha)",
+  "balaram dey": "Balaram Dey Street Dutta Bari",
+  "balaram dey dutta bari": "Balaram Dey Street Dutta Bari",
+  "hathkhola dutta": "Hathkhola Dutta Bari",
+  "darjipara mitra": "Darjipara Mitra Bari",
+  "bhawanipore mallick": "Bhawanipore Mallick Bari",
+  "ranjit mallick bari": "Bhawanipore Mallick Bari",
+  "kundu bari": "Bhawanipore Kundu Bari"
 };
 
 /**
@@ -232,10 +285,28 @@ export function filterPandalsPhonetically(pandalsList, query) {
     // 1. Exact or partial substring match
     if (
       nameLower.includes(q) ||
+      (p.bengaliName && p.bengaliName.toLowerCase().includes(q)) ||
       zoneLower.includes(q) ||
       areaLower.includes(q) ||
       localityLower.includes(q) ||
       metroLower.includes(q)
+    ) {
+      return true;
+    }
+
+    // 1b. Aliases array match
+    if (p.aliases && Array.isArray(p.aliases)) {
+      const aliasMatch = p.aliases.some(a => {
+        const aLower = a.toLowerCase();
+        return aLower.includes(q) || normalizePhonetic(a).includes(qNorm);
+      });
+      if (aliasMatch) return true;
+    }
+
+    // 1c. Bonedi Bari / Rajbari category intent search
+    if (
+      (q === "bonedi" || q === "bonedi bari" || q === "bonedi pujo" || q === "rajbari" || q === "bonedi baris") &&
+      p.isBonediBari
     ) {
       return true;
     }

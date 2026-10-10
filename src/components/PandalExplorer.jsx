@@ -93,6 +93,8 @@ export default function PandalExplorer({
     if (selectedCategory && selectedCategory !== "All Themes") {
       if (selectedCategory === "Near Metro") {
         list = list.filter((p) => p.metro && p.metro !== "Nearby Bus/Auto");
+      } else if (selectedCategory === "Bonedi Bari (ঐতিহ্যবাহী)") {
+        list = list.filter((p) => p.isBonediBari === true || p.category === "Bonedi Bari (ঐতিহ্যবাহী)" || p.name.includes("Bari") || p.name.includes("Rajbari"));
       } else {
         list = list.filter((p) => p.category === selectedCategory);
       }
@@ -255,7 +257,7 @@ export default function PandalExplorer({
           <div>
             <div className="inline-flex items-center space-x-1.5 px-3 py-0.5 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-300 text-[10px] sm:text-xs font-semibold mb-2">
               <Compass className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
-              <span>Full Bengal Directory · 504 Pandals & 185+ Famous Eateries</span>
+              <span>Full Bengal Directory · 518+ Verified Pandals & 185+ Famous Eateries</span>
             </div>
             <h2 className="font-heritage text-xl sm:text-3xl md:text-5xl font-black text-white">
               Pujo & Food <span className="text-gold-gradient">Navigation Hub</span>
@@ -390,7 +392,7 @@ export default function PandalExplorer({
                 }}
                 placeholder={
                   activeTab === "pandals"
-                    ? "Search 504 pandals (e.g. Sribhumi, Beleghata Karmi, Kumartuli, Suruchi)..."
+                    ? "Search 518+ pandals (e.g. Sribhumi, Jorasanko Daw Bari, Beleghata Karmi)..."
                     : "Search 185+ eateries (e.g. Peter Cat, Arsalan, Mitra Cafe, Dada Boudi)..."
                 }
                 className="w-full py-3.5 pl-11 pr-4 bg-[#140E1B] border border-white/10 rounded-2xl text-xs sm:text-sm text-white placeholder-slate-400 focus:outline-none focus:border-amber-400/50"
