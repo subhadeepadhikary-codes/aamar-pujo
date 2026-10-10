@@ -1,15 +1,18 @@
 import React, { useEffect, useRef, useState } from "react";
 import L from "leaflet";
 import { PANDALS_DATA } from "../data/pandalsData";
-import { MapPin, Navigation, Compass, Layers, ExternalLink, Globe, ZoomIn } from "lucide-react";
+import { MapPin, Navigation, Compass, Layers, ExternalLink, Globe, ZoomIn, Sparkles, Route } from "lucide-react";
+import RoutePlanner from "./RoutePlanner";
 
 export default function PandalMap({ userLocation, onOpenModal, selectedZone }) {
   const mapContainerRef = useRef(null);
   const mapInstanceRef = useRef(null);
   const markersLayerRef = useRef(null);
+  const routeLayerRef = useRef(null);
   const userMarkerRef = useRef(null);
 
   const [activeZone, setActiveZone] = useState("all");
+  const [activeMapPlan, setActiveMapPlan] = useState(null);
 
   useEffect(() => {
     if (!mapContainerRef.current) return;
@@ -34,6 +37,7 @@ export default function PandalMap({ userLocation, onOpenModal, selectedZone }) {
       }).addTo(map);
 
       markersLayerRef.current = L.layerGroup().addTo(map);
+      routeLayerRef.current = L.layerGroup().addTo(map);
       mapInstanceRef.current = map;
     }
 
@@ -154,6 +158,106 @@ export default function PandalMap({ userLocation, onOpenModal, selectedZone }) {
     }
   }, [userLocation, activeZone]);
 
+  // Dynamic Route Polyline & Step Marker Visualization
+  useEffect(() => {
+    if (!mapInstanceRef.current || !routeLayerRef.current) return;
+
+    const routeLayer = routeLayerRef.current;
+    routeLayer.clearLayers();
+
+    if (!activeMapPlan || !activeMapPlan.spots || activeMapPlan.spots.length === 0) {
+      return;
+    }
+
+    const spots = activeMapPlan.spots;
+    const latlngs = spots.map((s) => [s.lat, s.lng]);
+
+    // Draw route lines if 2 or more spots
+    if (spots.length >= 2) {
+      // Glow ambient background line
+      L.polyline(latlngs, {
+        color: "#E11D48",
+        weight: 6,
+        opacity: 0.65,
+        lineCap: "round",
+        lineJoin: "round"
+      }).addTo(routeLayer);
+
+      // Dashed golden foreground route path
+      L.polyline(latlngs, {
+        color: "#FBBF24",
+        weight: 3.5,
+        opacity: 0.95,
+        dashArray: "8, 10",
+        lineCap: "round",
+        lineJoin: "round"
+      }).addTo(routeLayer);
+    }
+
+    // Numbered sequential step badges (1 to N)
+    spots.forEach((spot, idx) => {
+      const isFirst = idx === 0;
+      const isLast = idx === spots.length - 1;
+      const badgeColor = isFirst ? "#10B981" : (isLast ? "#EF4444" : "#F59E0B");
+
+      const numIcon = L.divIcon({
+        className: "route-step-marker",
+        html: `
+          <div style="
+            background: ${badgeColor};
+            color: #000000;
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            border: 2px solid #ffffff;
+            box-shadow: 0 0 14px ${badgeColor}cc;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 900;
+            font-size: 11px;
+            font-family: ui-monospace, SFMono-Regular, monospace;
+          ">
+            ${idx + 1}
+          </div>
+        `,
+        iconSize: [28, 28],
+        iconAnchor: [14, 14],
+        popupAnchor: [0, -14]
+      });
+
+      const marker = L.marker([spot.lat, spot.lng], {
+        icon: numIcon,
+        zIndexOffset: 1200 + idx
+      });
+
+      const popupHtml = `
+        <div style="color: #ffffff; font-family: sans-serif; min-width: 210px; padding: 6px;">
+          <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px;">
+            <span style="background: ${badgeColor}; color: #000; font-size: 10px; font-weight: 900; padding: 2px 7px; border-radius: 6px;">
+              STOP #${idx + 1} ${isFirst ? "🏁 START" : isLast ? "🏁 FINISH" : ""}
+            </span>
+            <span style="font-size: 10px; color: #94A3B8;">${spot.isRestaurant ? "🍴 Food Stop" : "🏛️ Pandal"}</span>
+          </div>
+          <h4 style="font-weight: 800; font-size: 13px; margin: 2px 0 3px 0; color: #F59E0B;">${spot.name}</h4>
+          ${spot.bengaliName ? `<p style="font-size: 11px; color: #FCD34D; margin: 0 0 4px 0;">${spot.bengaliName}</p>` : ""}
+          <p style="font-size: 11px; color: #CBD5E1; margin: 0 0 4px 0;">${spot.locality || spot.zoneLabel || ""}</p>
+          ${spot.metro ? `<div style="font-size: 11px; color: #94A3B8;">🚊 Metro: <strong>${spot.metro}</strong></div>` : ""}
+        </div>
+      `;
+
+      marker.bindPopup(popupHtml, { className: "custom-dark-popup" });
+      routeLayer.addLayer(marker);
+    });
+  }, [activeMapPlan]);
+
+  const zoomToActiveRoute = () => {
+    if (mapInstanceRef.current && activeMapPlan?.spots?.length >= 2) {
+      const latlngs = activeMapPlan.spots.map((s) => [s.lat, s.lng]);
+      mapInstanceRef.current.fitBounds(L.latLngBounds(latlngs), { padding: [50, 50], maxZoom: 15 });
+    }
+  };
+
   const zoomToKolkata = () => {
     if (mapInstanceRef.current) {
       mapInstanceRef.current.setView([22.5626, 88.3639], 12);
@@ -173,20 +277,30 @@ export default function PandalMap({ userLocation, onOpenModal, selectedZone }) {
         {/* Header */}
         <div className="flex flex-col md:flex-row md:items-end justify-between mb-6 gap-4">
           <div>
-            <div className="inline-flex items-center space-x-2 px-3.5 py-1 rounded-full bg-blue-500/15 border border-blue-500/30 text-blue-300 text-xs font-semibold mb-2">
-              <Globe className="w-3.5 h-3.5" />
-              <span>West Bengal Geospatial Map · 503 Verified Pandals</span>
+            <div className="inline-flex items-center space-x-2 px-3.5 py-1 rounded-full bg-amber-500/15 border border-amber-500/30 text-amber-300 text-xs font-semibold mb-2">
+              <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+              <span>West Bengal Geospatial Map · 500+ Verified Pandals · AI Route Hop</span>
             </div>
             <h2 className="font-heritage text-2xl sm:text-3xl md:text-5xl font-black text-white">
-              West Bengal <span className="text-gold-gradient">Pandal Map</span>
+              Map & <span className="text-gold-gradient">AI Route Planner</span>
             </h2>
             <p className="text-xs sm:text-sm text-slate-300 mt-1">
-              Interactive map spanning North Bengal (Siliguri) to South Bengal (Kolkata, Howrah, Chandannagar, Kalyani).
+              পশ্চিমবঙ্গ ম্যাপ ও স্মার্ট শারদ রুট প্ল্যানার · Interactive geospatial map & sequential hop itinerary
             </p>
           </div>
 
-          {/* Quick Zoom Presets & Zone Filters */}
+          {/* Quick Zoom Presets, Route Focus & Zone Filters */}
           <div className="flex flex-wrap items-center gap-2">
+            {activeMapPlan?.spots?.length >= 2 && (
+              <button
+                onClick={zoomToActiveRoute}
+                className="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-amber-500/30 to-rose-600/30 hover:from-amber-500/40 hover:to-rose-600/40 text-amber-300 text-xs font-bold border border-amber-500/40 transition flex items-center space-x-1.5 shadow-lg shadow-amber-500/10 animate-pulse"
+                title="Zoom into the active route circuit"
+              >
+                <Route className="w-3.5 h-3.5 text-amber-400" />
+                <span>Focus Route ({activeMapPlan.spots.length} Stops)</span>
+              </button>
+            )}
             <button
               onClick={zoomToWestBengal}
               className="px-3.5 py-1.5 rounded-xl bg-white/10 hover:bg-white/15 text-white text-xs font-bold border border-white/10 transition flex items-center space-x-1"
@@ -262,6 +376,15 @@ export default function PandalMap({ userLocation, onOpenModal, selectedZone }) {
             )}
           </div>
 
+        </div>
+
+        {/* AI Route Hop Planner - Placed right after map and above helpline numbers section */}
+        <div className="mt-12">
+          <RoutePlanner
+            userLocation={userLocation}
+            onSelectPlanForMap={(plan) => setActiveMapPlan(plan)}
+            onOpenModal={onOpenModal}
+          />
         </div>
 
       </div>

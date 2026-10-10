@@ -43,8 +43,8 @@ export default function Navbar({
   const navItems = [
     { id: "home", label: "Home", bengali: "হোম", icon: Home, desc: "Pujo Spotlight & Highlights" },
     { id: "pipeline", label: "Pipeline Flow", bengali: "পুজো প্রবাহ", icon: Calendar, badge: "11 Days", desc: "Mahalaya to Bijoya Dashami" },
-    { id: "pandals", label: "500+ Pandals", bengali: "প্যান্ডেল ও খাদ্য", icon: Compass, badge: "503", desc: "Full Directory & Food Trail" },
-    { id: "map", label: "Interactive Map", bengali: "পশ্চিমবঙ্গ ম্যাপ", icon: MapPin, desc: "Free Geospatial Leaflet Map" },
+    { id: "pandals", label: "500+ Pandals", bengali: "প্যান্ডেল ও খাদ্য", icon: Compass, desc: "Full Directory & Food Trail" },
+    { id: "map", label: "Map & Route Planner", bengali: "ম্যাপ ও রুট প্ল্যানার", icon: MapPin, desc: "Interactive Map & AI Sequential Planner" },
     { id: "melodies", label: "Daily Melodies", bengali: "শারদীয় সুর", icon: Music, desc: "Curated Agomoni Songs" },
     { id: "about", label: "About Creator", bengali: "আমাদের কথা", icon: Info, desc: "Story, Fair Use & Feedback" }
   ];
@@ -233,7 +233,7 @@ export default function Navbar({
           </nav>
 
           {/* RIGHT: Action Controls (Only GPS & Audio — Never Crowded or Cut Off) */}
-          <div className="flex items-center space-x-1.5 sm:space-x-2 flex-shrink-0">
+          <div className="flex items-center space-x-1 sm:space-x-2 flex-shrink-0">
             
             {/* 📍 Near Me GPS */}
             <button
@@ -242,7 +242,7 @@ export default function Navbar({
                 setCurrentPage("pandals");
                 window.scrollTo({ top: 0, behavior: "smooth" });
               }}
-              className={`flex items-center space-x-1 px-2.5 py-1.5 sm:px-3 sm:py-2 rounded-xl text-xs font-bold transition-all border shadow-sm ${
+              className={`flex items-center space-x-1 p-2 sm:px-3 sm:py-2 rounded-xl text-xs font-bold transition-all border shadow-sm ${
                 isNearMeActive
                   ? "bg-rose-600 text-white border-rose-400 ring-2 ring-rose-400/40"
                   : "bg-[#1E0D1A] text-rose-200 border-rose-500/50 hover:border-rose-400 hover:bg-[#2A1224]"
@@ -250,13 +250,13 @@ export default function Navbar({
               title="Track nearest pandals from your current GPS location"
             >
               <MapPin className={`w-3.5 h-3.5 ${isNearMeActive ? "text-white" : "text-rose-400"} flex-shrink-0`} />
-              <span className="text-xs font-bold">GPS</span>
+              <span className="hidden sm:inline text-xs font-bold">GPS</span>
             </button>
 
             {/* 🔊 Audio Toggle */}
             <button
               onClick={onToggleAudio}
-              className={`flex items-center space-x-1 px-2.5 py-1.5 sm:px-3 sm:py-2 rounded-xl text-xs font-bold transition border shadow-sm ${
+              className={`flex items-center space-x-1 p-2 sm:px-3 sm:py-2 rounded-xl text-xs font-bold transition border shadow-sm ${
                 isAudioPlaying 
                   ? "bg-[#25170B] text-amber-300 border-amber-400 ring-2 ring-amber-400/30"
                   : "bg-[#181122] text-slate-300 border-white/20 hover:border-amber-400/60 hover:bg-[#20152D]"
@@ -266,12 +266,12 @@ export default function Navbar({
               {isAudioPlaying ? (
                 <>
                   <Volume2 className="w-3.5 h-3.5 text-amber-400 animate-pulse flex-shrink-0" />
-                  <span className="text-xs text-amber-300 font-bold">Audio</span>
+                  <span className="hidden sm:inline text-xs text-amber-300 font-bold">Audio</span>
                 </>
               ) : (
                 <>
                   <VolumeX className="w-3.5 h-3.5 text-slate-400 flex-shrink-0" />
-                  <span className="text-xs text-slate-400 font-bold">Audio</span>
+                  <span className="hidden sm:inline text-xs text-slate-400 font-bold">Audio</span>
                 </>
               )}
             </button>
@@ -342,7 +342,7 @@ export default function Navbar({
                   </span>
                 </div>
                 <p className="text-[11px] text-slate-300 mb-2.5">
-                  Filter all 503 pandals by your nearest Kolkata Metro station:
+                  Filter all 500+ pandals by your nearest Kolkata Metro station:
                 </p>
                 <button
                   onClick={() => {
@@ -500,7 +500,7 @@ export default function Navbar({
                     Pujo by Metro <span className="font-bengali text-blue-300 text-xs sm:text-sm">(মেট্রো স্টেশন)</span>
                   </h3>
                   <p className="text-[11px] text-slate-400">
-                    Select a station to filter all 503 pandals within walking proximity
+                    Select a station to filter all 500+ pandals within walking proximity
                   </p>
                 </div>
               </div>
@@ -610,7 +610,7 @@ export default function Navbar({
                   onClick={() => handleSelectStation(null)}
                   className="px-3 py-1.5 rounded-xl bg-rose-600/30 hover:bg-rose-600/50 text-rose-200 border border-rose-500/40 text-xs font-bold transition"
                 >
-                  Clear Filter (Show All 503)
+                  Clear Filter (Show All 500+)
                 </button>
               </div>
             )}

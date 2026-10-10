@@ -94,12 +94,12 @@ export default function Footer() {
               </li>
               <li>
                 <a href="#pandals" className="hover:text-amber-300 transition">
-                  🏛️ 504+ Pandals Directory
+                  🏛️ 500+ Pandals Directory
                 </a>
               </li>
               <li>
                 <a href="#map" className="hover:text-amber-300 transition">
-                  🗺️ Interactive Google/Leaflet Map
+                  🗺️ Map & AI Route Planner
                 </a>
               </li>
               <li>

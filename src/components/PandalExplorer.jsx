@@ -281,7 +281,7 @@ export default function PandalExplorer({
           </div>
         </div>
 
-        {/* Tab Switcher: Pandals Directory vs Food Near Me */}
+        {/* Tab Switcher: 500+ Pandals vs 150+ Eateries */}
         <div className="grid grid-cols-2 gap-2 sm:gap-3 mb-6">
           <button
             onClick={() => handleTabSwitch("pandals")}
@@ -292,10 +292,7 @@ export default function PandalExplorer({
             }`}
           >
             <Compass className="w-3.5 h-3.5 sm:w-4 sm:h-4 flex-shrink-0" />
-            <span className="truncate">🏯 504+ Pandals</span>
-            <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-black/30 font-mono flex-shrink-0">
-              {filteredPandals.length}
-            </span>
+            <span className="whitespace-nowrap font-bold">500+ Pandals</span>
           </button>
 
           <button
@@ -307,12 +304,10 @@ export default function PandalExplorer({
             }`}
           >
             <Utensils className="w-3.5 h-3.5 sm:w-4 sm:h-4 flex-shrink-0" />
-            <span className="truncate">🍽️ 185+ Eateries</span>
-            <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-black/30 font-mono flex-shrink-0">
-              {filteredRestaurants.length}
-            </span>
+            <span className="whitespace-nowrap font-bold">150+ Eateries</span>
           </button>
         </div>
+
 
         {/* Active Metro Filter Banner (if selected) */}
         {selectedMetroStation && (
@@ -512,16 +507,17 @@ export default function PandalExplorer({
                   <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-200 ${showMobileFilters ? "rotate-180" : ""}`} />
                 </button>
 
-                <div className="flex items-center space-x-2 text-[11px] text-slate-400">
-                  <span><strong>{filteredPandals.length}</strong> pandals</span>
+                <div className="flex items-center space-x-1.5 text-[11px] text-slate-400">
                   <button
                     onClick={handleResetFilters}
-                    className="p-1 rounded-lg bg-white/5 hover:bg-white/10 text-slate-300 hover:text-amber-300 transition"
+                    className="flex items-center space-x-1 px-2.5 py-1 rounded-lg bg-white/5 hover:bg-white/10 text-slate-300 hover:text-amber-300 transition"
                     title="Reset all filters"
                   >
                     <RotateCcw className="w-3 h-3" />
+                    <span>Reset</span>
                   </button>
                 </div>
+
               </div>
 
               {/* Theme Pills Grid (Always visible on sm+, toggleable on mobile) */}
@@ -595,7 +591,7 @@ export default function PandalExplorer({
                 <Compass className="w-12 h-12 text-amber-400 mx-auto mb-3 opacity-60" />
                 <h3 className="font-heritage text-xl font-bold text-white mb-2">No Pandals Found</h3>
                 <p className="text-xs text-slate-300 mb-6">
-                  We couldn't find any pandal matching your current filter criteria. Try clicking Reset Filters to view all 503 pandals.
+                  We couldn't find any pandal matching your current filter criteria. Try clicking Reset Filters to view all 500+ pandals.
                 </p>
                 <button
                   onClick={handleResetFilters}

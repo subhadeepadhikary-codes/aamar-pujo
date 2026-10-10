@@ -56,6 +56,28 @@ export default function App() {
     }
   }, [isAudioPlaying, trackIndex, volume, isMuted]);
 
+  // Synchronize URL hash with page navigation (handles #plan=... and footer quick links)
+  useEffect(() => {
+    const handleHash = () => {
+      const hash = window.location.hash;
+      if (hash.startsWith("#plan=") || hash === "#map") {
+        setCurrentPage("map");
+      } else if (hash === "#pipeline") {
+        setCurrentPage("pipeline");
+      } else if (hash === "#pandals") {
+        setCurrentPage("pandals");
+      } else if (hash === "#melodies") {
+        setCurrentPage("melodies");
+      } else if (hash === "#about") {
+        setCurrentPage("about");
+      }
+    };
+
+    handleHash();
+    window.addEventListener("hashchange", handleHash);
+    return () => window.removeEventListener("hashchange", handleHash);
+  }, []);
+
   const handleToggleAudio = () => {
     if (audioRef.current) {
       if (isAudioPlaying) {

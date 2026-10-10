@@ -4845,5 +4845,33 @@ export const RESTAURANTS_DATA = [
     pujoTimings: "Open until 1:30 AM during Pujo",
     image: "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=800&q=80",
     googleMapsUrl: "https://www.google.com/maps/search/?api=1&query=Bhojohori+Manna+Salt+Lake+Kolkata"
+  },
+  {
+    "id": "rest-abhijato",
+    "name": "Abhijato Restaurant",
+    "bengaliName": "অভিজাত রেস্তোরাঁ",
+    "zone": "south",
+    "zoneLabel": "South Kolkata (Behala)",
+    "area": "Behala Panchanantala",
+    "cuisine": "Authentic Bengali, Mughlai & North Indian",
+    "specialty": "Bhetki Fish Batter Fry, Katla Kalia Thali & Biryani",
+    "mustTryDishes": [
+      "Bhetki Fish Batter Fry",
+      "Katla Kalia Thali",
+      "Mutton Biryani",
+      "Butter Naan & Chicken Bharta"
+    ],
+    "address": "12/1, Arya Samity Road, Panchanantala, Behala, Kolkata 700034 (Behind Arya Samity Bhaban / Kadamtala / near 14 No. Bus Stand)",
+    "metro": "Rabindra Sarobar / Kalighat Metro (take DH Road auto to Behala Kadamtala, ~10 mins) or Taratala Metro (Purple Line)",
+    "lat": 22.4988,
+    "lng": 88.3182,
+    "priceRange": "₹₹ (₹350 for two)",
+    "rating": 4.2,
+    "reviewsCount": "1.2K+ reviews",
+    "type": "Bengali & Mughlai Eatery",
+    "pujoTimings": "Open until 2:00 AM on Puja nights",
+    "image": "https://images.unsplash.com/photo-1544025162-d76694265947?auto=format&fit=crop&w=800&q=80",
+    "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query=Abhijato+Restaurant+Arya+Samity+Road+Behala+Kolkata"
   }
 ];
+

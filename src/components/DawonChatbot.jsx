@@ -27,6 +27,8 @@ import {
   handleOpenEndedQuery,
   identifyHub,
   formatRouteAsAssistantResponse,
+  findRestaurantQuery,
+  formatRestaurantGeminiGuide,
   SEARCHABLE_LOCATIONS
 } from "../utils/transitEngine";
 import { PANDALS_DATA } from "../data/pandalsData";
@@ -178,14 +180,14 @@ export default function DawonChatbot({ userLocation, onNavigateToPandal, isAudio
 
     try {
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 3500);
+      const timeoutId = setTimeout(() => controller.abort(), 7000);
 
       const headers = { "Content-Type": "application/json" };
       if (ollamaApiKey) headers["Authorization"] = `Bearer ${ollamaApiKey}`;
 
       const destContext = destHub ? `(Destination: ${destHub.name}, Nearest Metro: ${destHub.nearestMetro || 'Local Station'}, Feeder: ${destHub.lastMileFromMetro || 'Auto/Toto'}, Foods: ${destHub.famousFoods || 'Local street food'})` : '';
 
-      const prompt = `You are Dawon (সিংহ বাহন), an expert West Bengal Durga Puja Transit Guide. 
+      const prompt = `You are Dawon (সিংহ বাহন), an expert West Bengal Durga Puja Transit Guide operating with the intelligence and clarity of Google Gemini and ChatGPT. 
 The devotee asks for step-by-step navigation instructions from "${origin}" to "${dest}" in West Bengal.
 ${destContext}
 Give structured, ChatGPT/Gemini-style step-by-step navigation instructions:
@@ -205,7 +207,11 @@ Keep it crisp, friendly, and practical with emojis and Benglish charm.`;
         body: JSON.stringify({
           model: ollamaModel || "llama3.2",
           prompt,
-          stream: false
+          system: "You are Dawon (সিংহ বাহন), an expert West Bengal Durga Puja transit navigator operating with the depth, warmth, and precision of Google Gemini / ChatGPT.",
+          stream: false,
+          options: {
+            temperature: 0.5
+          }
         })
       });
 
@@ -266,37 +272,80 @@ Keep it crisp, friendly, and practical with emojis and Benglish charm.`;
     setInputMessage("");
     setIsTyping(true);
 
-    // Check if user is asking for a transit route
+    // 1. Check if user is asking for a transit route
     const dynamicRoute = resolveQueryRoute(text);
 
-    // 1. Attempt Ollama API call if configured
+    // 2. Check for Specific Curated Restaurant Queries (e.g. "where is abhijato restaurant", "peter cat", etc.)
+    const matchedRestaurant = findRestaurantQuery(text);
+
+    // Check if query is asking about a restaurant/food even if not in curated list
+    const isFoodQuery = !matchedRestaurant && /restaurant|resturent|resturant|hotel|dhaba|cafe|cabin|eatery|biryani|roll|food|khabar|where to eat|where is/i.test(text);
+
+    // 3. Attempt Ollama API call if configured
     let aiResponse = null;
     const cleanUrl = (ollamaUrl || "http://localhost:11434").replace(/\/+$/, "");
 
     try {
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 4000);
+      const timeoutId = setTimeout(() => controller.abort(), 7000);
 
       const headers = { "Content-Type": "application/json" };
       if (ollamaApiKey) headers["Authorization"] = `Bearer ${ollamaApiKey}`;
 
       let prompt = "";
       if (dynamicRoute) {
-        prompt = `You are Dawon (সিংহ বাহন), an expert West Bengal Durga Puja Transit Guide. 
+        prompt = `You are Dawon (সিংহ বাহন), an expert West Bengal Durga Puja Transit Guide operating with the intelligence and clarity of Google Gemini and ChatGPT. 
 The devotee asks: "${text}".
 Provide clear, step-by-step navigation instructions:
-1. Origin First-Mile (Auto/Toto/Bus/Train)
-2. Main Transit Spine (Kolkata Metro Line Blue/Green/Purple/Orange or EMU Rail)
-3. Last-Mile & Nearest Station Gate
-4. Pandal Entry Corridor & Queue strategy
-5. Famous Nearby Food / Roll / Sweet Stop
-6. Total estimated travel time and approximate fare in INR.
+1. 📍 Origin First-Mile (Auto/Toto/Bus/Train)
+2. 🚇 Main Transit Spine (Kolkata Metro Line Blue/Green/Purple/Orange or EMU Rail)
+3. 🛺 Last-Mile & Nearest Station Gate
+4. 🚶 Pandal Entry Corridor & Queue strategy
+5. 🍽️ Famous Nearby Food / Roll / Sweet Stop
+6. ⏱️ Total estimated travel time and approximate fare in INR.
 Keep it crisp, friendly, and practical with emojis and Benglish charm.`;
+      } else if (matchedRestaurant) {
+        const dishes = Array.isArray(matchedRestaurant.mustTryDishes) 
+          ? matchedRestaurant.mustTryDishes.join(", ") 
+          : matchedRestaurant.specialty;
+
+        prompt = `You are Dawon (সিংহ বাহন), an expert West Bengal Durga Puja guide and culinary navigator behaving with the depth, warmth, and precision of Google Gemini / ChatGPT.
+The devotee asks: "${text}".
+
+Verified Ground-Truth Database Information:
+• Restaurant: ${matchedRestaurant.name} (${matchedRestaurant.bengaliName || ""})
+• Location: ${matchedRestaurant.address}
+• Area / Landmark: ${matchedRestaurant.area} (${matchedRestaurant.zoneLabel || "Kolkata"})
+• Nearest Metro & Transit: ${matchedRestaurant.metro}
+• Cuisine & Type: ${matchedRestaurant.cuisine} (${matchedRestaurant.type || "Dining"})
+• Signature Specialty: ${matchedRestaurant.specialty}
+• Must-Try Dishes: ${dishes}
+• Rating & Price: ⭐ ${matchedRestaurant.rating}/5 (${matchedRestaurant.reviewsCount || "Highly Rated"}) | ${matchedRestaurant.priceRange}
+• Pujo Festive Timings: ${matchedRestaurant.pujoTimings || "Open late night during Puja"}
+• Google Maps Link: ${matchedRestaurant.googleMapsUrl}
+
+Provide an optimal, structured Gemini/ChatGPT-style response with:
+1. 📍 Exact Location, Neighborhood, and Landmarks
+2. 🚇 How to Reach (Nearest Metro Station, Exit Gate, Shared Auto/Bus connection)
+3. 🍽️ What to Eat & Signature Delicacies (Detailed culinary advice)
+4. ⏱️ Puja Operational Hours & Best Time to Visit (crowd management)
+5. 🗺️ Direct Google Maps navigation link.
+Use warm Benglish/English festive hospitality with clear formatting and emojis.`;
+      } else if (isFoodQuery) {
+        prompt = `You are Dawon (সিংহ বাহন), an intelligent West Bengal Durga Puja transit and culinary navigator operating with the expertise, detail, and structure of Google Gemini and ChatGPT.
+The user asks: "${text}".
+Provide an optimal, highly detailed answer:
+1. 📍 Exact location, neighborhood, and landmarks in Kolkata or West Bengal.
+2. 🚇 Step-by-step transit directions (Kolkata Metro line, local train, auto/bus route).
+3. 🍽️ Famous specialties, signature dishes, and cuisine.
+4. ⏱️ Puja rush hours, timings, and dining tips.
+5. 🗺️ Direct Google Maps search advice.
+Keep it crisp, warmly welcoming, and well-structured with markdown and emojis.`;
       } else {
-        prompt = `You are Dawon, a friendly Bengali AI Durga Puja transit navigator and festive cultural companion for Kolkata and West Bengal. 
+        prompt = `You are Dawon, a friendly Bengali AI Durga Puja transit navigator and festive cultural companion for Kolkata and West Bengal operating like Google Gemini and ChatGPT. 
 The user asks: "${text}".
 Explain the best path or answer clearly using Kolkata Metro, auto routes, rituals, and food tips. 
-Be concise, cheerful, and use colloquial Benglish phrases.`;
+Be concise, cheerful, and use colloquial Benglish phrases with clean formatting.`;
       }
 
       const res = await fetch(`${cleanUrl}/api/generate`, {
@@ -306,7 +355,11 @@ Be concise, cheerful, and use colloquial Benglish phrases.`;
         body: JSON.stringify({
           model: ollamaModel || "llama3.2",
           prompt,
-          stream: false
+          system: "You are Dawon (সিংহ বাহন), an expert West Bengal Durga Puja transit guide and culinary navigator with the depth, warmth, and structure of Google Gemini and ChatGPT.",
+          stream: false,
+          options: {
+            temperature: 0.5
+          }
         })
       });
 
@@ -338,7 +391,22 @@ Be concise, cheerful, and use colloquial Benglish phrases.`;
       return;
     }
 
-    // 2. Check for Open-Ended Puja Knowledge Query (Anjali, Sandhi Puja, Metro timing, VIP passes, Biryani)
+    // 4. Offline Fallback for Specific Grounded Restaurant
+    if (matchedRestaurant) {
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: `dawon-${Date.now()}`,
+          sender: "dawon",
+          text: formatRestaurantGeminiGuide(matchedRestaurant),
+          source: "Dawon Culinary AI Guide",
+          time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+        }
+      ]);
+      return;
+    }
+
+    // 5. Check for Open-Ended Puja Knowledge Query (Anjali, Sandhi Puja, Metro timing, VIP passes, Biryani)
     const openEndedAnswer = handleOpenEndedQuery(text);
     if (openEndedAnswer) {
       setMessages((prev) => [
@@ -354,7 +422,7 @@ Be concise, cheerful, and use colloquial Benglish phrases.`;
       return;
     }
 
-    // 3. Dynamic Transit Route fallback
+    // 6. Dynamic Transit Route fallback
     if (dynamicRoute) {
       const formattedAssistantResponse = formatRouteAsAssistantResponse(dynamicRoute);
       setMessages((prev) => [
@@ -371,17 +439,35 @@ Be concise, cheerful, and use colloquial Benglish phrases.`;
       return;
     }
 
-    // 4. Conversational General Fallback
+    // 7. General Food Query Fallback with Google Maps
+    if (isFoodQuery) {
+      const cleanPlace = text.replace(/^(where is|where can i find|tell me about|how to reach|how to go to|location of)\s+/i, "").replace(/\s+(restaurant|resturent|cafe|hotel|cabin|eatery)\s*$/i, "").trim();
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: `dawon-${Date.now()}`,
+          sender: "dawon",
+          text: `🍽️ **Dawon's Culinary Search: "${cleanPlace || text}"**\n\n📍 **Location**: ${cleanPlace || text} in Kolkata / West Bengal.\n🚇 **Transit Tip**: Connect via the nearest Kolkata Metro station or local shared auto corridor along the arterial road.\n🗺️ [Search on Google Maps](https://www.google.com/maps/search/?api=1&query=${encodeURIComponent((cleanPlace || text) + " Kolkata")})\n\n💡 *Tip: During Durga Puja nights, expect lively crowds and queues at all popular food joints!*`,
+          source: "Dawon Dining Finder",
+          time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+        }
+      ]);
+      return;
+    }
+
+    // 8. Conversational General Fallback
     setMessages((prev) => [
       ...prev,
       {
         id: `dawon-${Date.now()}`,
         sender: "dawon",
-        text: `Kolkata ba West Bengal-er kono specific pandal ba station-e jete chao? 
-Bolo: "How to reach Sreebhumi from Taratala", "Asansol to Bagbazar", ba "Behala Thana to College Square". 
-Ami tomake exact train/metro line, feeder auto, walk distance ar food pitstop step-by-step bole debo!
-
-Ba jiggesh korte paro: "Ashtami anjali timing", "Midnight Metro schedule", ba "Where to eat best biryani?"`,
+        text: `Kolkata ba West Bengal-er kono specific pandal, restaurant ba station-e jete chao? 
+Amake bolo, jemon:
+• "Where is Abhijato restaurant in Behala?"
+• "Taratala theke Sreebhumi kivabe jabo?"
+• "New Alipore to Behala Chowrasta route"
+• "Peter Cat ba Mocambo kothay?"
+• "Maha Ashtami anjali timing"`,
         source: "Dawon Smart Guide",
         time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
       }
@@ -389,12 +475,14 @@ Ba jiggesh korte paro: "Ashtami anjali timing", "Midnight Metro schedule", ba "W
   };
 
   const quickPrompts = [
+    "Where is Abhijato restaurant in Behala?",
     "How to reach Sreebhumi from Behala Thana?",
     "How to reach Bagbazar from Garia?",
     "Maha Ashtami Anjali Timings & Rules",
     "Midnight Metro schedule during Pujo",
     "Where to eat best biryani and rolls?"
   ];
+
 
   return (
     <div className={`fixed z-50 font-sans transition-all duration-300 ${
@@ -410,26 +498,21 @@ Ba jiggesh korte paro: "Ashtami anjali timing", "Midnight Metro schedule", ba "W
             setIsOpen(true);
             setIsMinimized(false);
           }}
-          className="relative group flex items-center space-x-2 px-3.5 py-2.5 sm:px-4 sm:py-3 rounded-full bg-gradient-to-r from-amber-500 via-rose-600 to-amber-500 text-slate-950 font-black shadow-2xl shadow-rose-600/50 border-2 border-amber-300 hover:scale-105 active:scale-95 transition-all cursor-pointer"
-          title="Open Dawon - AI Pujo Transit Guide"
+          className="relative group w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-gradient-to-tr from-amber-500 via-rose-600 to-amber-400 p-0.5 shadow-2xl shadow-rose-950/80 border-2 border-amber-300 hover:scale-110 active:scale-95 transition-all duration-300 flex items-center justify-center cursor-pointer"
+          title="Open Dawon - AI Pujo Transit & Food Guide"
+          aria-label="Open Dawon AI Guide"
         >
-          <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-slate-950 flex items-center justify-center text-base sm:text-lg flex-shrink-0 border border-amber-300/40 shadow-inner">
-            🦁
-          </div>
-          <div className="text-left">
-            <span className="block text-xs font-black tracking-wide leading-tight text-slate-950">
-              Dawon AI
-            </span>
-            <span className="hidden sm:block text-[9px] font-bold text-slate-900/80 leading-tight">
-              Transit & Pandal Guide
+          <div className="w-full h-full rounded-full bg-[#180E24] flex items-center justify-center text-2xl sm:text-3xl shadow-inner relative">
+            <span>🦁</span>
+            {/* Live status ping */}
+            <span className="absolute -top-0.5 -right-0.5 flex h-3 w-3">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-400 border border-slate-950"></span>
             </span>
           </div>
-          <span className="relative flex h-2.5 w-2.5 ml-0.5">
-            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-200 opacity-75"></span>
-            <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-400"></span>
-          </span>
         </button>
       )}
+
 
       {/* Expanded Chat Window */}
       {isOpen && (
@@ -885,16 +968,9 @@ Ba jiggesh korte paro: "Ashtami anjali timing", "Midnight Metro schedule", ba "W
                           : "bg-[#1C1226] border border-amber-500/25 text-slate-200 rounded-tl-sm space-y-2.5"
                       }`}
                     >
-                      {/* Assistant or User Text Message */}
-                      {m.text && (
-                        <p className="whitespace-pre-line leading-relaxed text-[11px] sm:text-xs">
-                          {m.text}
-                        </p>
-                      )}
-
-                      {/* Interactive Route Timeline Card */}
-                      {m.routeData && (
-                        <div className={`space-y-2.5 ${m.text ? "pt-2.5 border-t border-white/10" : ""}`}>
+                      {/* Route Card (Photo 3) if routeData exists, otherwise Standard Text */}
+                      {m.routeData ? (
+                        <div className="space-y-2.5">
                           <div className="font-bold text-amber-300 text-xs pb-1 border-b border-white/10 flex items-center justify-between">
                             <span className="flex items-center space-x-1">
                               <Compass className="w-3.5 h-3.5 text-amber-400" />
@@ -946,7 +1022,14 @@ Ba jiggesh korte paro: "Ashtami anjali timing", "Midnight Metro schedule", ba "W
                             )}
                           </div>
                         </div>
+                      ) : (
+                        m.text && (
+                          <p className="whitespace-pre-line leading-relaxed text-[11px] sm:text-xs">
+                            {m.text}
+                          </p>
+                        )
                       )}
+
                     </div>
 
                     <span className="text-[9px] text-slate-500 mt-0.5 px-1">

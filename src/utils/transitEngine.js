@@ -6,6 +6,7 @@
  */
 
 import { PANDALS_DATA } from "../data/pandalsData";
+import { RESTAURANTS_DATA } from "../data/restaurantsData";
 import { normalizePhonetic, HOMOPHONE_ALIASES } from "./phoneticSearch";
 
 // 1. Kolkata & West Bengal Transit Hubs Knowledge Graph
@@ -1150,10 +1151,113 @@ export function formatRouteAsAssistantResponse(route) {
 }
 
 /**
- * Handle Open-Ended Pujo Queries (Timings, Rituals, Food, Rules, Metro)
+ * Find matched restaurant from query string (Exact name, Bengali name, Phonetics, or Keyword)
+ */
+export function findRestaurantQuery(query) {
+  if (!query || typeof query !== "string") return null;
+  const rawQ = query.toLowerCase().trim();
+  const cleanQ = rawQ
+    .replace(/^(where is|where can i find|tell me about|how to reach|how to go to|location of|direction to|directions to|is there any)\s+/i, "")
+    .replace(/\s+(restaurant|resturent|resturant|hotel|cabin|cafe|eatery|outlet|branch)\s*$/i, "")
+    .trim();
+  const normQ = normalizePhonetic(rawQ);
+  const normCleanQ = normalizePhonetic(cleanQ);
+
+  // 1. Direct or alias match in RESTAURANTS_DATA
+  for (const r of RESTAURANTS_DATA) {
+    const rName = r.name.toLowerCase();
+    const rBengali = (r.bengaliName || "").toLowerCase();
+    const rNorm = normalizePhonetic(r.name);
+    
+    // Check clean name match (e.g. "abhijato", "peter cat", "mocambo")
+    const cleanRName = rName.replace(/\s+(restaurant|resturent|resturant|hotel|cabin|cafe|bar)\s*$/i, "").trim();
+
+    if (
+      rawQ.includes(rName) ||
+      (cleanRName.length >= 4 && rawQ.includes(cleanRName)) ||
+      (cleanQ.length >= 3 && rName.includes(cleanQ)) ||
+      (rBengali && rawQ.includes(rBengali)) ||
+      normQ.includes(rNorm) ||
+      (normCleanQ.length >= 4 && rNorm.includes(normCleanQ))
+    ) {
+      return r;
+    }
+  }
+
+  // 2. High-frequency custom alias mapping
+  const customRestaurantAliases = {
+    "abhijato": "rest-abhijato",
+    "ovijato": "rest-abhijato",
+    "abijato": "rest-abhijato",
+    "abhijata": "rest-abhijato",
+    "arya samity restaurant": "rest-abhijato",
+    "peter cat": "rest-1",
+    "mocambo": "rest-2",
+    "flurys": "rest-3",
+    "arsalan": "rest-4",
+    "aminia": "rest-6",
+    "mitra cafe": "rest-10",
+    "bhojohori manna": "rest-8",
+    "6 ballygunge place": "rest-7",
+    "oudh 1590": "rest-9"
+  };
+
+  for (const [alias, restId] of Object.entries(customRestaurantAliases)) {
+    if (rawQ.includes(alias) || normQ.includes(normalizePhonetic(alias))) {
+      const found = RESTAURANTS_DATA.find(r => r.id === restId);
+      if (found) return found;
+    }
+  }
+
+  return null;
+}
+
+/**
+ * Format an optimal Google Gemini / ChatGPT-grade structured guide for any restaurant
+ */
+export function formatRestaurantGeminiGuide(restaurant) {
+  if (!restaurant) return "";
+
+  const dishes = Array.isArray(restaurant.mustTryDishes) 
+    ? restaurant.mustTryDishes.join(", ") 
+    : (restaurant.specialty || "Iconic Bengali & Kolkata Delicacies");
+
+  return `🍽️ **Dawon's Culinary Guide: ${restaurant.name}** ${restaurant.bengaliName ? `(${restaurant.bengaliName})` : ""}
+
+📍 **Location & Area**:
+${restaurant.address}
+*(Area: ${restaurant.area}${restaurant.zoneLabel ? `, ${restaurant.zoneLabel}` : ""})*
+
+🚇 **Transit & How to Reach**:
+• **Nearest Metro**: ${restaurant.metro || "Connected via Kolkata Metro & shared auto corridors"}
+• **Last-Mile Transit**: Take a local shared auto or bus directly towards ${restaurant.area}.
+
+⭐ **Cuisine & Signature Specialties**:
+• **Cuisine**: ${restaurant.cuisine} (${restaurant.type || "Casual Dining"})
+• **Signature Dish**: ${restaurant.specialty}
+• **Must-Try Items**: ${dishes}
+• **Rating & Price**: ⭐ ${restaurant.rating}/5 (${restaurant.reviewsCount || "Highly Rated"}) • ${restaurant.priceRange || "₹₹"}
+
+⏱️ **Puja Festival Hours**:
+${restaurant.pujoTimings || "Open late night during Durga Puja (till 1:30 AM - 2:00 AM)"}
+
+🗺️ [Open in Google Maps](${restaurant.googleMapsUrl || `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(restaurant.name + ' Kolkata')}`})`;
+}
+
+/**
+ * Handle Open-Ended Pujo Queries (Timings, Rituals, Food, Rules, Metro, Restaurants)
  */
 export function handleOpenEndedQuery(query) {
   const q = query.toLowerCase();
+
+  // 0. Specific Restaurant or Eatery Query (Abhijato, Peter Cat, Mocambo, etc.)
+  const matchedRestaurant = findRestaurantQuery(query);
+  if (matchedRestaurant) {
+    return {
+      text: formatRestaurantGeminiGuide(matchedRestaurant),
+      restaurant: matchedRestaurant
+    };
+  }
 
   // 1. Ashtami Anjali & Pushpanjali
   if (q.includes("anjali") || q.includes("pushpanjali") || q.includes("ashtami timing") || q.includes("anjali time")) {

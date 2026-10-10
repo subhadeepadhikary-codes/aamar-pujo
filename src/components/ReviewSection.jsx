@@ -36,7 +36,7 @@ const INITIAL_REVIEWS = [
     tag: "Suburban Devotee",
     rating: 5,
     date: "Yesterday",
-    comment: "The pipeline countdown from Prothoma to Dashami is brilliant. Finally a clean website that lists all 503 pandals instead of just the top 5 sponsored ones. Subhadeep da, darun kaaj!",
+    comment: "The pipeline countdown from Prothoma to Dashami is brilliant. Finally a clean website that lists all 500+ pandals instead of just the top 5 sponsored ones. Subhadeep da, darun kaaj!",
     helpful: 19
   }
 ];
