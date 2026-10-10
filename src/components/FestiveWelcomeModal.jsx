@@ -38,7 +38,7 @@ export default function FestiveWelcomeModal({ onStartWithMusic, onExplore }) {
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md animate-fadeIn">
+    <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/85 backdrop-blur-md animate-fadeIn">
       {/* Festive Floating Card */}
       <div className="relative w-full max-w-lg bg-gradient-to-b from-[#180C24] via-[#12081C] to-[#0A0510] border-2 border-amber-400/60 rounded-3xl p-6 sm:p-8 shadow-2xl shadow-rose-900/50 text-center text-white overflow-hidden animate-scaleUp">
         

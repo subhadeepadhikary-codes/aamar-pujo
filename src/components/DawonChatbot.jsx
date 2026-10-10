@@ -26,8 +26,11 @@ import {
   generateDynamicRoute, 
   handleOpenEndedQuery,
   identifyHub,
+  formatRouteAsAssistantResponse,
   SEARCHABLE_LOCATIONS
 } from "../utils/transitEngine";
+import { PANDALS_DATA } from "../data/pandalsData";
+import { normalizePhonetic } from "../utils/phoneticSearch";
 
 export default function DawonChatbot({ userLocation, onNavigateToPandal, isAudioPlaying }) {
   const [isOpen, setIsOpen] = useState(false);
@@ -113,20 +116,40 @@ export default function DawonChatbot({ userLocation, onNavigateToPandal, isAudio
     return null;
   };
 
-  // Autocomplete suggestion filters
-  const filteredOriginSuggestions = originInput.trim()
-    ? SEARCHABLE_LOCATIONS.filter(l => 
-        l.name.toLowerCase().includes(originInput.toLowerCase()) || 
-        l.zone.toLowerCase().includes(originInput.toLowerCase())
-      ).slice(0, 5)
-    : SEARCHABLE_LOCATIONS.slice(0, 5);
+  // Autocomplete suggestion filters matching hubs and all 504 pandals
+  const getSuggestions = (query) => {
+    const q = query.trim().toLowerCase();
+    if (!q) return SEARCHABLE_LOCATIONS.slice(0, 6);
 
-  const filteredDestSuggestions = destInput.trim()
-    ? SEARCHABLE_LOCATIONS.filter(l => 
-        l.name.toLowerCase().includes(destInput.toLowerCase()) || 
-        l.zone.toLowerCase().includes(destInput.toLowerCase())
-      ).slice(0, 5)
-    : SEARCHABLE_LOCATIONS.slice(0, 5);
+    const normQ = normalizePhonetic(q);
+    const matchedLocs = SEARCHABLE_LOCATIONS.filter(l => 
+      l.name.toLowerCase().includes(q) || 
+      l.zone.toLowerCase().includes(q) ||
+      normalizePhonetic(l.name).includes(normQ)
+    );
+
+    const matchedPandals = PANDALS_DATA.filter(p => 
+      p.name.toLowerCase().includes(q) || 
+      (p.locality && p.locality.toLowerCase().includes(q)) || 
+      normalizePhonetic(p.name).includes(normQ)
+    ).map(p => ({
+      id: `pandal-${p.id}`,
+      name: p.name,
+      category: "Pandal",
+      zone: p.zoneLabel || "Kolkata"
+    }));
+
+    const combined = [...matchedLocs];
+    for (const p of matchedPandals) {
+      if (!combined.some(c => c.name.toLowerCase() === p.name.toLowerCase())) {
+        combined.push(p);
+      }
+    }
+    return combined.slice(0, 6);
+  };
+
+  const filteredOriginSuggestions = getSuggestions(originInput);
+  const filteredDestSuggestions = getSuggestions(destInput);
 
   const handleSwapLocations = () => {
     const temp = originInput;
@@ -134,7 +157,7 @@ export default function DawonChatbot({ userLocation, onNavigateToPandal, isAudio
     setDestInput(temp);
   };
 
-  const handlePlanRoute = (e) => {
+  const handlePlanRoute = async (e) => {
     if (e) e.preventDefault();
     if (!destInput.trim()) return;
 
@@ -142,30 +165,89 @@ export default function DawonChatbot({ userLocation, onNavigateToPandal, isAudio
     setShowDestSuggestions(false);
     setIsTyping(true);
 
-    setTimeout(() => {
-      const dynamicRoute = generateDynamicRoute(originInput.trim() || null, destInput.trim(), userLocation);
-      setIsTyping(false);
+    const origin = originInput.trim() || "My Location";
+    const dest = destInput.trim();
 
-      if (dynamicRoute) {
-        setActiveRoutePlan(dynamicRoute);
-        setMessages(prev => [
-          ...prev,
-          {
-            id: `usr-${Date.now()}`,
-            sender: "user",
-            text: `Route from ${originInput.trim() || "My Location"} to ${destInput.trim()}`,
-            time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-          },
-          {
-            id: `dawon-${Date.now()}`,
-            sender: "dawon",
-            routeData: dynamicRoute,
-            source: "Dawon Kolkata Transit Engine",
-            time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-          }
-        ]);
+    // 1. Generate core dynamic route using West Bengal transit engine
+    const dynamicRoute = generateDynamicRoute(originInput.trim() || null, dest, userLocation);
+    const destHub = identifyHub(dest);
+
+    // 2. Query Ollama if available for ChatGPT/Gemini-style step-by-step guidance
+    let aiResponse = null;
+    const cleanUrl = (ollamaUrl || "http://localhost:11434").replace(/\/+$/, "");
+
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 3500);
+
+      const headers = { "Content-Type": "application/json" };
+      if (ollamaApiKey) headers["Authorization"] = `Bearer ${ollamaApiKey}`;
+
+      const destContext = destHub ? `(Destination: ${destHub.name}, Nearest Metro: ${destHub.nearestMetro || 'Local Station'}, Feeder: ${destHub.lastMileFromMetro || 'Auto/Toto'}, Foods: ${destHub.famousFoods || 'Local street food'})` : '';
+
+      const prompt = `You are Dawon (সিংহ বাহন), an expert West Bengal Durga Puja Transit Guide. 
+The devotee asks for step-by-step navigation instructions from "${origin}" to "${dest}" in West Bengal.
+${destContext}
+Give structured, ChatGPT/Gemini-style step-by-step navigation instructions:
+1. 📍 Origin First-Mile: Auto/Toto/Bus or Suburban Rail station
+2. 🚇 Core Transit Spine: Intercity train / Eastern Railway / Kolkata Metro (Blue, Green, Purple, or Orange Line with interchange)
+3. 🛺 Last-Mile & Nearest Station Gate
+4. 🚶 Pandal Entry Corridor & Queue strategy
+5. 🍽️ Famous Nearby Food / Roll / Sweet Stop
+6. ⏱️ Total estimated travel time and approximate fare.
+7. 💡 Pro-Tip for crowd timing.
+Keep it crisp, friendly, and practical with emojis and Benglish charm.`;
+
+      const res = await fetch(`${cleanUrl}/api/generate`, {
+        method: "POST",
+        headers,
+        signal: controller.signal,
+        body: JSON.stringify({
+          model: ollamaModel || "llama3.2",
+          prompt,
+          stream: false
+        })
+      });
+
+      clearTimeout(timeoutId);
+      if (res.ok) {
+        const data = await res.json();
+        if (data?.response) {
+          aiResponse = data.response;
+        }
       }
-    }, 300);
+    } catch (err) {
+      console.log("Ollama call skipped or offline, using Dawon Bengal transit engine:", err.message);
+    }
+
+    setIsTyping(false);
+
+    const formattedGuide = aiResponse || (dynamicRoute ? formatRouteAsAssistantResponse(dynamicRoute) : `Step-by-step route planned from ${origin} to ${dest}!`);
+
+    if (dynamicRoute) {
+      setActiveRoutePlan({
+        ...dynamicRoute,
+        aiNotes: aiResponse
+      });
+
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: `usr-${Date.now()}`,
+          sender: "user",
+          text: `Directions from ${origin} to ${dest}`,
+          time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+        },
+        {
+          id: `dawon-${Date.now()}`,
+          sender: "dawon",
+          text: formattedGuide,
+          routeData: dynamicRoute,
+          source: aiResponse ? `Ollama (${ollamaModel})` : "Dawon Bengal Transit AI",
+          time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+        }
+      ]);
+    }
   };
 
   // Send message handler (Ollama with Dynamic Local Fallback)
@@ -184,23 +266,38 @@ export default function DawonChatbot({ userLocation, onNavigateToPandal, isAudio
     setInputMessage("");
     setIsTyping(true);
 
+    // Check if user is asking for a transit route
+    const dynamicRoute = resolveQueryRoute(text);
+
     // 1. Attempt Ollama API call if configured
     let aiResponse = null;
     const cleanUrl = (ollamaUrl || "http://localhost:11434").replace(/\/+$/, "");
 
     try {
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 4000); // 4s timeout
+      const timeoutId = setTimeout(() => controller.abort(), 4000);
 
       const headers = { "Content-Type": "application/json" };
-      if (ollamaApiKey) {
-        headers["Authorization"] = `Bearer ${ollamaApiKey}`;
-      }
+      if (ollamaApiKey) headers["Authorization"] = `Bearer ${ollamaApiKey}`;
 
-      const prompt = `You are Dawon, a friendly Bengali AI Durga Puja transit navigator for Kolkata. 
+      let prompt = "";
+      if (dynamicRoute) {
+        prompt = `You are Dawon (সিংহ বাহন), an expert West Bengal Durga Puja Transit Guide. 
+The devotee asks: "${text}".
+Provide clear, step-by-step navigation instructions:
+1. Origin First-Mile (Auto/Toto/Bus/Train)
+2. Main Transit Spine (Kolkata Metro Line Blue/Green/Purple/Orange or EMU Rail)
+3. Last-Mile & Nearest Station Gate
+4. Pandal Entry Corridor & Queue strategy
+5. Famous Nearby Food / Roll / Sweet Stop
+6. Total estimated travel time and approximate fare in INR.
+Keep it crisp, friendly, and practical with emojis and Benglish charm.`;
+      } else {
+        prompt = `You are Dawon, a friendly Bengali AI Durga Puja transit navigator and festive cultural companion for Kolkata and West Bengal. 
 The user asks: "${text}".
-Explain the best path to reach there using Kolkata Metro, auto-rickshaw routes, and walking distance. 
-Highlight any famous food or roll stops nearby. Be concise, cheerful, and use colloquial Benglish phrases.`;
+Explain the best path or answer clearly using Kolkata Metro, auto routes, rituals, and food tips. 
+Be concise, cheerful, and use colloquial Benglish phrases.`;
+      }
 
       const res = await fetch(`${cleanUrl}/api/generate`, {
         method: "POST",
@@ -214,15 +311,13 @@ Highlight any famous food or roll stops nearby. Be concise, cheerful, and use co
       });
 
       clearTimeout(timeoutId);
-
       if (res.ok) {
         const data = await res.json();
-        if (data && data.response) {
+        if (data?.response) {
           aiResponse = data.response;
         }
       }
     } catch (err) {
-      // Ollama not reachable / CORS / offline: fallback seamlessly
       console.log("Ollama call skipped or offline, using Dawon internal transit engine:", err.message);
     }
 
@@ -235,6 +330,7 @@ Highlight any famous food or roll stops nearby. Be concise, cheerful, and use co
           id: `dawon-${Date.now()}`,
           sender: "dawon",
           text: aiResponse,
+          routeData: dynamicRoute || null,
           source: `Ollama (${ollamaModel})`,
           time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
         }
@@ -258,16 +354,17 @@ Highlight any famous food or roll stops nearby. Be concise, cheerful, and use co
       return;
     }
 
-    // 3. Check for Dynamic Transit Route (Parses exact origin & destination)
-    const dynamicRoute = resolveQueryRoute(text);
+    // 3. Dynamic Transit Route fallback
     if (dynamicRoute) {
+      const formattedAssistantResponse = formatRouteAsAssistantResponse(dynamicRoute);
       setMessages((prev) => [
         ...prev,
         {
           id: `dawon-${Date.now()}`,
           sender: "dawon",
+          text: formattedAssistantResponse,
           routeData: dynamicRoute,
-          source: "Dawon Kolkata Transit Engine",
+          source: "Dawon Bengal Transit AI",
           time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
         }
       ]);
@@ -280,11 +377,11 @@ Highlight any famous food or roll stops nearby. Be concise, cheerful, and use co
       {
         id: `dawon-${Date.now()}`,
         sender: "dawon",
-        text: `Kolkata-r kono specific pandal ba station-e jete chao? 
-Bolo: "How to reach Sreebhumi from Behala Thana" ba "Bagbazar from Garia". 
-Ami tomake exact Metro line, feeder auto, walk distance ar food pitstop bole debo!
+        text: `Kolkata ba West Bengal-er kono specific pandal ba station-e jete chao? 
+Bolo: "How to reach Sreebhumi from Taratala", "Asansol to Bagbazar", ba "Behala Thana to College Square". 
+Ami tomake exact train/metro line, feeder auto, walk distance ar food pitstop step-by-step bole debo!
 
-Ba jiggesh korte paro: "Ashtami anjali timing", "Metro night timings", ba "Where to eat best biryani?"`,
+Ba jiggesh korte paro: "Ashtami anjali timing", "Midnight Metro schedule", ba "Where to eat best biryani?"`,
         source: "Dawon Smart Guide",
         time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
       }
@@ -631,10 +728,10 @@ Ba jiggesh korte paro: "Ashtami anjali timing", "Metro night timings", ba "Where
               {/* Active Route Plan Display */}
               {activeRoutePlan ? (
                 <div className="p-3.5 bg-[#1B1128] rounded-2xl border-2 border-amber-400/60 shadow-xl space-y-3 animate-fadeIn">
-                  <div className="pb-2 border-b border-white/10 flex items-center justify-between">
+                  <div className="pb-2 border-b border-white/10 flex items-start justify-between gap-2">
                     <div>
                       <span className="text-[9px] uppercase font-bold tracking-wider text-amber-300 block">
-                        Verified Kolkata Transit Route
+                        Verified West Bengal AI Transit Route
                       </span>
                       <h4 className="font-heritage text-sm font-black text-white">
                         {activeRoutePlan.title}
@@ -643,25 +740,62 @@ Ba jiggesh korte paro: "Ashtami anjali timing", "Metro night timings", ba "Where
                     <button
                       type="button"
                       onClick={() => setActiveRoutePlan(null)}
-                      className="text-[10px] text-slate-400 hover:text-white px-1.5 py-0.5 rounded bg-white/5"
+                      className="text-[10px] text-slate-400 hover:text-white px-2 py-0.5 rounded bg-white/5 flex-shrink-0"
                     >
                       Clear
                     </button>
                   </div>
 
+                  {/* Badges for time, cost, maps */}
+                  <div className="flex items-center gap-1.5 flex-wrap text-[11px]">
+                    {activeRoutePlan.totalTime && (
+                      <span className="px-2 py-0.5 rounded-md bg-amber-500/20 text-amber-300 font-bold border border-amber-500/30">
+                        ⏱️ {activeRoutePlan.totalTime}
+                      </span>
+                    )}
+                    {activeRoutePlan.estimatedCost && (
+                      <span className="px-2 py-0.5 rounded-md bg-emerald-500/20 text-emerald-300 font-bold border border-emerald-500/30">
+                        💰 {activeRoutePlan.estimatedCost}
+                      </span>
+                    )}
+                    {activeRoutePlan.googleMapsUrl && (
+                      <a
+                        href={activeRoutePlan.googleMapsUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="ml-auto inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-blue-600/30 hover:bg-blue-600/50 text-blue-200 border border-blue-400/40 text-[10px] font-semibold transition"
+                      >
+                        <span>🗺️ Google Maps</span>
+                        <ExternalLink className="w-3 h-3" />
+                      </a>
+                    )}
+                  </div>
+
+                  {/* Ollama AI Insights Banner */}
+                  {activeRoutePlan.aiNotes && (
+                    <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-400/30 text-amber-200 text-[11px] leading-relaxed whitespace-pre-line shadow-inner">
+                      <div className="font-bold text-amber-300 flex items-center gap-1.5 mb-1.5 text-xs">
+                        <span>🦁 Ollama AI Navigation Advice</span>
+                        <span className="text-[9px] px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-300 font-mono">Live Guidance</span>
+                      </div>
+                      <p className="text-slate-200 leading-relaxed">{activeRoutePlan.aiNotes}</p>
+                    </div>
+                  )}
+
                   {/* Route Steps */}
-                  <div className="space-y-2.5">
-                    {activeRoutePlan.route.map((step, idx) => (
-                      <div key={idx} className="flex items-start space-x-2 text-xs">
+                  <div className="space-y-2">
+                    {(activeRoutePlan.steps || activeRoutePlan.route || []).map((step, idx) => (
+                      <div key={idx} className="p-2.5 rounded-xl bg-white/5 border border-white/5 flex items-start space-x-2.5 text-xs">
                         <span className="text-base flex-shrink-0 mt-0.5">
-                          {step.type === "metro" && "🚇"}
-                          {step.type === "auto" && "🛺"}
-                          {step.type === "walk" && "🚶"}
-                          {step.type === "food" && "🍽️"}
-                          {step.type === "tip" && "💡"}
+                          {step.icon || (step.type === "metro" ? "🚇" : step.type === "auto" ? "🛺" : step.type === "walk" ? "🚶" : step.type === "food" ? "🍽️" : step.type === "train" ? "🚆" : "💡")}
                         </span>
                         <div className="min-w-0 flex-1">
-                          <p className="text-slate-200 leading-snug">{step.text}</p>
+                          {step.title && (
+                            <span className="font-bold text-amber-300 block text-[11px] mb-0.5">
+                              {step.title}
+                            </span>
+                          )}
+                          <p className="text-slate-200 text-[11px] leading-snug">{step.desc || step.text}</p>
                         </div>
                       </div>
                     ))}
@@ -686,10 +820,13 @@ Ba jiggesh korte paro: "Ashtami anjali timing", "Metro night timings", ba "Where
                   </span>
                   <div className="grid grid-cols-1 gap-1.5">
                     {[
-                      { from: "Taratala / New Alipore", to: "Sreebhumi Sporting Club (Lake Town)" },
-                      { from: "Howrah Railway Station", to: "Bagbazar Sarbojanin" },
-                      { from: "Garia (Kavi Nazrul / Mahamayatala)", to: "College Square & Md Ali Park" },
-                      { from: "Behala Chowrasta / Thana", to: "Santosh Mitra Square (Bowbazar)" }
+                      { from: "Taratala Crossing (Majerhat/Mint)", to: "Sreebhumi Sporting Club (Lake Town)" },
+                      { from: "New Alipore (Suruchi Sangha Area)", to: "Ahiritola Jubak Brinda" },
+                      { from: "Behala Thana (Kadamtala / 14 No.)", to: "College Square & Md Ali Park" },
+                      { from: "Behala Chowrasta (James Long)", to: "Santosh Mitra Square (Bowbazar)" },
+                      { from: "Howrah Railway Station", to: "Beleghata Karmi Sangha" },
+                      { from: "Asansol (Paschim Bardhaman)", to: "Bagbazar Sarbojanin" },
+                      { from: "Burdwan / Bardhaman", to: "Ekdalia Evergreen Club" }
                     ].map((route, idx) => (
                       <button
                         key={idx}
@@ -705,12 +842,12 @@ Ba jiggesh korte paro: "Ashtami anjali timing", "Metro night timings", ba "Where
                         className="p-2 rounded-xl bg-white/5 hover:bg-white/10 text-left text-xs transition border border-white/5 hover:border-amber-400/40 flex items-center justify-between"
                       >
                         <div className="truncate pr-2">
-                          <span className="text-amber-300 font-semibold">{route.from}</span>
+                          <span className="text-amber-300 font-semibold">{route.from.split("(")[0]}</span>
                           <span className="text-slate-400 mx-1">➔</span>
                           <span className="text-white">{route.to.split("(")[0]}</span>
                         </div>
                         <span className="text-[10px] text-amber-400/80 font-bold flex-shrink-0">
-                          View ➔
+                          Plan ➔
                         </span>
                       </button>
                     ))}
@@ -745,35 +882,70 @@ Ba jiggesh korte paro: "Ashtami anjali timing", "Metro night timings", ba "Where
                       className={`max-w-[88%] p-3.5 rounded-2xl text-xs leading-relaxed shadow-md ${
                         isUser
                           ? "bg-gradient-to-r from-amber-500 to-rose-600 text-slate-950 font-medium rounded-tr-sm"
-                          : "bg-[#1C1226] border border-amber-500/25 text-slate-200 rounded-tl-sm space-y-2"
+                          : "bg-[#1C1226] border border-amber-500/25 text-slate-200 rounded-tl-sm space-y-2.5"
                       }`}
                     >
-                      {/* Render Structured Route if Available */}
-                      {m.routeData ? (
-                        <div className="space-y-2.5">
-                          <div className="font-bold text-amber-300 text-xs pb-1 border-b border-white/10 flex items-center space-x-1">
-                            <Compass className="w-3.5 h-3.5 text-amber-400" />
-                            <span>{m.routeData.title}</span>
+                      {/* Assistant or User Text Message */}
+                      {m.text && (
+                        <p className="whitespace-pre-line leading-relaxed text-[11px] sm:text-xs">
+                          {m.text}
+                        </p>
+                      )}
+
+                      {/* Interactive Route Timeline Card */}
+                      {m.routeData && (
+                        <div className={`space-y-2.5 ${m.text ? "pt-2.5 border-t border-white/10" : ""}`}>
+                          <div className="font-bold text-amber-300 text-xs pb-1 border-b border-white/10 flex items-center justify-between">
+                            <span className="flex items-center space-x-1">
+                              <Compass className="w-3.5 h-3.5 text-amber-400" />
+                              <span>{m.routeData.title}</span>
+                            </span>
+                            {m.routeData.totalTime && (
+                              <span className="text-[10px] px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-300 font-bold">
+                                ⏱️ {m.routeData.totalTime}
+                              </span>
+                            )}
                           </div>
-                          <div className="space-y-2">
-                            {m.routeData.route.map((step, idx) => (
-                              <div key={idx} className="flex items-start space-x-2 text-[11px]">
-                                <span className="font-mono text-amber-400 font-bold mt-0.5">
-                                  {step.type === "metro" && "🚇"}
-                                  {step.type === "auto" && "🛺"}
-                                  {step.type === "walk" && "🚶"}
-                                  {step.type === "food" && "🍽️"}
-                                  {step.type === "tip" && "💡"}
+
+                          <div className="space-y-1.5">
+                            {(m.routeData.steps || m.routeData.route || []).map((step, idx) => (
+                              <div key={idx} className="flex items-start space-x-2 text-[11px] bg-black/30 p-2 rounded-xl border border-white/5">
+                                <span className="text-sm flex-shrink-0 mt-0.5">
+                                  {step.icon || (step.type === "metro" ? "🚇" : step.type === "auto" ? "🛺" : step.type === "walk" ? "🚶" : step.type === "food" ? "🍽️" : step.type === "train" ? "🚆" : "💡")}
                                 </span>
-                                <span className="text-slate-300 leading-snug">
-                                  {step.text}
-                                </span>
+                                <div className="min-w-0 flex-1">
+                                  {step.title && (
+                                    <span className="font-bold text-amber-300 block text-[10px] mb-0.5">
+                                      {step.title}
+                                    </span>
+                                  )}
+                                  <span className="text-slate-200 leading-snug">
+                                    {step.desc || step.text}
+                                  </span>
+                                </div>
                               </div>
                             ))}
                           </div>
+
+                          <div className="pt-1 flex items-center justify-between flex-wrap gap-2">
+                            {m.routeData.estimatedCost && (
+                              <span className="text-[10px] px-2 py-0.5 rounded-md bg-emerald-500/20 text-emerald-300 font-bold border border-emerald-500/30">
+                                💰 {m.routeData.estimatedCost}
+                              </span>
+                            )}
+                            {m.routeData.googleMapsUrl && (
+                              <a
+                                href={m.routeData.googleMapsUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="ml-auto inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-blue-600/30 hover:bg-blue-600/50 text-blue-200 border border-blue-400/40 text-[10px] font-semibold transition"
+                              >
+                                <span>🗺️ Open in Google Maps</span>
+                                <ExternalLink className="w-3 h-3" />
+                              </a>
+                            )}
+                          </div>
                         </div>
-                      ) : (
-                        <p className="whitespace-pre-line">{m.text}</p>
                       )}
                     </div>
 

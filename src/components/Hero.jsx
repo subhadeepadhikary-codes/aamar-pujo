@@ -12,6 +12,8 @@ import {
   Music2,
   Info
 } from "lucide-react";
+import { PANDALS_DATA } from "../data/pandalsData";
+import { getSmartSearchSuggestions } from "../utils/phoneticSearch";
 
 export default function Hero({ 
   onSearch, 
@@ -21,6 +23,11 @@ export default function Hero({
   onNavigate 
 }) {
   const [searchInput, setSearchInput] = useState("");
+
+  const smartSuggestions = React.useMemo(() => {
+    if (!searchInput || searchInput.trim().length < 2) return [];
+    return getSmartSearchSuggestions(searchInput, PANDALS_DATA, 4);
+  }, [searchInput]);
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -35,7 +42,7 @@ export default function Hero({
     { label: "🚇 Pujo by Metro", action: () => { if (onNavigate) onNavigate("pandals"); }, isMetro: true },
     { label: "South Kolkata (179)", action: () => { onSelectZone("south"); if (onNavigate) onNavigate("pandals"); } },
     { label: "North Kolkata (98)", action: () => { onSelectZone("north"); if (onNavigate) onNavigate("pandals"); } },
-    { label: "Central Heritage (62)", action: () => { onSelectZone("central"); if (onNavigate) onNavigate("pandals"); } },
+    { label: "Central Heritage (63)", action: () => { onSelectZone("central"); if (onNavigate) onNavigate("pandals"); } },
     { label: "Salt Lake & East (43)", action: () => { onSelectZone("east"); if (onNavigate) onNavigate("pandals"); } },
     { label: "Suburbs & Bengal (26+)", action: () => { onSelectZone("howrah"); if (onNavigate) onNavigate("pandals"); } }
   ];
@@ -82,13 +89,13 @@ export default function Hero({
             “এবার পুজো, অন্য ভাবে — এক ক্লিকে গোটা বাংলার পুজো ম্যাপ”
           </p>
           <p className="text-sm sm:text-base text-slate-300 max-w-2xl mx-auto mb-7 font-normal leading-relaxed">
-            Navigate through <strong className="text-amber-400 font-semibold">503+ pandals</strong> across Kolkata & West Bengal. 
+            Navigate through <strong className="text-amber-400 font-semibold">504+ pandals</strong> across Kolkata & West Bengal. 
             Direct <strong className="text-rose-400 font-semibold">Google Maps turn-by-turn routing</strong> from your phone's live GPS location, 
             Metro connections, and authentic daily audio.
           </p>
 
           {/* Search Bar */}
-          <div className="w-full max-w-2xl mb-5">
+          <div className="w-full max-w-2xl mb-5 space-y-2">
             <form onSubmit={handleSubmit} className="relative group">
               <div className="absolute -inset-1 bg-gradient-to-r from-amber-500/40 via-rose-500/40 to-amber-500/40 rounded-2xl blur-md opacity-40 group-focus-within:opacity-80 transition duration-300" />
               <div className="relative flex items-center bg-[#140E1B] border border-amber-500/30 rounded-2xl overflow-hidden shadow-2xl">
@@ -97,7 +104,7 @@ export default function Hero({
                   type="text"
                   value={searchInput}
                   onChange={(e) => setSearchInput(e.target.value)}
-                  placeholder="Search 503 pandals (e.g. Bagbazar, Suruchi, College Square, Kalighat...)"
+                  placeholder="Search 504 pandals (e.g. Sribhumi, Beleghata Karmi, Suruchi, Bagbazar...)"
                   className="w-full py-4 px-3.5 bg-transparent text-sm sm:text-base text-white placeholder-slate-400 focus:outline-none"
                 />
                 <button
@@ -109,6 +116,29 @@ export default function Hero({
                 </button>
               </div>
             </form>
+
+            {/* Smart Suggestions Strip */}
+            {smartSuggestions.length > 0 && (
+              <div className="flex items-center justify-center gap-1.5 flex-wrap pt-1 px-1 animate-fadeIn">
+                <span className="text-[10px] text-amber-400 font-semibold flex items-center gap-1">
+                  <Sparkles className="w-3 h-3 text-amber-400" />
+                  Suggestions:
+                </span>
+                {smartSuggestions.map((sug, i) => (
+                  <button
+                    key={i}
+                    onClick={() => {
+                      setSearchInput(sug);
+                      if (onSearch) onSearch(sug);
+                      if (onNavigate) onNavigate("pandals");
+                    }}
+                    className="text-[11px] px-2.5 py-0.5 rounded-full bg-amber-500/15 hover:bg-amber-500/30 text-amber-200 border border-amber-500/30 transition flex items-center gap-1"
+                  >
+                    <span>💡 {sug}</span>
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
 
           {/* Quick Filter Buttons */}
@@ -137,7 +167,7 @@ export default function Hero({
               className="glass-card rounded-2xl p-4 text-left border-amber-500/20 hover:border-amber-400/50 transition group"
             >
               <Compass className="w-6 h-6 text-amber-400 mb-2 group-hover:scale-110 transition" />
-              <div className="font-heritage text-lg font-bold text-white">503 Pandals</div>
+              <div className="font-heritage text-lg font-bold text-white">504 Pandals</div>
               <div className="text-[11px] text-slate-400">Directory & GPS ➔</div>
             </button>
 

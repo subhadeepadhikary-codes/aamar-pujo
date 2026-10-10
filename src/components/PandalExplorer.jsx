@@ -4,6 +4,7 @@ import { RESTAURANTS_DATA } from "../data/restaurantsData";
 import { METRO_STATIONS } from "../data/metroData";
 import PandalCard from "./PandalCard";
 import RestaurantCard from "./RestaurantCard";
+import { filterPandalsPhonetically, getSmartSearchSuggestions } from "../utils/phoneticSearch";
 import { 
   Search, 
   MapPin, 
@@ -37,6 +38,7 @@ export default function PandalExplorer({
   const [visibleCount, setVisibleCount] = useState(24);
   const [crowdFilter, setCrowdFilter] = useState("all");
   const [metroSelectorOpen, setMetroSelectorOpen] = useState(false);
+  const [showMobileFilters, setShowMobileFilters] = useState(false);
 
   // Haversine distance calculator helper
   const getDist = (lat1, lon1, lat2, lon2) => {
@@ -101,17 +103,9 @@ export default function PandalExplorer({
       list = list.filter((p) => p.crowd === crowdFilter);
     }
 
-    // Text search filter
+    // Homophone & Phonetic Text Search Filter
     if (searchQuery && searchQuery.trim() !== "") {
-      const q = searchQuery.toLowerCase().trim();
-      list = list.filter(
-        (p) =>
-          p.name.toLowerCase().includes(q) ||
-          p.locality.toLowerCase().includes(q) ||
-          p.address.toLowerCase().includes(q) ||
-          p.metro.toLowerCase().includes(q) ||
-          p.zoneLabel.toLowerCase().includes(q)
-      );
+      list = filterPandalsPhonetically(list, searchQuery);
     }
 
     // "Near Me" GPS proximity sorting & radius cut (when no metro station is active)
@@ -128,6 +122,12 @@ export default function PandalExplorer({
   const displayedPandals = useMemo(() => {
     return filteredPandals.slice(0, visibleCount);
   }, [filteredPandals, visibleCount]);
+
+  // Homophone / smart search suggestion chips
+  const smartSuggestions = useMemo(() => {
+    if (!searchQuery || searchQuery.trim().length < 2) return [];
+    return getSmartSearchSuggestions(searchQuery, PANDALS_DATA, 4);
+  }, [searchQuery]);
 
   // --- 2. FILTER & DISTANCE LOGIC FOR RESTAURANTS & FOOD SPOTS ---
   const filteredRestaurants = useMemo(() => {
@@ -255,7 +255,7 @@ export default function PandalExplorer({
           <div>
             <div className="inline-flex items-center space-x-1.5 px-3 py-0.5 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-300 text-[10px] sm:text-xs font-semibold mb-2">
               <Compass className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
-              <span>Full Bengal Directory · 503 Pandals & 65+ Famous Eateries</span>
+              <span>Full Bengal Directory · 504 Pandals & 185+ Famous Eateries</span>
             </div>
             <h2 className="font-heritage text-xl sm:text-3xl md:text-5xl font-black text-white">
               Pujo & Food <span className="text-gold-gradient">Navigation Hub</span>
@@ -292,7 +292,7 @@ export default function PandalExplorer({
             }`}
           >
             <Compass className="w-3.5 h-3.5 sm:w-4 sm:h-4 flex-shrink-0" />
-            <span className="truncate">🏯 503+ Pandals</span>
+            <span className="truncate">🏯 504+ Pandals</span>
             <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-black/30 font-mono flex-shrink-0">
               {filteredPandals.length}
             </span>
@@ -307,7 +307,7 @@ export default function PandalExplorer({
             }`}
           >
             <Utensils className="w-3.5 h-3.5 sm:w-4 sm:h-4 flex-shrink-0" />
-            <span className="truncate">🍽️ Restaurants</span>
+            <span className="truncate">🍽️ 185+ Eateries</span>
             <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-black/30 font-mono flex-shrink-0">
               {filteredRestaurants.length}
             </span>
@@ -383,29 +383,53 @@ export default function PandalExplorer({
         <div className="space-y-4 mb-8">
           
           {/* Top Search Input */}
-          <div className="relative">
-            <Search className="w-4 h-4 text-slate-400 absolute left-4 top-1/2 -translate-y-1/2" />
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => {
-                setSearchQuery(e.target.value);
-                setVisibleCount(24);
-              }}
-              placeholder={
-                activeTab === "pandals"
-                  ? "Search 503 pandals by name, locality (e.g. Bagbazar, FD Block, Kalighat), or metro..."
-                  : "Search famous eateries by name (e.g. Peter Cat, Arsalan, Mitra Cafe), cuisine, or must-try dish..."
-              }
-              className="w-full py-3.5 pl-11 pr-4 bg-[#140E1B] border border-white/10 rounded-2xl text-xs sm:text-sm text-white placeholder-slate-400 focus:outline-none focus:border-amber-400/50"
-            />
-            {searchQuery && (
-              <button
-                onClick={() => setSearchQuery("")}
-                className="absolute right-4 top-1/2 -translate-y-1/2 text-xs text-slate-400 hover:text-white"
-              >
-                Clear
-              </button>
+          <div className="space-y-2">
+            <div className="relative">
+              <Search className="w-4 h-4 text-slate-400 absolute left-4 top-1/2 -translate-y-1/2" />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => {
+                  setSearchQuery(e.target.value);
+                  setVisibleCount(24);
+                }}
+                placeholder={
+                  activeTab === "pandals"
+                    ? "Search 504 pandals (e.g. Sribhumi, Beleghata Karmi, Kumartuli, Suruchi)..."
+                    : "Search 185+ eateries (e.g. Peter Cat, Arsalan, Mitra Cafe, Dada Boudi)..."
+                }
+                className="w-full py-3.5 pl-11 pr-4 bg-[#140E1B] border border-white/10 rounded-2xl text-xs sm:text-sm text-white placeholder-slate-400 focus:outline-none focus:border-amber-400/50"
+              />
+              {searchQuery && (
+                <button
+                  onClick={() => setSearchQuery("")}
+                  className="absolute right-4 top-1/2 -translate-y-1/2 text-xs text-slate-400 hover:text-white"
+                >
+                  Clear
+                </button>
+              )}
+            </div>
+
+            {/* Smart Homophone / Pandal Suggestions Strip */}
+            {smartSuggestions.length > 0 && (
+              <div className="flex items-center gap-1.5 flex-wrap pt-1 px-1 animate-fadeIn">
+                <span className="text-[10px] text-amber-400 font-semibold flex items-center gap-1">
+                  <Sparkles className="w-3 h-3 text-amber-400" />
+                  Suggestions:
+                </span>
+                {smartSuggestions.map((sug, i) => (
+                  <button
+                    key={i}
+                    onClick={() => {
+                      setSearchQuery(sug);
+                      setVisibleCount(24);
+                    }}
+                    className="text-[11px] px-2.5 py-0.5 rounded-full bg-amber-500/15 hover:bg-amber-500/30 text-amber-200 border border-amber-500/30 transition flex items-center gap-1"
+                  >
+                    <span>💡 {sug}</span>
+                  </button>
+                ))}
+              </div>
             )}
           </div>
 
@@ -476,36 +500,62 @@ export default function PandalExplorer({
 
           {/* Sub-Category Pills & Count Stats */}
           {activeTab === "pandals" && (
-            <div className="flex flex-wrap items-center justify-between gap-3 pt-2">
-              <div className="flex flex-wrap items-center gap-1.5">
-                {CATEGORIES.map((cat) => (
+            <div className="space-y-2 pt-1">
+              {/* Mobile Filter Toggle Button */}
+              <div className="sm:hidden flex items-center justify-between">
+                <button
+                  onClick={() => setShowMobileFilters(!showMobileFilters)}
+                  className="px-3 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 text-amber-300 border border-amber-500/30 text-xs font-semibold flex items-center space-x-1.5 transition"
+                >
+                  <SlidersHorizontal className="w-3.5 h-3.5 text-amber-400" />
+                  <span>{showMobileFilters ? "Hide Theme Filters" : `Themes: ${selectedCategory}`}</span>
+                  <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-200 ${showMobileFilters ? "rotate-180" : ""}`} />
+                </button>
+
+                <div className="flex items-center space-x-2 text-[11px] text-slate-400">
+                  <span><strong>{filteredPandals.length}</strong> pandals</span>
                   <button
-                    key={cat}
-                    onClick={() => {
-                      setSelectedCategory(cat);
-                      setVisibleCount(24);
-                    }}
-                    className={`px-3 py-1 rounded-lg text-[11px] font-medium transition ${
-                      selectedCategory === cat
-                        ? "bg-amber-500/20 text-amber-300 border border-amber-500/40"
-                        : "bg-white/5 text-slate-400 hover:text-slate-200 border border-transparent"
-                    }`}
+                    onClick={handleResetFilters}
+                    className="p-1 rounded-lg bg-white/5 hover:bg-white/10 text-slate-300 hover:text-amber-300 transition"
+                    title="Reset all filters"
                   >
-                    {cat}
+                    <RotateCcw className="w-3 h-3" />
                   </button>
-                ))}
+                </div>
               </div>
 
-              {/* Reset / Count stats */}
-              <div className="flex items-center space-x-3 text-xs text-slate-400 ml-auto">
-                <span>Showing <strong>{Math.min(visibleCount, filteredPandals.length)}</strong> of <strong>{filteredPandals.length}</strong> pandals</span>
-                <button
-                  onClick={handleResetFilters}
-                  className="p-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-slate-300 hover:text-amber-300 transition"
-                  title="Reset all filters"
-                >
-                  <RotateCcw className="w-3.5 h-3.5" />
-                </button>
+              {/* Theme Pills Grid (Always visible on sm+, toggleable on mobile) */}
+              <div className={`flex flex-wrap items-center justify-between gap-2.5 ${showMobileFilters ? "flex" : "hidden sm:flex"}`}>
+                <div className="flex flex-wrap items-center gap-1.5">
+                  {CATEGORIES.map((cat) => (
+                    <button
+                      key={cat}
+                      onClick={() => {
+                        setSelectedCategory(cat);
+                        setVisibleCount(24);
+                      }}
+                      className={`px-3 py-1 rounded-lg text-[11px] font-medium transition ${
+                        selectedCategory === cat
+                          ? "bg-amber-500/20 text-amber-300 border border-amber-500/40"
+                          : "bg-white/5 text-slate-400 hover:text-slate-200 border border-transparent"
+                      }`}
+                    >
+                      {cat}
+                    </button>
+                  ))}
+                </div>
+
+                {/* Desktop Reset / Count stats */}
+                <div className="hidden sm:flex items-center space-x-3 text-xs text-slate-400 ml-auto">
+                  <span>Showing <strong>{Math.min(visibleCount, filteredPandals.length)}</strong> of <strong>{filteredPandals.length}</strong> pandals</span>
+                  <button
+                    onClick={handleResetFilters}
+                    className="p-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-slate-300 hover:text-amber-300 transition"
+                    title="Reset all filters"
+                  >
+                    <RotateCcw className="w-3.5 h-3.5" />
+                  </button>
+                </div>
               </div>
             </div>
           )}

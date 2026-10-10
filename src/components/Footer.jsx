@@ -94,7 +94,7 @@ export default function Footer() {
               </li>
               <li>
                 <a href="#pandals" className="hover:text-amber-300 transition">
-                  🏛️ 503+ Pandals Directory
+                  🏛️ 504+ Pandals Directory
                 </a>
               </li>
               <li>
@@ -153,9 +153,13 @@ export default function Footer() {
           </p>
           <p className="flex items-center space-x-1">
             <span>Built with passion & pride by</span>
-            <strong className="text-white hover:text-amber-400 transition cursor-pointer">
+            <a 
+              href="mailto:subhadeepadhikary30@gmail.com" 
+              title="Email Subhadeep Adhikary" 
+              className="text-white hover:text-amber-400 transition cursor-pointer font-bold underline decoration-amber-500/40"
+            >
               Subhadeep Adhikary
-            </strong>
+            </a>
             <span className="text-rose-500">❤️</span>
           </p>
         </div>

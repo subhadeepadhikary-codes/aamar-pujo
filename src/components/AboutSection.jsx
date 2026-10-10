@@ -12,7 +12,8 @@ import {
   HelpCircle,
   ShieldCheck,
   MessageSquareHeart,
-  ExternalLink
+  ExternalLink,
+  Mail
 } from "lucide-react";
 
 export default function AboutSection() {
@@ -112,6 +113,16 @@ export default function AboutSection() {
                   Eta kono corporate platform noy, tomader motoi ekjon pujo lover-er banano mon theke ekta chhotto gift. 
                   Shobai khub bhalo bhabe pujo katao, Maa Durga-r ashirbaad shobar jibone thakuk!
                 </p>
+
+                <div className="pt-2">
+                  <a 
+                    href="mailto:subhadeepadhikary30@gmail.com"
+                    className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/5 hover:bg-amber-500/20 border border-amber-500/30 text-amber-300 hover:text-amber-200 text-xs font-semibold transition"
+                  >
+                    <Mail className="w-3.5 h-3.5 text-amber-400" />
+                    <span>subhadeepadhikary30@gmail.com</span>
+                  </a>
+                </div>
               </div>
 
               <div className="pt-2 flex flex-wrap gap-2 text-xs">
@@ -251,7 +262,7 @@ export default function AboutSection() {
             All musical audio recordings, compositions, lyrics, logos, and cultural media belong entirely to their respective original copyright holders, musicians, recording artists, and authorized music labels. Audio is provided strictly for educational appreciation, cultural continuity, and non-commercial festive celebration under <strong>Section 52 of the Indian Copyright Act, 1957 (Fair Dealing for non-commercial research & education)</strong> and international Fair Use doctrines.
           </p>
           <p className="text-slate-400">
-            No monetization, commercial ads, subscription fees, or revenue generation exist on this portal. If you are an artist, copyright holder, or organization and wish to request updated attribution or immediate removal of any piece of media, please contact the creator directly at <strong className="text-amber-300">subhadeepadhikary.official@gmail.com</strong> and we will promptly comply.
+            No monetization, commercial ads, subscription fees, or revenue generation exist on this portal. If you are an artist, copyright holder, or organization and wish to request updated attribution or immediate removal of any piece of media, please contact the creator directly at <a href="mailto:subhadeepadhikary30@gmail.com" className="text-amber-300 underline font-semibold hover:text-amber-200">subhadeepadhikary30@gmail.com</a> and we will promptly comply.
           </p>
         </div>
 

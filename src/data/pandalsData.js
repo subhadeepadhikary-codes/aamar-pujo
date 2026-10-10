@@ -15592,14 +15592,45 @@ export const PANDALS_DATA = [
       "Chhangani Kachori",
       "Mishti Doi & Sandesh"
     ]
+  },
+  {
+    "id": 504,
+    "name": "Beleghata Karmi Sangha",
+    "slug": "beleghata-karmi-sangha",
+    "zone": "central",
+    "zoneLabel": "Central & East Kolkata",
+    "area": "Beleghata",
+    "locality": "Rashmoni Bazar, Beleghata",
+    "address": "Beleghata Main Road, near Rashmoni Bazar, Kolkata 700010",
+    "lat": 22.5645,
+    "lng": 88.3880,
+    "metro": "Phoolbagan Metro (Green Line - 6 min auto)",
+    "walkMin": 6,
+    "crowd": "Moderate",
+    "category": "Theme & Modern Art",
+    "featured": true,
+    "award": true,
+    "rating": 4.8,
+    "reviewsCount": 420,
+    "images": [
+      "/images/durga/durga_face_2.jpg",
+      "/images/durga/durga_face_3.jpg",
+      "/images/durga/durga_face_5.jpg"
+    ],
+    "highlights": "Acclaimed theme pandal known for profound socio-cultural installations, eco-friendly materials, and grand heritage lighting along the Beleghata canal.",
+    "foodNearby": [
+      "Rashmoni Bazar Kathi Rolls",
+      "Phoolbagan Mishti Hub",
+      "Kolkata Biryani & Moglai"
+    ]
   }
 ];
 
 export const ZONES = [
-  { id: "all", label: "All Zones (503)" },
+  { id: "all", label: "All Zones (504)" },
   { id: "south", label: "South Kolkata (179)" },
   { id: "north", label: "North Kolkata (98)" },
-  { id: "central", label: "Central Kolkata (62)" },
+  { id: "central", label: "Central Kolkata (63)" },
   { id: "southwest", label: "South-West Kolkata (61)" },
   { id: "east", label: "East & Salt Lake (43)" },
   { id: "howrah", label: "Howrah & Salkia (20)" },
