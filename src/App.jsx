@@ -154,9 +154,24 @@ export default function App() {
     return `${m}:${s < 10 ? "0" : ""}${s}`;
   };
 
-  // Handle "Near Me" GPS Tracking
+  const nearMeWatchIdRef = useRef(null);
+
+  // Clean up geolocation watch on unmount
+  useEffect(() => {
+    return () => {
+      if (nearMeWatchIdRef.current !== null && navigator.geolocation) {
+        navigator.geolocation.clearWatch(nearMeWatchIdRef.current);
+      }
+    };
+  }, []);
+
+  // Handle "Near Me" GPS Tracking (Continuous Live Watcher)
   const handleToggleNearMe = () => {
     if (isNearMeActive) {
+      if (nearMeWatchIdRef.current !== null && navigator.geolocation) {
+        navigator.geolocation.clearWatch(nearMeWatchIdRef.current);
+        nearMeWatchIdRef.current = null;
+      }
       setIsNearMeActive(false);
       return;
     }
@@ -168,11 +183,12 @@ export default function App() {
       return;
     }
 
-    navigator.geolocation.getCurrentPosition(
+    const id = navigator.geolocation.watchPosition(
       (position) => {
         setUserLocation({
           lat: position.coords.latitude,
           lng: position.coords.longitude,
+          accuracy: position.coords.accuracy,
           isLive: true
         });
         setIsNearMeActive(true);
@@ -189,8 +205,9 @@ export default function App() {
         setIsNearMeActive(true);
         alert("GPS access was not granted. Using Gariahat Crossing (South Kolkata) as your center point.");
       },
-      { enableHighAccuracy: true, timeout: 8000, maximumAge: 60000 }
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 3000 }
     );
+    nearMeWatchIdRef.current = id;
   };
 
   return (
@@ -307,6 +324,7 @@ export default function App() {
               userLocation={userLocation}
               selectedZone={selectedZone}
               onOpenModal={(pandal) => setActiveModalPandal(pandal)}
+              onUpdateUserLocation={(newLoc) => setUserLocation(newLoc)}
             />
           </div>
         )}

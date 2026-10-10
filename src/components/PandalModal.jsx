@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import { formatDistance } from "../utils/geo";
 import { getDurgaFace } from "../utils/imageFallback";
+import { buildGoogleMapsNavUrl } from "../utils/navigationHelper";
 
 export default function PandalModal({ pandal, userLocation, onClose }) {
   if (!pandal) return null;
@@ -25,10 +26,8 @@ export default function PandalModal({ pandal, userLocation, onClose }) {
   const fallbackImg = getDurgaFace(pandal.id);
   const images = pandal.images && pandal.images.length > 0 ? pandal.images : [fallbackImg];
 
-  // Google Maps Turn-by-Turn Navigation URL
-  const navUrl = userLocation?.lat && userLocation?.lng
-    ? `https://www.google.com/maps/dir/?api=1&origin=${userLocation.lat},${userLocation.lng}&destination=${pandal.lat},${pandal.lng}`
-    : `https://www.google.com/maps/dir/?api=1&destination=${pandal.lat},${pandal.lng}`;
+  // Generalized Google Maps Turn-by-Turn Navigation URL
+  const navUrl = buildGoogleMapsNavUrl(pandal, userLocation);
 
   const nextPhoto = () => setActivePhotoIdx((prev) => (prev + 1) % images.length);
   const prevPhoto = () => setActivePhotoIdx((prev) => (prev - 1 + images.length) % images.length);

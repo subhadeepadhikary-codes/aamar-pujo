@@ -42,6 +42,7 @@ import {
 import { PANDALS_DATA } from "../data/pandalsData";
 import { RESTAURANTS_DATA } from "../data/restaurantsData";
 import { normalizePhonetic } from "../utils/phoneticSearch";
+import { buildGoogleMapsNavUrl } from "../utils/navigationHelper";
 
 export default function RoutePlanner({
   userLocation,
@@ -912,11 +913,11 @@ export default function RoutePlanner({
                         </button>
 
                         <a
-                          href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(spot.name + ' Kolkata')}`}
+                          href={buildGoogleMapsNavUrl(spot, userLocation)}
                           target="_blank"
                           rel="noopener noreferrer"
                           className="p-1.5 rounded-lg text-blue-400 hover:bg-blue-600/20 transition"
-                          title="View on Google Maps"
+                          title="Navigate to spot via Google Maps"
                         >
                           <ExternalLink className="w-3.5 h-3.5" />
                         </a>

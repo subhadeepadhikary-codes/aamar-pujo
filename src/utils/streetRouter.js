@@ -1,0 +1,323 @@
+/**
+ * Resilient Pedestrian Road-Snapped Routing Engine for Aamar Pujo
+ * 
+ * Capabilities:
+ * - Free OpenStreetMap (OSRM) walking route querying
+ * - Chunking for large spot sets (OSRM limit <= 25 waypoints per chunk)
+ * - Deterministic caching in memory Map and sessionStorage
+ * - AbortController timeout resilience (4000ms default)
+ * - Automatic conversion from GeoJSON [lng, lat] to Leaflet [lat, lng]
+ * - Instant fallback to direct coordinate polyline on network timeout/failure
+ */
+
+// In-memory cache map for high performance during tab session
+const routeMemoryCache = new Map();
+
+/**
+ * Calculates Haversine distance in meters between two lat/lng pairs
+ */
+export function calculateHaversineMeters(lat1, lon1, lat2, lon2) {
+  if (
+    lat1 === null || lat1 === undefined ||
+    lon1 === null || lon1 === undefined ||
+    lat2 === null || lat2 === undefined ||
+    lon2 === null || lon2 === undefined
+  ) {
+    return 0;
+  }
+  const R = 6371000; // Earth's radius in meters
+  const dLat = ((lat2 - lat1) * Math.PI) / 180;
+  const dLon = ((lon2 - lon1) * Math.PI) / 180;
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos((lat1 * Math.PI) / 180) *
+      Math.cos((lat2 * Math.PI) / 180) *
+      Math.sin(dLon / 2) *
+      Math.sin(dLon / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return R * c;
+}
+
+/**
+ * Formats distance in meters into human-readable format
+ */
+export function formatRouteDistance(meters) {
+  if (meters === null || meters === undefined || isNaN(meters) || meters <= 0) {
+    return "0 m";
+  }
+  if (meters < 1000) {
+    return `${Math.round(meters)} m`;
+  }
+  return `${(meters / 1000).toFixed(1)} km`;
+}
+
+/**
+ * Formats duration in seconds into human-readable walking time
+ */
+export function formatRouteDuration(seconds) {
+  if (seconds === null || seconds === undefined || isNaN(seconds) || seconds <= 0) {
+    return "0 mins";
+  }
+  const totalMins = Math.round(seconds / 60);
+  if (totalMins < 60) {
+    return `${totalMins} min${totalMins === 1 ? "" : "s"}`;
+  }
+  const hours = Math.floor(totalMins / 60);
+  const remainingMins = totalMins % 60;
+  if (remainingMins === 0) {
+    return `${hours} hr${hours === 1 ? "" : "s"}`;
+  }
+  return `${hours} hr${hours === 1 ? "" : "s"} ${remainingMins} min${remainingMins === 1 ? "" : "s"}`;
+}
+
+/**
+ * Deterministic cache key generator based on 5 decimal places precision (~1 meter)
+ */
+export function getRouteCacheKey(spots) {
+  if (!Array.isArray(spots) || spots.length === 0) {
+    return "aamar_route_empty";
+  }
+  const coordsKey = spots
+    .map((s) => {
+      const lat = typeof s.lat === "number" ? s.lat.toFixed(5) : "0";
+      const lng = typeof s.lng === "number" ? s.lng.toFixed(5) : "0";
+      return `${lat},${lng}`;
+    })
+    .join(";");
+  return `aamar_route_${coordsKey}`;
+}
+
+/**
+ * Safe retrieval from memory cache or sessionStorage
+ */
+function getCachedRoute(cacheKey) {
+  if (routeMemoryCache.has(cacheKey)) {
+    return routeMemoryCache.get(cacheKey);
+  }
+  if (typeof window !== "undefined" && window.sessionStorage) {
+    try {
+      const stored = window.sessionStorage.getItem(cacheKey);
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        routeMemoryCache.set(cacheKey, parsed);
+        return parsed;
+      }
+    } catch {
+      // Ignore private browsing or storage quota errors
+    }
+  }
+  return null;
+}
+
+/**
+ * Safe storage in memory cache and sessionStorage
+ */
+function setCachedRoute(cacheKey, routeData) {
+  routeMemoryCache.set(cacheKey, routeData);
+  if (typeof window !== "undefined" && window.sessionStorage) {
+    try {
+      window.sessionStorage.setItem(cacheKey, JSON.stringify(routeData));
+    } catch {
+      // Ignore storage quota limits
+    }
+  }
+}
+
+/**
+ * Clears the routing cache (memory & sessionStorage entries)
+ */
+export function clearRouteCache() {
+  routeMemoryCache.clear();
+  if (typeof window !== "undefined" && window.sessionStorage) {
+    try {
+      const keysToRemove = [];
+      for (let i = 0; i < window.sessionStorage.length; i++) {
+        const key = window.sessionStorage.key(i);
+        if (key && key.startsWith("aamar_route_")) {
+          keysToRemove.push(key);
+        }
+      }
+      keysToRemove.forEach((k) => window.sessionStorage.removeItem(k));
+    } catch {
+      // Ignore
+    }
+  }
+}
+
+/**
+ * Builds direct fallback polyline when network or OSRM is unavailable
+ */
+export function buildDirectFallbackRoute(spots) {
+  const coordinates = spots.map((s) => [s.lat, s.lng]);
+  let distanceMeters = 0;
+
+  for (let i = 0; i < spots.length - 1; i++) {
+    const s1 = spots[i];
+    const s2 = spots[i + 1];
+    if (s1 && s2 && typeof s1.lat === "number" && typeof s1.lng === "number" && typeof s2.lat === "number" && typeof s2.lng === "number") {
+      distanceMeters += calculateHaversineMeters(s1.lat, s1.lng, s2.lat, s2.lng);
+    }
+  }
+
+  // Estimated walking speed: ~1.25 m/s (~4.5 km/h / 75m per min)
+  const durationSeconds = Math.round(distanceMeters / 1.25);
+
+  return {
+    coordinates,
+    distanceMeters: Math.round(distanceMeters),
+    distanceFormatted: formatRouteDistance(distanceMeters),
+    durationSeconds,
+    durationFormatted: formatRouteDuration(durationSeconds),
+    isRoadSnapped: false
+  };
+}
+
+/**
+ * Fetches an individual chunk of waypoints from OSRM pedestrian foot profile
+ */
+async function fetchOsrmLeg(chunkSpots, timeoutMs = 4000) {
+  // OSRM coordinates are specified as longitude,latitude;longitude,latitude...
+  const coordString = chunkSpots.map((s) => `${s.lng},${s.lat}`).join(";");
+  const url = `https://router.project-osrm.org/route/v1/foot/${coordString}?overview=full&geometries=geojson`;
+
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+
+  try {
+    const response = await fetch(url, {
+      signal: controller.signal,
+      headers: {
+        Accept: "application/json"
+      }
+    });
+
+    clearTimeout(timer);
+
+    if (!response.ok) {
+      throw new Error(`OSRM HTTP error: status ${response.status}`);
+    }
+
+    const data = await response.json();
+
+    if (data.code !== "Ok" || !Array.isArray(data.routes) || data.routes.length === 0) {
+      throw new Error(`OSRM returned non-OK code: ${data.code || "Unknown"}`);
+    }
+
+    return data.routes[0];
+  } catch (err) {
+    clearTimeout(timer);
+    throw err;
+  }
+}
+
+/**
+ * Generalized pedestrian road-snapped routing engine
+ * 
+ * @param {Array<Object>} spots - Array of spot objects { lat, lng, name, ... }
+ * @param {Object} [options] - Optional settings
+ * @param {number} [options.timeoutMs=4000] - Request timeout per chunk
+ * @param {boolean} [options.skipCache=false] - Bypass cache read
+ * @returns {Promise<Object>} Snapped route coordinates and metadata
+ */
+export async function fetchWalkingStreetRoute(spots, options = {}) {
+  // Input validation
+  if (!Array.isArray(spots)) {
+    return {
+      coordinates: [],
+      distanceMeters: 0,
+      distanceFormatted: "0 m",
+      durationSeconds: 0,
+      durationFormatted: "0 mins",
+      isRoadSnapped: false
+    };
+  }
+
+  // Filter out any spots missing valid lat/lng numbers
+  const validSpots = spots.filter(
+    (s) => s && typeof s.lat === "number" && typeof s.lng === "number" && !isNaN(s.lat) && !isNaN(s.lng)
+  );
+
+  // If fewer than 2 valid spots, road snapping is not applicable
+  if (validSpots.length < 2) {
+    return {
+      coordinates: validSpots.map((s) => [s.lat, s.lng]),
+      distanceMeters: 0,
+      distanceFormatted: "0 m",
+      durationSeconds: 0,
+      durationFormatted: "0 mins",
+      isRoadSnapped: false
+    };
+  }
+
+  const timeoutMs = options.timeoutMs || 4000;
+  const cacheKey = getRouteCacheKey(validSpots);
+
+  // Cache Check
+  if (!options.skipCache) {
+    const cached = getCachedRoute(cacheKey);
+    if (cached) {
+      return cached;
+    }
+  }
+
+  // Waypoint Chunking (OSRM supports best with <= 25 waypoints per request)
+  const CHUNK_SIZE = 25;
+  const chunkSlices = [];
+
+  for (let i = 0; i < validSpots.length - 1; i += (CHUNK_SIZE - 1)) {
+    const slice = validSpots.slice(i, Math.min(validSpots.length, i + CHUNK_SIZE));
+    if (slice.length >= 2) {
+      chunkSlices.push(slice);
+    }
+  }
+
+  try {
+    let totalDistanceMeters = 0;
+    let totalDurationSeconds = 0;
+    const combinedCoordinates = [];
+
+    // Fetch legs consecutively to be polite to the public OSM demo cluster
+    for (let i = 0; i < chunkSlices.length; i++) {
+      const legSpots = chunkSlices[i];
+      const legRoute = await fetchOsrmLeg(legSpots, timeoutMs);
+
+      totalDistanceMeters += legRoute.distance || 0;
+      totalDurationSeconds += legRoute.duration || 0;
+
+      // OSRM GeoJSON geometry coordinates are [lng, lat]. Convert to Leaflet [lat, lng]!
+      const leafLatlngs = (legRoute.geometry?.coordinates || []).map(([lng, lat]) => [lat, lng]);
+
+      if (combinedCoordinates.length > 0) {
+        // Skip first point of consecutive chunks to avoid duplicate junction coordinate
+        combinedCoordinates.push(...leafLatlngs.slice(1));
+      } else {
+        combinedCoordinates.push(...leafLatlngs);
+      }
+    }
+
+    // If for any reason no coordinates were decoded, trigger fallback
+    if (combinedCoordinates.length === 0) {
+      throw new Error("No coordinates returned from OSRM");
+    }
+
+    const result = {
+      coordinates: combinedCoordinates,
+      distanceMeters: Math.round(totalDistanceMeters),
+      distanceFormatted: formatRouteDistance(totalDistanceMeters),
+      durationSeconds: Math.round(totalDurationSeconds),
+      durationFormatted: formatRouteDuration(totalDurationSeconds),
+      isRoadSnapped: true
+    };
+
+    // Store successful result in cache
+    setCachedRoute(cacheKey, result);
+
+    return result;
+  } catch (error) {
+    console.warn("OSRM routing fallback to direct polyline:", error?.message || error);
+    // Smooth fallback to direct coordinate polyline
+    return buildDirectFallbackRoute(validSpots);
+  }
+}
+
+export default fetchWalkingStreetRoute;

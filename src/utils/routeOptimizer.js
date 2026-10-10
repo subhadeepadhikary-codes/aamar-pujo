@@ -6,6 +6,7 @@
  */
 
 import { calculateDistanceKm } from "./geo";
+import { buildGoogleMapsNavUrl } from "./navigationHelper";
 
 // Maximum capacities as specified
 export const MAX_ROUTE_PLANS = 5;
@@ -166,7 +167,7 @@ export function calculateLegDetails(spotA, spotB) {
     recommendation = `Board Kolkata Metro or take a quick cab (~${travelMins} mins)`;
   }
 
-  const navUrl = `https://www.google.com/maps/dir/?api=1&origin=${spotA.lat},${spotA.lng}&destination=${spotB.lat},${spotB.lng}`;
+  const navUrl = buildGoogleMapsNavUrl(spotB, spotA);
 
   return {
     from: spotA.name,
@@ -259,9 +260,12 @@ export function buildGoogleMapsCircuitUrl(spots, startCoords = null) {
     const destination = `${slice[slice.length - 1].lat},${slice[slice.length - 1].lng}`;
     const waypoints = slice.slice(1, -1).map((s) => `${s.lat},${s.lng}`).join("%7C");
 
+    const destSpot = slice[slice.length - 1];
+    const destQuery = encodeURIComponent(`${destSpot.name}, ${destSpot.address || destSpot.locality || "Kolkata"}`);
+
     const url = waypoints.length > 0
-      ? `https://www.google.com/maps/dir/?api=1&origin=${origin}&destination=${destination}&waypoints=${waypoints}&travelmode=walking`
-      : `https://www.google.com/maps/dir/?api=1&origin=${origin}&destination=${destination}&travelmode=walking`;
+      ? `https://www.google.com/maps/dir/?api=1&origin=${origin}&destination=${destination}&destination_query=${destQuery}&waypoints=${waypoints}&travelmode=walking`
+      : `https://www.google.com/maps/dir/?api=1&origin=${origin}&destination=${destination}&destination_query=${destQuery}&travelmode=walking`;
 
     chunks.push({
       partNumber: chunks.length + 1,
@@ -327,7 +331,7 @@ export const DEFAULT_ROUTE_PLANS = [
         bengaliName: "চোরবাগান শীল ঠাকুরবাড়ি",
         zone: "north",
         zoneLabel: "North Kolkata",
-        locality: "Jorasanko",
+        locality: "Chorbagan",
         lat: 22.5835,
         lng: 88.3640,
         metro: "MG Road",
@@ -377,7 +381,7 @@ export const DEFAULT_ROUTE_PLANS = [
         zoneLabel: "Central Kolkata",
         locality: "Thanthania",
         lat: 22.5807,
-        lng: 88.3657,
+        lng: 88.3658,
         metro: "MG Road",
         isRestaurant: false
       },
@@ -436,8 +440,8 @@ export const DEFAULT_ROUTE_PLANS = [
         zone: "central",
         zoneLabel: "Central Kolkata",
         locality: "Colootola",
-        lat: 22.5756,
-        lng: 88.3591,
+        lat: 22.5752,
+        lng: 88.3576,
         metro: "Central",
         isRestaurant: false
       },
