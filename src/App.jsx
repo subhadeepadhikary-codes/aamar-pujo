@@ -15,6 +15,8 @@ import { POPULAR_HUBS } from "./utils/geo";
 import { PUJO_SONGS } from "./data/songsData";
 import { ArrowUp, Music, Play, Pause, X, SkipForward, Disc3, Volume2, VolumeX } from "lucide-react";
 
+import { getCurrentTithiSongIndex } from "./utils/tithiMusic";
+
 export default function App() {
   // Strictly Segregated Current Page State: 'home' | 'pipeline' | 'pandals' | 'map' | 'melodies' | 'about'
   const [currentPage, setCurrentPage] = useState("home");
@@ -27,8 +29,8 @@ export default function App() {
   const [searchQuery, setSearchQuery] = useState("");
   const [activeModalPandal, setActiveModalPandal] = useState(null);
 
-  // Centralized Audio Engine State
-  const [trackIndex, setTrackIndex] = useState(0);
+  // Centralized Audio Engine State: dynamically initialized to the active lunar tithi track!
+  const [trackIndex, setTrackIndex] = useState(() => getCurrentTithiSongIndex());
   const [isAudioPlaying, setIsAudioPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(255);
@@ -60,7 +62,7 @@ export default function App() {
   useEffect(() => {
     const handleHash = () => {
       const hash = window.location.hash;
-      if (hash.startsWith("#plan=") || hash === "#map") {
+      if (hash.startsWith("#p=") || hash.startsWith("#plan=") || hash === "#map") {
         setCurrentPage("map");
       } else if (hash === "#pipeline") {
         setCurrentPage("pipeline");
@@ -225,7 +227,8 @@ export default function App() {
       {/* Floating Bengali Festive Welcome Popup */}
       <FestiveWelcomeModal
         onStartWithMusic={() => {
-          setTrackIndex(0); // Mahalaya: Bajlo Tomar Alor Benu
+          const currentTithiTrack = getCurrentTithiSongIndex();
+          setTrackIndex(currentTithiTrack);
           handleToggleAudio();
         }}
         onExplore={() => {}}

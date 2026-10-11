@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { getDurgaFace } from "../utils/imageFallback";
 import { PUJO_SONGS } from "../data/songsData";
+import { getCurrentTithiSongIndex } from "../utils/tithiMusic";
 import { 
   Play, 
   Pause, 
@@ -222,23 +223,39 @@ export default function PujoAudioPlayer({
 
           {/* Day Selector Buttons Strip (Mahalaya to Dashami) */}
           <div className="mt-8 pt-6 border-t border-white/10">
-            <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">
-              Switch Day Track (Mahalaya to Dashami):
-            </p>
+            <div className="flex items-center justify-between mb-3">
+              <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
+                Switch Day Track (Mahalaya to Dashami):
+              </p>
+              <span className="text-[11px] text-amber-400 font-medium flex items-center space-x-1">
+                <Sparkles className="w-3 h-3" />
+                <span>Synchronized with 2026 Lunar Tithi Timings</span>
+              </span>
+            </div>
             <div className="flex items-center space-x-2 overflow-x-auto pb-2 scrollbar-thin">
-              {PUJO_SONGS.map((song, idx) => (
-                <button
-                  key={song.dayId}
-                  onClick={() => onSelectTrack && onSelectTrack(idx)}
-                  className={`flex-shrink-0 px-3.5 py-2 rounded-xl text-xs font-medium transition ${
-                    trackIndex === idx
-                      ? "bg-amber-500 text-slate-950 font-bold shadow-md shadow-amber-500/20"
-                      : "bg-white/5 hover:bg-white/10 text-slate-300 border border-white/10 hover:border-amber-400/30"
-                  }`}
-                >
-                  <span className="font-bengali mr-1">{song.dayName}</span>
-                </button>
-              ))}
+              {PUJO_SONGS.map((song, idx) => {
+                const isTodayTithi = getCurrentTithiSongIndex() === idx;
+                return (
+                  <button
+                    key={song.dayId}
+                    onClick={() => onSelectTrack && onSelectTrack(idx)}
+                    className={`flex-shrink-0 px-3.5 py-2 rounded-xl text-xs font-medium transition flex items-center space-x-1.5 ${
+                      trackIndex === idx
+                        ? "bg-amber-500 text-slate-950 font-bold shadow-md shadow-amber-500/20"
+                        : "bg-white/5 hover:bg-white/10 text-slate-300 border border-white/10 hover:border-amber-400/30"
+                    }`}
+                  >
+                    <span className="font-bengali">{song.dayName}</span>
+                    {isTodayTithi && (
+                      <span className={`text-[9px] px-1.5 py-0.5 rounded-full font-bold uppercase tracking-wider ${
+                        trackIndex === idx ? "bg-slate-950 text-amber-300" : "bg-amber-400/20 text-amber-300 border border-amber-400/30"
+                      }`}>
+                        Today
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
             </div>
           </div>
 

@@ -5,8 +5,10 @@
  * and zero-backend device persistence with shareable URL encoding.
  */
 
-import { calculateDistanceKm } from "./geo";
-import { buildGoogleMapsNavUrl } from "./navigationHelper";
+import { calculateDistanceKm } from "./geo.js";
+import { buildGoogleMapsNavUrl } from "./navigationHelper.js";
+import { PANDALS_DATA } from "../data/pandalsData.js";
+import { RESTAURANTS_DATA } from "../data/restaurantsData.js";
 
 // Maximum capacities as specified
 export const MAX_ROUTE_PLANS = 5;
@@ -737,25 +739,27 @@ export const DEFAULT_ROUTE_PLANS = [
   }
 ];
 
+export const STARTER_TEMPLATES = DEFAULT_ROUTE_PLANS;
+
 /**
- * Loads saved route plans from localStorage (with fallbacks and migration)
+ * Loads saved route plans from localStorage (indefinite device persistence)
+ * Returns empty array [] by default so users start fresh and create their own custom plans.
  */
 export function loadSavedRoutePlans() {
-  if (typeof window === "undefined") return DEFAULT_ROUTE_PLANS;
+  if (typeof window === "undefined") return [];
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) {
-      saveRoutePlans(DEFAULT_ROUTE_PLANS);
-      return DEFAULT_ROUTE_PLANS;
+      return [];
     }
     const parsed = JSON.parse(raw);
     if (Array.isArray(parsed) && parsed.length > 0) {
       return parsed.slice(0, MAX_ROUTE_PLANS);
     }
-    return DEFAULT_ROUTE_PLANS;
+    return [];
   } catch (err) {
     console.warn("Error reading route plans from localStorage:", err);
-    return DEFAULT_ROUTE_PLANS;
+    return [];
   }
 }
 
@@ -793,30 +797,41 @@ export async function requestPersistentStorage() {
 }
 
 /**
- * Encodes a plan into a shareable URL hash string
+ * Encodes a plan into a shareable ultra-compact URL hash string
+ * Format: #p=PlanName~id1,id2,id3... (typically under 80 chars!)
+ * Supports:
+ *  - pandal IDs: 134, 525 (short integer)
+ *  - restaurant IDs: r3, r12 (prefixed with 'r')
+ *  - custom coordinates: c:lat:lng:name (if outside catalog)
  */
 export function encodePlanToUrl(plan) {
-  if (!plan) return "";
+  if (!plan || !plan.spots || plan.spots.length === 0) return "";
   try {
-    const compact = {
-      n: plan.name,
-      d: plan.description || "",
-      s: (plan.spots || []).map((s) => ({
-        i: s.id,
-        n: s.name,
-        bn: s.bengaliName || "",
-        lt: Number(s.lat.toFixed(5)),
-        lg: Number(s.lng.toFixed(5)),
-        z: s.zone || "south",
-        zl: s.zoneLabel || "",
-        loc: s.locality || "",
-        m: s.metro || "",
-        r: s.isRestaurant || false
-      }))
-    };
-    const jsonStr = JSON.stringify(compact);
-    const base64 = btoa(unescape(encodeURIComponent(jsonStr)));
-    return `${window.location.origin}${window.location.pathname}#plan=${base64}`;
+    const namePart = encodeURIComponent((plan.name || "Pujo Plan").trim());
+    const idTokens = plan.spots.map((s) => {
+      // Restaurant spot
+      if (s.isRestaurant || (s.id && String(s.id).startsWith("rest-"))) {
+        const rawId = String(s.id).replace(/^rest-/, "");
+        return `r${rawId}`;
+      }
+      // Pandal spot from catalog
+      if (s.id) {
+        const rawId = String(s.id).replace(/^pandal-/, "");
+        if (/^\d+$/.test(rawId)) {
+          return rawId;
+        }
+      }
+      // Custom coordinates fallback
+      if (s.lat && s.lng) {
+        return `c:${Number(s.lat).toFixed(4)}:${Number(s.lng).toFixed(4)}:${encodeURIComponent(s.name || "Spot")}`;
+      }
+      return encodeURIComponent(s.name || "spot");
+    });
+
+    const hashString = `#p=${namePart}~${idTokens.join(",")}`;
+    const origin = typeof window !== "undefined" ? window.location.origin : "";
+    const pathname = typeof window !== "undefined" ? window.location.pathname : "";
+    return `${origin}${pathname}${hashString}`;
   } catch (e) {
     console.error("Plan encoding error:", e);
     return "";
@@ -824,36 +839,135 @@ export function encodePlanToUrl(plan) {
 }
 
 /**
- * Decodes a plan from a shareable URL hash string
+ * Decodes a plan from a shareable URL hash string.
+ * Supports:
+ *  1. New ultra-compact hash: #p=PlanName~134,113,148,r5
+ *  2. Legacy Base64 hash: #plan=eyJucy... (100% backward compatible!)
  */
 export function decodePlanFromUrl(hashString) {
-  if (!hashString || !hashString.includes("#plan=")) return null;
-  try {
-    const base64 = hashString.split("#plan=")[1].trim();
-    if (!base64) return null;
-    const jsonStr = decodeURIComponent(escape(atob(base64)));
-    const compact = JSON.parse(jsonStr);
+  if (!hashString) return null;
 
-    return {
-      id: `shared-${Date.now()}`,
-      name: compact.n || "Shared Pujo Plan",
-      description: compact.d || "Imported from shared link",
-      updatedAt: Date.now(),
-      spots: (compact.s || []).slice(0, MAX_SPOTS_PER_PLAN).map((s) => ({
-        id: s.i,
-        name: s.n,
-        bengaliName: s.bn,
-        lat: s.lt,
-        lng: s.lg,
-        zone: s.z,
-        zoneLabel: s.zl,
-        locality: s.loc,
-        metro: s.m,
-        isRestaurant: s.r
-      }))
-    };
-  } catch (e) {
-    console.error("Plan decoding error:", e);
-    return null;
+  // 1. Ultra-compact hash format: #p=Name~ids
+  if (hashString.includes("#p=")) {
+    try {
+      const payload = hashString.split("#p=")[1]?.trim();
+      if (!payload) return null;
+
+      const [rawName, rawIds] = payload.split("~");
+      const planName = rawName ? decodeURIComponent(rawName) : "Shared Pujo Route";
+      if (!rawIds) return null;
+
+      const tokens = rawIds.split(",").filter(Boolean);
+      const spots = [];
+
+      for (const token of tokens.slice(0, MAX_SPOTS_PER_PLAN)) {
+        // Restaurant token: e.g. r1 or r12 or rest-1
+        if (token.startsWith("r")) {
+          const rawNum = token.replace(/^r(est-)?/, "");
+          const found = RESTAURANTS_DATA.find((r) => String(r.id) === rawNum || r.id === `rest-${rawNum}` || String(r.id) === token);
+          if (found) {
+            spots.push({
+              id: found.id.startsWith("rest-") ? found.id : `rest-${found.id}`,
+              name: found.name,
+              bengaliName: found.bengaliName,
+              lat: found.lat,
+              lng: found.lng,
+              zone: found.zone,
+              zoneLabel: found.zoneLabel,
+              locality: found.area || found.locality || "",
+              metro: found.metro || "",
+              isRestaurant: true,
+              cuisine: found.cuisine || ""
+            });
+            continue;
+          }
+        }
+
+        // Custom coordinates token: c:lat:lng:name
+        if (token.startsWith("c:")) {
+          const parts = token.split(":");
+          const lat = parseFloat(parts[1]);
+          const lng = parseFloat(parts[2]);
+          const name = parts[3] ? decodeURIComponent(parts[3]) : "Custom Spot";
+          if (!isNaN(lat) && !isNaN(lng)) {
+            spots.push({
+              id: `custom-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`,
+              name,
+              lat,
+              lng,
+              zone: "central",
+              locality: "Kolkata",
+              isRestaurant: false
+            });
+            continue;
+          }
+        }
+
+        // Pandal token: numeric ID
+        const pandalId = token.replace(/^pandal-/, "");
+        const foundPandal = PANDALS_DATA.find((p) => String(p.id) === pandalId);
+        if (foundPandal) {
+          spots.push({
+            id: `pandal-${foundPandal.id}`,
+            name: foundPandal.name,
+            bengaliName: foundPandal.bengaliName,
+            lat: foundPandal.lat,
+            lng: foundPandal.lng,
+            zone: foundPandal.zone,
+            zoneLabel: foundPandal.zoneLabel,
+            locality: foundPandal.locality || "",
+            metro: foundPandal.metro || "",
+            isRestaurant: false
+          });
+        }
+      }
+
+      if (spots.length === 0) return null;
+
+      return {
+        id: `shared-${Date.now()}`,
+        name: planName,
+        description: "Imported from short shared link",
+        updatedAt: Date.now(),
+        spots
+      };
+    } catch (err) {
+      console.error("Compact plan decoding error:", err);
+      return null;
+    }
   }
+
+  // 2. Legacy Base64 hash format: #plan=...
+  if (hashString.includes("#plan=")) {
+    try {
+      const base64 = hashString.split("#plan=")[1]?.trim();
+      if (!base64) return null;
+      const jsonStr = decodeURIComponent(escape(atob(base64)));
+      const compact = JSON.parse(jsonStr);
+
+      return {
+        id: `shared-${Date.now()}`,
+        name: compact.n || "Shared Pujo Plan",
+        description: compact.d || "Imported from legacy shared link",
+        updatedAt: Date.now(),
+        spots: (compact.s || []).slice(0, MAX_SPOTS_PER_PLAN).map((s) => ({
+          id: s.i,
+          name: s.n,
+          bengaliName: s.bn,
+          lat: s.lt,
+          lng: s.lg,
+          zone: s.z,
+          zoneLabel: s.zl,
+          locality: s.loc,
+          metro: s.m,
+          isRestaurant: s.r
+        }))
+      };
+    } catch (e) {
+      console.error("Legacy plan decoding error:", e);
+      return null;
+    }
+  }
+
+  return null;
 }

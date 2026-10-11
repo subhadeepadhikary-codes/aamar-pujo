@@ -16365,13 +16365,189 @@ export const PANDALS_DATA = [
       "Chowrasta Mishti",
       "Barisha Rolls"
     ]
+  },
+  {
+    "id": 525,
+    "name": "Baranagar Karmi Sangha",
+    "bengaliName": "বরানগর কর্মী সংঘ",
+    "slug": "baranagar-karmi-sangha",
+    "zone": "north",
+    "zoneLabel": "North Kolkata",
+    "area": "North Kolkata",
+    "locality": "Baranagar",
+    "address": "98 Nainanpara Lane / Jogendra Basak Road, Baranagar, Kolkata 700036",
+    "lat": 22.6412,
+    "lng": 88.3715,
+    "metro": "Baranagar Metro",
+    "walkMin": 6,
+    "crowd": "High Rush",
+    "category": "Theme & Modern Art",
+    "featured": true,
+    "award": true,
+    "rating": 4.8,
+    "reviewsCount": 380,
+    "aliases": [
+      "Karmi Sangha",
+      "Baranagar Karmi Sangha Durgotsab",
+      "Boranogor Karmi Sangha",
+      "Karmi Sangho"
+    ],
+    "images": [
+      "/images/durga/durga_face_1.jpg",
+      "/images/durga/durga_face_2.jpg",
+      "https://pandalgo.in/storage/uploads/pandals/hero/9c922a61-9c16-4191-be71-460d3fc04d60.jpg"
+    ],
+    "highlights": "Celebrated landmark in Baranagar known for grand 75th Jubilee celebrations, innovative artistic theme mandapam, and massive crowds from North Suburban Kolkata.",
+    "foodNearby": [
+      "Baranagar Phuchka Stall",
+      "Bhojohori Manna Baranagar",
+      "Chowringhee Rolls Sinthee"
+    ]
+  },
+  {
+    "id": 526,
+    "name": "Baranagar Netaji Colony Low Land",
+    "bengaliName": "বরানগর নেতাজী কলোনি লো ল্যান্ড",
+    "slug": "baranagar-netaji-colony-low-land",
+    "zone": "north",
+    "zoneLabel": "North Kolkata",
+    "area": "North Kolkata",
+    "locality": "Baranagar",
+    "address": "Netaji Colony, Low Land Ground, Baranagar, Kolkata 700090",
+    "lat": 22.6465,
+    "lng": 88.3752,
+    "metro": "Baranagar Metro",
+    "walkMin": 10,
+    "crowd": "Medium Wait",
+    "category": "Theme & Modern Art",
+    "featured": false,
+    "award": true,
+    "rating": 4.7,
+    "reviewsCount": 290,
+    "aliases": [
+      "Netaji Colony Low Land",
+      "Baranagar Low Land Durgotsab"
+    ],
+    "images": [
+      "/images/durga/durga_face_3.jpg",
+      "/images/durga/durga_face_4.jpg"
+    ],
+    "highlights": "Renowned across BT Road corridor for spectacular water reflections and socially resonant themed pandals.",
+    "foodNearby": [
+      "Dada Boudi Biryani Baranagar",
+      "Netaji Colony Snacks",
+      "Gupta Brothers BT Road"
+    ]
+  },
+  {
+    "id": 527,
+    "name": "Sinthee Bandhab Samity",
+    "bengaliName": "সিঁথি বান্ধব সমিতি",
+    "slug": "sinthee-bandhab-samity",
+    "zone": "north",
+    "zoneLabel": "North Kolkata",
+    "area": "North Kolkata",
+    "locality": "Sinthee",
+    "address": "Kalicharan Ghosh Road, Sinthee, Kolkata 700050",
+    "lat": 22.6285,
+    "lng": 88.3780,
+    "metro": "Dum Dum Metro",
+    "walkMin": 8,
+    "crowd": "Medium Wait",
+    "category": "Sabeki Heritage",
+    "featured": false,
+    "award": false,
+    "rating": 4.6,
+    "reviewsCount": 210,
+    "aliases": [
+      "Bandhab Samity Sinthee",
+      "Sinthir Bandhab Samiti"
+    ],
+    "images": [
+      "/images/durga/durga_face_5.jpg",
+      "/images/durga/durga_face_1.jpg"
+    ],
+    "highlights": "Traditional heritage club puja with captivating cultural performances and traditional ekchala idol.",
+    "foodNearby": [
+      "Sinthee More Chop & Cutlet",
+      "Adi Haridas Modak Sweets",
+      "Arsalan Dum Dum"
+    ]
+  },
+  {
+    "id": 528,
+    "name": "Baranagar Friends Club",
+    "bengaliName": "বরানগর ফ্রেন্ডস ক্লাব",
+    "slug": "baranagar-friends-club",
+    "zone": "north",
+    "zoneLabel": "North Kolkata",
+    "area": "North Kolkata",
+    "locality": "Baranagar",
+    "address": "Kasinath Dutta Road / Kutighat, Baranagar, Kolkata 700036",
+    "lat": 22.6390,
+    "lng": 88.3645,
+    "metro": "Baranagar Metro",
+    "walkMin": 9,
+    "crowd": "Medium Wait",
+    "category": "Eco-Artisan",
+    "featured": false,
+    "award": false,
+    "rating": 4.5,
+    "reviewsCount": 180,
+    "aliases": [
+      "Friends Club Baranagar",
+      "Kutighat Friends Club"
+    ],
+    "images": [
+      "/images/durga/durga_face_2.jpg",
+      "/images/durga/durga_face_4.jpg"
+    ],
+    "highlights": "Heritage riverside atmosphere near Kutighat Ganga Ghat, celebrated for eco-friendly handicrafts and earthen artistry.",
+    "foodNearby": [
+      "Kutighat Tea & Telebhaja",
+      "Baranagar Bazaar Sweets"
+    ]
+  },
+  {
+    "id": 529,
+    "name": "Cossipore 48 Pally",
+    "bengaliName": "কাশীপুর ৪৮ পল্লী",
+    "slug": "cossipore-48-pally",
+    "zone": "north",
+    "zoneLabel": "North Kolkata",
+    "area": "North Kolkata",
+    "locality": "Cossipore",
+    "address": "48 Cossipore Road, Near Gun Foundry, Kolkata 700002",
+    "lat": 22.6180,
+    "lng": 88.3710,
+    "metro": "Dum Dum Metro",
+    "walkMin": 12,
+    "crowd": "Low Wait",
+    "category": "Sabeki Heritage",
+    "featured": false,
+    "award": false,
+    "rating": 4.5,
+    "reviewsCount": 160,
+    "aliases": [
+      "48 Pally Cossipore",
+      "Kashipur 48 Palli"
+    ],
+    "images": [
+      "/images/durga/durga_face_1.jpg",
+      "/images/durga/durga_face_5.jpg"
+    ],
+    "highlights": "Historic North Kolkata para celebration near historic Cossipore Udyanbati, radiating community warmth and classic sabeki pratima.",
+    "foodNearby": [
+      "Cossipore Road Rolls",
+      "Bhim Chandra Nag Sweets"
+    ]
   }
 ];
 
 export const ZONES = [
   {
     "id": "all",
-    "label": "All Zones (518)"
+    "label": "All Zones (523)"
   },
   {
     "id": "south",
@@ -16379,7 +16555,7 @@ export const ZONES = [
   },
   {
     "id": "north",
-    "label": "North Kolkata (104)"
+    "label": "North Kolkata (109)"
   },
   {
     "id": "central",

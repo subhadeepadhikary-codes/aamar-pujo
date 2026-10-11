@@ -10,8 +10,11 @@ import {
   Heart
 } from "lucide-react";
 
+import { getActiveTithi } from "../utils/tithiMusic";
+
 export default function FestiveWelcomeModal({ onStartWithMusic, onExplore }) {
   const [isOpen, setIsOpen] = useState(false);
+  const activeTithi = getActiveTithi();
 
   useEffect(() => {
     // Check if user has already seen the welcome modal in this session
@@ -74,7 +77,7 @@ export default function FestiveWelcomeModal({ onStartWithMusic, onExplore }) {
         <div className="space-y-2 mb-5">
           <div className="inline-flex items-center space-x-1.5 px-3 py-1 rounded-full bg-amber-500/15 border border-amber-500/30 text-amber-300 text-xs font-semibold">
             <Sparkles className="w-3.5 h-3.5 text-amber-400 animate-spin" style={{ animationDuration: '6s' }} />
-            <span>Festive Season Greetings · Durga Puja 2026</span>
+            <span>{activeTithi.dayName} · {activeTithi.tithi}</span>
           </div>
 
           <h2 className="font-heritage text-2xl sm:text-3xl font-black text-amber-300 leading-snug pt-1">
@@ -86,7 +89,7 @@ export default function FestiveWelcomeModal({ onStartWithMusic, onExplore }) {
           </p>
 
           <p className="font-sans text-xs sm:text-sm text-slate-300 leading-relaxed max-w-md mx-auto pt-1 font-normal">
-            May Maa Durga bring peace, happiness, and prosperity to you and your family. Explore 500+ verified puja pandals, direct metro transit routing, and legendary food trails across West Bengal — <strong className="text-amber-300 font-semibold">Celebrate Pujo Like Never Before!</strong>
+            May Maa Durga bring peace, happiness, and prosperity to you and your family. Explore 520+ verified puja pandals, direct metro transit routing, and legendary food trails across West Bengal — <strong className="text-amber-300 font-semibold">Celebrate Pujo Like Never Before!</strong>
           </p>
         </div>
 
@@ -98,7 +101,7 @@ export default function FestiveWelcomeModal({ onStartWithMusic, onExplore }) {
             className="w-full py-3.5 px-5 rounded-2xl bg-gradient-to-r from-amber-500 via-rose-600 to-amber-500 hover:from-amber-400 hover:to-rose-500 text-slate-950 font-black text-xs sm:text-sm flex items-center justify-center space-x-2 transition-all shadow-xl shadow-rose-600/30 hover:scale-[1.02] cursor-pointer"
           >
             <Music className="w-4 h-4 fill-current text-slate-950" />
-            <span>🎶 Start with Agomoni Melodies</span>
+            <span>🎶 Play {activeTithi.dayName} Melody & Enter</span>
             <ChevronRight className="w-4 h-4" />
           </button>
 

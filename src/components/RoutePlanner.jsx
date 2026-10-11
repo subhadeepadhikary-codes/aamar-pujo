@@ -21,6 +21,7 @@ import {
   Layers,
   ArrowRight,
   Download,
+  FileDown,
   Upload,
   AlertCircle
 } from "lucide-react";
@@ -36,9 +37,11 @@ import {
   encodePlanToUrl,
   decodePlanFromUrl,
   requestPersistentStorage,
-  DEFAULT_ROUTE_PLANS
+  DEFAULT_ROUTE_PLANS,
+  STARTER_TEMPLATES
 } from "../utils/routeOptimizer";
 
+import { exportTripPlanToPdf } from "../utils/pdfExport";
 import { PANDALS_DATA } from "../data/pandalsData";
 import { RESTAURANTS_DATA } from "../data/restaurantsData";
 import { normalizePhonetic } from "../utils/phoneticSearch";
@@ -73,15 +76,15 @@ export default function RoutePlanner({
 
   // Ensure activePlanIndex is within bounds
   const validIndex = Math.min(Math.max(0, activePlanIndex), Math.max(0, plans.length - 1));
-  const activePlan = plans[validIndex] || plans[0] || DEFAULT_ROUTE_PLANS[0];
+  const activePlan = plans.length > 0 ? (plans[validIndex] || plans[0]) : null;
 
   // Request storage persistence once on mount
   useEffect(() => {
     requestPersistentStorage();
 
-    // Check for shared plan in URL hash on mount
+    // Check for shared plan in URL hash on mount (supports both #p= and legacy #plan=)
     const hash = window.location.hash;
-    if (hash && hash.includes("#plan=")) {
+    if (hash && (hash.includes("#p=") || hash.includes("#plan="))) {
       const decoded = decodePlanFromUrl(hash);
       if (decoded && decoded.spots && decoded.spots.length > 0) {
         setPlans((prevPlans) => {
@@ -111,7 +114,7 @@ export default function RoutePlanner({
 
   // Sync active plan with the Leaflet map above
   useEffect(() => {
-    if (activePlan && onSelectPlanForMap) {
+    if (onSelectPlanForMap) {
       onSelectPlanForMap(activePlan);
     }
   }, [activePlan, activePlanIndex]);
@@ -121,8 +124,23 @@ export default function RoutePlanner({
     ? { lat: userLocation.lat, lng: userLocation.lng, name: "Your GPS Position" }
     : null;
 
-  const summary = calculateCircuitSummary(activePlan.spots, startCoords);
-  const googleMapsChunks = buildGoogleMapsCircuitUrl(activePlan.spots, startCoords);
+  const summary = activePlan && activePlan.spots
+    ? calculateCircuitSummary(activePlan.spots, startCoords)
+    : {
+        spotCount: 0,
+        pandalsCount: 0,
+        foodCount: 0,
+        totalDistanceKm: 0,
+        totalDistanceFormatted: "0 km",
+        transitMinutes: 0,
+        darshanMinutes: 0,
+        totalDurationFormatted: "0 mins",
+        legs: []
+      };
+
+  const googleMapsChunks = activePlan && activePlan.spots
+    ? buildGoogleMapsCircuitUrl(activePlan.spots, startCoords)
+    : null;
 
   // Quick suggestions for adding spots
   const searchSuggestions = React.useMemo(() => {
@@ -130,7 +148,7 @@ export default function RoutePlanner({
     if (!q && selectedSearchZone === "all") return [];
 
     const normQ = normalizePhonetic(q);
-    const existingIds = new Set(activePlan.spots.map((s) => s.id));
+    const existingIds = new Set(activePlan && activePlan.spots ? activePlan.spots.map((s) => s.id) : []);
 
     // Combine Pandals & Restaurants
     const pandalResults = PANDALS_DATA.filter((p) => {
@@ -183,7 +201,7 @@ export default function RoutePlanner({
     }));
 
     return [...pandalResults, ...restaurantResults].slice(0, 10);
-  }, [searchQuery, selectedSearchZone, activePlan.spots]);
+  }, [searchQuery, selectedSearchZone, activePlan?.spots]);
 
   // PLAN MANAGEMENT HANDLERS
   const handleCreatePlan = () => {
@@ -206,11 +224,8 @@ export default function RoutePlanner({
   };
 
   const handleDeletePlan = (indexToDelete) => {
-    if (plans.length <= 1) {
-      alert("You must keep at least 1 route plan! You can edit or clear its spots instead.");
-      return;
-    }
     const target = plans[indexToDelete];
+    if (!target) return;
     if (window.confirm(`Are you sure you want to delete "${target.name}"?`)) {
       const updated = plans.filter((_, idx) => idx !== indexToDelete);
       setPlans(updated);
@@ -220,6 +235,7 @@ export default function RoutePlanner({
   };
 
   const handleStartRename = () => {
+    if (!activePlan) return;
     setPlanNameInput(activePlan.name);
     setIsEditingPlanName(true);
   };
@@ -227,7 +243,7 @@ export default function RoutePlanner({
   const handleSaveRename = (e) => {
     if (e) e.preventDefault();
     const cleanName = planNameInput.trim();
-    if (!cleanName) return;
+    if (!cleanName || !activePlan) return;
 
     const updated = plans.map((p, idx) => {
       if (idx === activePlanIndex) {
@@ -241,6 +257,21 @@ export default function RoutePlanner({
 
   // SPOT MANAGEMENT HANDLERS
   const handleAddSpot = (spot) => {
+    if (!activePlan) {
+      const newPlan = {
+        id: `custom-plan-${Date.now()}`,
+        name: "Custom Route Plan 1",
+        description: "Personalized Durga Puja hopping itinerary",
+        updatedAt: Date.now(),
+        spots: [spot]
+      };
+      setPlans([newPlan]);
+      setActivePlanIndex(0);
+      setSearchQuery("");
+      setShowAddMenu(false);
+      return;
+    }
+
     if (activePlan.spots.length >= MAX_SPOTS_PER_PLAN) {
       alert(`Maximum ${MAX_SPOTS_PER_PLAN} spots per plan reached! Remove a spot to add more.`);
       return;
@@ -334,16 +365,42 @@ export default function RoutePlanner({
 
   // SHARING & EXPORT
   const handleSharePlan = () => {
+    if (!activePlan || !activePlan.spots || activePlan.spots.length === 0) {
+      alert("Please add at least 1 spot to your plan before sharing.");
+      return;
+    }
     const url = encodePlanToUrl(activePlan);
     if (!url) return;
 
     if (navigator.clipboard) {
       navigator.clipboard.writeText(url).then(() => {
-        setShareToast("🔗 Shareable itinerary link copied to clipboard! Paste it to WhatsApp or friends.");
+        setShareToast("🔗 Ultra-compact route link copied to clipboard! Share it on WhatsApp with friends.");
         setTimeout(() => setShareToast(""), 4500);
       });
     } else {
-      prompt("Copy this shareable plan link:", url);
+      prompt("Copy this shareable route link:", url);
+    }
+  };
+
+  const handleDownloadPdf = () => {
+    if (!activePlan || !activePlan.spots || activePlan.spots.length === 0) {
+      alert("Please add at least 1 spot to your plan before downloading the PDF.");
+      return;
+    }
+    exportTripPlanToPdf(activePlan, summary);
+  };
+
+  const handleLoadHeritageTemplate = () => {
+    const template = (STARTER_TEMPLATES && STARTER_TEMPLATES[0]) || DEFAULT_ROUTE_PLANS[0];
+    if (template) {
+      const cloned = JSON.parse(JSON.stringify(template));
+      cloned.id = `template-${Date.now()}`;
+      cloned.name = "Bonedi Bari Heritage Walk";
+      cloned.description = "Curated 10-Stop Historic North & Central Kolkata Rajbari Circuit";
+      setPlans([cloned]);
+      setActivePlanIndex(0);
+      setShareToast("🏛️ Loaded curated Kolkata Heritage Walk template!");
+      setTimeout(() => setShareToast(""), 4000);
     }
   };
 
@@ -365,8 +422,8 @@ export default function RoutePlanner({
     if (!input) return;
 
     try {
-      // 1. Check if URL with hash
-      if (input.includes("#plan=")) {
+      // 1. Check if URL with short hash (#p=) or legacy hash (#plan=)
+      if (input.includes("#p=") || input.includes("#plan=")) {
         const decoded = decodePlanFromUrl(input);
         if (!decoded) throw new Error("Could not decode route plan from URL hash.");
 
@@ -549,7 +606,38 @@ export default function RoutePlanner({
         </div>
       </div>
 
-      {/* 3. ACTIVE PLAN HEADER & CONTROLS */}
+      {/* 3. ACTIVE PLAN HEADER & CONTROLS / EMPTY STATE */}
+      {!activePlan ? (
+        <div className="glass-card rounded-3xl p-8 sm:p-12 border border-amber-500/20 text-center space-y-6 bg-[#120B1A]/90">
+          <div className="w-16 h-16 rounded-3xl bg-gradient-to-br from-amber-500/20 to-rose-500/20 border border-amber-500/30 flex items-center justify-center mx-auto text-3xl shadow-inner">
+            🧭
+          </div>
+          <div className="max-w-md mx-auto space-y-2">
+            <h3 className="font-heritage text-2xl font-bold text-amber-300">
+              No Route Plans Created Yet
+            </h3>
+            <p className="text-xs sm:text-sm text-slate-400">
+              Create your own customized pandal hopping route! Add up to 25 pandals and Kolkata eateries, optimize your path with AI, and download a step-by-step PDF itinerary.
+            </p>
+          </div>
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
+            <button
+              onClick={handleCreatePlan}
+              className="px-6 py-3 rounded-2xl bg-gradient-to-r from-amber-500 to-rose-600 hover:from-amber-400 hover:to-rose-500 text-slate-950 font-black text-sm flex items-center space-x-2 shadow-lg shadow-rose-900/40 cursor-pointer transition"
+            >
+              <Plus className="w-4 h-4 text-slate-950" />
+              <span>+ Create Your First Plan</span>
+            </button>
+            <button
+              onClick={handleLoadHeritageTemplate}
+              className="px-5 py-3 rounded-2xl bg-white/5 hover:bg-white/10 text-amber-300 border border-amber-400/30 font-bold text-sm flex items-center space-x-2 transition"
+            >
+              <Sparkles className="w-4 h-4 text-amber-400" />
+              <span>Load Curated Heritage Walk</span>
+            </button>
+          </div>
+        </div>
+      ) : (
       <div className="glass-card rounded-3xl p-4 sm:p-6 border border-amber-500/30 space-y-5 bg-[#120B1A]/90">
         
         {/* Plan Title & Actions Bar */}
@@ -603,21 +691,28 @@ export default function RoutePlanner({
             <button
               onClick={handleSharePlan}
               className="px-3 py-1.5 rounded-xl bg-blue-600/20 hover:bg-blue-600/40 text-blue-300 border border-blue-500/30 text-xs font-bold transition flex items-center space-x-1.5"
-              title="Copy 1-click shareable itinerary link"
+              title="Copy 1-click ultra-compact route link"
             >
               <Share2 className="w-3.5 h-3.5" />
-              <span>Share Plan</span>
+              <span>Share Link</span>
             </button>
 
-            {plans.length > 1 && (
-              <button
-                onClick={() => handleDeletePlan(activePlanIndex)}
-                className="p-1.5 rounded-xl bg-rose-600/20 hover:bg-rose-600/40 text-rose-300 border border-rose-500/30 text-xs transition"
-                title="Delete this plan"
-              >
-                <Trash2 className="w-3.5 h-3.5" />
-              </button>
-            )}
+            <button
+              onClick={handleDownloadPdf}
+              className="px-3 py-1.5 rounded-xl bg-amber-600/20 hover:bg-amber-600/40 text-amber-300 border border-amber-500/30 text-xs font-bold transition flex items-center space-x-1.5"
+              title="Download step-by-step trip plan as PDF"
+            >
+              <FileDown className="w-3.5 h-3.5" />
+              <span>Download PDF</span>
+            </button>
+
+            <button
+              onClick={() => handleDeletePlan(activePlanIndex)}
+              className="p-1.5 rounded-xl bg-rose-600/20 hover:bg-rose-600/40 text-rose-300 border border-rose-500/30 text-xs transition"
+              title="Delete this plan"
+            >
+              <Trash2 className="w-3.5 h-3.5" />
+            </button>
           </div>
         </div>
 
@@ -690,8 +785,22 @@ export default function RoutePlanner({
             <span>✨ AI Optimize Route (Sequential Hop)</span>
           </button>
 
-          {/* Google Maps Multi-Stop Launchers */}
+          {/* Action Launchers: PDF Download & Google Maps */}
           <div className="flex items-center space-x-2 flex-wrap">
+            <button
+              onClick={handleDownloadPdf}
+              disabled={activePlan.spots.length === 0}
+              className={`px-3.5 py-2.5 rounded-2xl text-xs font-bold transition flex items-center space-x-1.5 shadow-md flex-1 sm:flex-initial justify-center ${
+                activePlan.spots.length > 0
+                  ? "bg-amber-500/20 hover:bg-amber-500/35 text-amber-200 border border-amber-400/40 cursor-pointer"
+                  : "bg-white/5 text-slate-500 border border-white/5 cursor-not-allowed"
+              }`}
+              title="Download step-by-step printable PDF itinerary"
+            >
+              <FileDown className="w-3.5 h-3.5 text-amber-400" />
+              <span>📄 Download Plan as PDF</span>
+            </button>
+
             {googleMapsChunks && googleMapsChunks.length > 0 ? (
               googleMapsChunks.map((chunk) => (
                 <a
@@ -968,6 +1077,7 @@ export default function RoutePlanner({
         </div>
 
       </div>
+      )}
 
       {/* 7. IMPORT PLAN MODAL */}
       {showImportModal && (
