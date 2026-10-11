@@ -14,10 +14,13 @@ import {
   Radio, 
   Crosshair, 
   Footprints,
+  Bike,
+  Train,
+  Brain,
   Loader2
 } from "lucide-react";
 import RoutePlanner from "./RoutePlanner";
-import { fetchWalkingStreetRoute } from "../utils/streetRouter";
+import { fetchStreetRoute, fetchWalkingStreetRoute } from "../utils/streetRouter";
 import { buildGoogleMapsNavUrl } from "../utils/navigationHelper";
 
 export default function PandalMap({ userLocation, onOpenModal, selectedZone, onUpdateUserLocation }) {
@@ -31,6 +34,7 @@ export default function PandalMap({ userLocation, onOpenModal, selectedZone, onU
 
   const [activeZone, setActiveZone] = useState("all");
   const [activeMapPlan, setActiveMapPlan] = useState(null);
+  const [travelMode, setTravelMode] = useState("smart");
   const [isRoutingLoading, setIsRoutingLoading] = useState(false);
   const [streetRouteMeta, setStreetRouteMeta] = useState(null);
   const [isLiveTracking, setIsLiveTracking] = useState(false);
@@ -268,34 +272,90 @@ export default function PandalMap({ userLocation, onOpenModal, selectedZone, onU
     const spots = activeMapPlan.spots;
     let isCancelled = false;
 
-    // Draw route along actual pedestrian roads and alleys
+    // Draw route along actual pedestrian roads, road vehicular streets, or metro rail corridors
     if (spots.length >= 2) {
       setIsRoutingLoading(true);
 
-      fetchWalkingStreetRoute(spots)
+      const routeMode = travelMode === "foot" ? "foot" : travelMode === "metro" ? "metro" : "road";
+
+      fetchStreetRoute(spots, { mode: routeMode })
         .then((routeResult) => {
           if (isCancelled || !routeLayerRef.current) return;
 
           const polyCoords = routeResult.coordinates;
 
-          // Glow ambient background line (road-snapped)
-          L.polyline(polyCoords, {
-            color: "#E11D48",
-            weight: 6,
-            opacity: 0.75,
-            lineCap: "round",
-            lineJoin: "round"
-          }).addTo(routeLayer);
+          if (travelMode === "metro") {
+            // Metro Mode: Deep Cyan rail glow + Electric Blue/Cyan dashed rail track
+            L.polyline(polyCoords, {
+              color: "#0284C7",
+              weight: 7.5,
+              opacity: 0.8,
+              lineCap: "round",
+              lineJoin: "round"
+            }).addTo(routeLayer);
 
-          // Dashed golden foreground route path (road-snapped)
-          L.polyline(polyCoords, {
-            color: "#FBBF24",
-            weight: 3.5,
-            opacity: 0.95,
-            dashArray: "8, 10",
-            lineCap: "round",
-            lineJoin: "round"
-          }).addTo(routeLayer);
+            L.polyline(polyCoords, {
+              color: "#38BDF8",
+              weight: 4,
+              opacity: 0.95,
+              dashArray: "12, 8",
+              lineCap: "round",
+              lineJoin: "round"
+            }).addTo(routeLayer);
+          } else if (travelMode === "road" || travelMode === "bike") {
+            // Road Mode: Emerald ambient glow + Electric Blue solid vehicular road line
+            L.polyline(polyCoords, {
+              color: "#059669",
+              weight: 7,
+              opacity: 0.75,
+              lineCap: "round",
+              lineJoin: "round"
+            }).addTo(routeLayer);
+
+            L.polyline(polyCoords, {
+              color: "#3B82F6",
+              weight: 4,
+              opacity: 0.95,
+              lineCap: "round",
+              lineJoin: "round"
+            }).addTo(routeLayer);
+          } else if (travelMode === "smart") {
+            // Smart Multi-Modal Mode: Violet ambient glow + Amber-Gold line
+            L.polyline(polyCoords, {
+              color: "#7C3AED",
+              weight: 7,
+              opacity: 0.75,
+              lineCap: "round",
+              lineJoin: "round"
+            }).addTo(routeLayer);
+
+            L.polyline(polyCoords, {
+              color: "#F59E0B",
+              weight: 3.5,
+              opacity: 0.95,
+              dashArray: "10, 6",
+              lineCap: "round",
+              lineJoin: "round"
+            }).addTo(routeLayer);
+          } else {
+            // Foot / Walking Mode: Crimson ambient glow + Golden dashed trail
+            L.polyline(polyCoords, {
+              color: "#E11D48",
+              weight: 6,
+              opacity: 0.75,
+              lineCap: "round",
+              lineJoin: "round"
+            }).addTo(routeLayer);
+
+            L.polyline(polyCoords, {
+              color: "#FBBF24",
+              weight: 3.5,
+              opacity: 0.95,
+              dashArray: "8, 10",
+              lineCap: "round",
+              lineJoin: "round"
+            }).addTo(routeLayer);
+          }
 
           setStreetRouteMeta(routeResult);
           setIsRoutingLoading(false);
@@ -304,8 +364,10 @@ export default function PandalMap({ userLocation, onOpenModal, selectedZone, onU
           console.warn("Street routing fallback to direct lines:", err);
           if (isCancelled || !routeLayerRef.current) return;
           const directCoords = spots.map((s) => [s.lat, s.lng]);
-          L.polyline(directCoords, { color: "#E11D48", weight: 6, opacity: 0.65 }).addTo(routeLayer);
-          L.polyline(directCoords, { color: "#FBBF24", weight: 3.5, opacity: 0.95, dashArray: "8, 10" }).addTo(routeLayer);
+          const glowColor = travelMode === "metro" ? "#0284C7" : (travelMode === "road" || travelMode === "bike") ? "#059669" : "#E11D48";
+          const coreColor = travelMode === "metro" ? "#38BDF8" : (travelMode === "road" || travelMode === "bike") ? "#3B82F6" : "#FBBF24";
+          L.polyline(directCoords, { color: glowColor, weight: 6, opacity: 0.65 }).addTo(routeLayer);
+          L.polyline(directCoords, { color: coreColor, weight: 3.5, opacity: 0.95, dashArray: "8, 10" }).addTo(routeLayer);
           setStreetRouteMeta(null);
           setIsRoutingLoading(false);
         });
@@ -348,7 +410,11 @@ export default function PandalMap({ userLocation, onOpenModal, selectedZone, onU
         zIndexOffset: 1200 + idx
       });
 
-      const stopNavUrl = buildGoogleMapsNavUrl(spot, userLocation);
+      const stopNavUrl = buildGoogleMapsNavUrl(
+        spot,
+        userLocation,
+        (travelMode === "road" || travelMode === "bike") ? "two_wheeler" : travelMode === "metro" ? "transit" : "walking"
+      );
 
       const popupHtml = `
         <div style="color: #ffffff; font-family: sans-serif; min-width: 220px; padding: 6px;">
@@ -384,7 +450,7 @@ export default function PandalMap({ userLocation, onOpenModal, selectedZone, onU
     return () => {
       isCancelled = true;
     };
-  }, [activeMapPlan, userLocation]);
+  }, [activeMapPlan, userLocation, travelMode]);
 
   const zoomToActiveRoute = () => {
     if (mapInstanceRef.current && activeMapPlan?.spots?.length >= 2) {
@@ -539,14 +605,38 @@ export default function PandalMap({ userLocation, onOpenModal, selectedZone, onU
               {isRoutingLoading ? (
                 <>
                   <Loader2 className="w-4 h-4 text-amber-400 animate-spin" />
-                  <span className="text-amber-200 font-medium">Snapping to Kolkata walking streets...</span>
+                  <span className="text-amber-200 font-medium">
+                    {travelMode === "metro"
+                      ? "Snapping to Kolkata Metro rail corridors..."
+                      : (travelMode === "road" || travelMode === "bike")
+                      ? "Snapping to paved road streets..."
+                      : travelMode === "smart"
+                      ? "Evaluating multi-modal smart route..."
+                      : "Snapping to Kolkata walking streets..."}
+                  </span>
                 </>
               ) : (
                 <>
-                  <Footprints className="w-4 h-4 text-amber-400" />
+                  {travelMode === "metro" ? (
+                    <Train className="w-4 h-4 text-cyan-400" />
+                  ) : (travelMode === "road" || travelMode === "bike") ? (
+                    <Bike className="w-4 h-4 text-emerald-400" />
+                  ) : travelMode === "smart" ? (
+                    <Brain className="w-4 h-4 text-amber-400" />
+                  ) : (
+                    <Footprints className="w-4 h-4 text-rose-400" />
+                  )}
                   <div>
                     <div className="font-bold text-amber-300 flex items-center space-x-1.5">
-                      <span>✨ {streetRouteMeta?.isRoadSnapped ? "Real Street Walking Route" : "Direct Walking Hop"}</span>
+                      <span>
+                        {travelMode === "metro"
+                          ? (streetRouteMeta?.isRoadSnapped ? "🚇 Kolkata Metro Rail Route" : "🚇 Metro Rail Transit")
+                          : (travelMode === "road" || travelMode === "bike")
+                          ? (streetRouteMeta?.isRoadSnapped ? "🛵 Real Road Route" : "🛵 Vehicular Road Circuit")
+                          : travelMode === "smart"
+                          ? (streetRouteMeta?.isRoadSnapped ? "🧠 Smart Multi-Modal Circuit" : "🧠 Smart Multi-Modal")
+                          : (streetRouteMeta?.isRoadSnapped ? "🚶 Pedestrian Walking Route" : "🚶 Walking Hop")}
+                      </span>
                       {streetRouteMeta?.isRoadSnapped && (
                         <span className="text-[10px] px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-300 border border-amber-500/40 font-mono">
                           OSRM Snapped
@@ -555,7 +645,7 @@ export default function PandalMap({ userLocation, onOpenModal, selectedZone, onU
                     </div>
                     {streetRouteMeta && (
                       <div className="text-[11px] text-slate-300">
-                        {streetRouteMeta.distanceFormatted} walking · ~{streetRouteMeta.durationFormatted}
+                        {streetRouteMeta.distanceFormatted} · ~{streetRouteMeta.durationFormatted} ({travelMode === "metro" ? "Kolkata Metro Rail" : (travelMode === "road" || travelMode === "bike") ? "Vehicular Road" : travelMode === "smart" ? "Adaptive Transit" : "Walking Lanes"})
                       </div>
                     )}
                   </div>
@@ -564,9 +654,38 @@ export default function PandalMap({ userLocation, onOpenModal, selectedZone, onU
             </div>
           )}
 
+          {/* Map Travel Mode Quick Switcher Dropdown (Top Right) */}
+          {activeMapPlan?.spots?.length >= 2 && (
+            <div className="absolute top-4 right-4 z-20 glass-panel rounded-2xl p-1.5 border border-white/10 bg-black/75 shadow-xl backdrop-blur-md flex items-center space-x-2">
+              <label htmlFor="map-travel-mode-select" className="sr-only">Travel Mode</label>
+              <div className="relative">
+                <select
+                  id="map-travel-mode-select"
+                  value={travelMode === "bike" ? "road" : travelMode}
+                  onChange={(e) => setTravelMode(e.target.value)}
+                  className="appearance-none bg-slate-900/90 text-slate-100 pl-8 pr-7 py-1.5 rounded-xl border border-white/20 hover:border-amber-400/60 focus:border-amber-400 focus:outline-none text-[11px] font-bold transition shadow-sm cursor-pointer"
+                >
+                  <option value="foot" className="bg-slate-900 text-white">🚶 Foot Mode</option>
+                  <option value="road" className="bg-slate-900 text-white">🛵 Road Mode</option>
+                  <option value="metro" className="bg-slate-900 text-white">🚇 Metro Mode</option>
+                  <option value="smart" className="bg-slate-900 text-amber-300 font-bold">🧠 Smart Mode</option>
+                </select>
+                <div className="absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-xs">
+                  {travelMode === "foot" && "🚶"}
+                  {(travelMode === "road" || travelMode === "bike") && "🛵"}
+                  {travelMode === "metro" && "🚇"}
+                  {travelMode === "smart" && "🧠"}
+                </div>
+                <div className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400 text-[9px]">
+                  ▼
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Live GPS Active Beacon Badge */}
           {isLiveTracking && (
-            <div className="absolute top-4 right-4 z-20 glass-panel rounded-2xl px-3 py-1.5 border border-blue-500/40 text-xs flex items-center space-x-2 shadow-xl backdrop-blur-md bg-blue-950/60">
+            <div className={`absolute ${activeMapPlan?.spots?.length >= 2 ? "top-16" : "top-4"} right-4 z-20 glass-panel rounded-2xl px-3 py-1.5 border border-blue-500/40 text-xs flex items-center space-x-2 shadow-xl backdrop-blur-md bg-blue-950/60`}>
               <span className="w-2.5 h-2.5 rounded-full bg-blue-400 animate-ping" />
               <span className="text-blue-200 font-semibold">
                 Live GPS Active {currentAccuracy ? `(±${Math.round(currentAccuracy)}m)` : ""}
@@ -611,7 +730,12 @@ export default function PandalMap({ userLocation, onOpenModal, selectedZone, onU
         <div className="mt-12">
           <RoutePlanner
             userLocation={userLocation}
-            onSelectPlanForMap={(plan) => setActiveMapPlan(plan)}
+            onSelectPlanForMap={(plan, mode) => {
+              setActiveMapPlan(plan);
+              if (mode && mode !== travelMode) setTravelMode(mode);
+            }}
+            currentTravelMode={travelMode}
+            onTravelModeChange={(mode) => setTravelMode(mode)}
             onOpenModal={onOpenModal}
           />
         </div>

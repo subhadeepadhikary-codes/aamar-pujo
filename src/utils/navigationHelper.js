@@ -19,7 +19,7 @@
  * @param {Object} [origin=null] - Optional starting position { lat, lng }
  * @returns {string} Fully qualified Google Maps walking directions URL
  */
-export function buildGoogleMapsNavUrl(destination, origin = null) {
+export function buildGoogleMapsNavUrl(destination, origin = null, travelMode = "walking") {
   if (!destination || typeof destination.lat !== "number" || typeof destination.lng !== "number") {
     return "";
   }
@@ -39,7 +39,19 @@ export function buildGoogleMapsNavUrl(destination, origin = null) {
 
   const query = encodeURIComponent(queryParts.join(", "));
 
-  return `https://www.google.com/maps/dir/?api=1${originPart}&destination=${destCoords}&destination_query=${query}&travelmode=walking`;
+  // Map mode to Google Maps travelmode: walking, two_wheeler, transit, driving
+  let gmapsMode = "walking";
+  if (travelMode === "bike" || travelMode === "two_wheeler" || travelMode === "road") {
+    gmapsMode = "two_wheeler";
+  } else if (travelMode === "transit" || travelMode === "metro") {
+    gmapsMode = "transit";
+  } else if (travelMode === "driving" || travelMode === "car") {
+    gmapsMode = "driving";
+  } else if (travelMode === "walking" || travelMode === "foot") {
+    gmapsMode = "walking";
+  }
+
+  return `https://www.google.com/maps/dir/?api=1${originPart}&destination=${destCoords}&destination_query=${query}&travelmode=${gmapsMode}`;
 }
 
 /**

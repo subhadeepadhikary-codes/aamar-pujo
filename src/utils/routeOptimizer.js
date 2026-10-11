@@ -12,7 +12,7 @@ import { RESTAURANTS_DATA } from "../data/restaurantsData.js";
 
 // Maximum capacities as specified
 export const MAX_ROUTE_PLANS = 5;
-export const MAX_SPOTS_PER_PLAN = 25;
+export const MAX_SPOTS_PER_PLAN = 40;
 
 const STORAGE_KEY = "aamar_pujo_saved_route_plans_v1";
 
@@ -44,7 +44,7 @@ export function calculatePathDistanceKm(spots, startCoords = null) {
 
 /**
  * AI Sequential Route Optimizer (TSP: Nearest Neighbor + 2-Opt Local Search)
- * Takes a list of up to 25 spots and reorders them into the most time-effective,
+ * Takes a list of up to 40 spots and reorders them into the most time-effective,
  * continuous path that eliminates zigzagging and backtracking.
  */
 export function optimizeRouteSequential(spots, startCoords = null) {
@@ -141,35 +141,180 @@ export function optimizeRouteSequential(spots, startCoords = null) {
 /**
  * Calculates transit advice and metrics for a single leg between Spot A and Spot B
  */
-export function calculateLegDetails(spotA, spotB) {
+/**
+ * Evaluates multi-modal transit options (Walk vs Bike Road vs Metro) at the junction between Spot A and Spot B
+ * and determines the optimal choice based on distance, local lane barricades, and Kolkata Metro connectivity.
+ */
+export function evaluateJunctionTransitChoice(spotA, spotB) {
   const distKm = getSpotDistanceKm(spotA, spotB);
   const meters = Math.round(distKm * 1000);
+
+  // Check metro connectivity for both spots
+  const hasMetroA = spotA && spotA.metro && spotA.metro !== "Nearby Bus/Auto" && spotA.metro !== "Siliguri Junction";
+  const hasMetroB = spotB && spotB.metro && spotB.metro !== "Nearby Bus/Auto" && spotB.metro !== "Siliguri Junction";
+  const sameMetroStation = hasMetroA && hasMetroB && spotA.metro.toLowerCase() === spotB.metro.toLowerCase();
+
+  // Mode Metrics
+  // 1. Walk: ~75 m/min (~4.5 km/h)
+  const walkMins = Math.max(2, Math.round(meters / 75));
+  const walkDistFormatted = distKm < 1 ? `${meters}m` : `${distKm.toFixed(1)} km`;
+
+  // 2. Bike Road: ~3.0 min/km (~20 km/h in Kolkata festive traffic) + 2 mins parking buffer
+  const bikeMins = Math.max(3, Math.round(distKm * 3.0 + 2));
+  const bikeDistFormatted = `${distKm.toFixed(1)} km`;
+
+  // 3. Kolkata Metro: station access (5 mins) + train ride (~2.5 min/km) + exit (4 mins)
+  const metroTrainMins = Math.max(5, Math.round(distKm * 2.5));
+  const metroMins = hasMetroA && hasMetroB ? Math.max(10, metroTrainMins + 7) : null;
+  const metroDistFormatted = `${distKm.toFixed(1)} km rail`;
+
+  let recommendedMode = "walk";
+  let recommendedIcon = "🚶";
+  let recommendedLabel = "Walk (Para Lanes)";
+  let reasoning = "";
+  let travelMins = walkMins;
+  let gmapsMode = "walking";
+
+  if (distKm <= 0.8) {
+    // Short hop: Walking is fastest and avoids barricades/parking
+    recommendedMode = "walk";
+    recommendedIcon = "🚶";
+    recommendedLabel = "Walk (Para Lanes)";
+    travelMins = walkMins;
+    gmapsMode = "walking";
+    reasoning = `Fastest on foot (${walkDistFormatted}, ~${walkMins} mins). Navigating narrow festive para alleys by bike or waiting for transit takes longer.`;
+  } else if (distKm > 2.0 && hasMetroA && hasMetroB && !sameMetroStation) {
+    // Long hop with Metro: Metro is fastest, 100% traffic-free
+    recommendedMode = "metro";
+    recommendedIcon = "🚇";
+    recommendedLabel = "Kolkata Metro";
+    travelMins = metroMins;
+    gmapsMode = "transit";
+    reasoning = `Kolkata Metro (~${metroMins} mins). Skip 45–60 mins of festive gridlock on surface roads from ${spotA.metro} to ${spotB.metro}.`;
+  } else {
+    // Medium hop or without direct metro: Bike road is fastest
+    recommendedMode = "bike";
+    recommendedIcon = "🛵";
+    recommendedLabel = "Bike / Two-Wheeler Road";
+    travelMins = bikeMins;
+    gmapsMode = "two_wheeler";
+    reasoning = `Fastest via bike road (${bikeDistFormatted}, ~${bikeMins} mins). Paved vehicular avenues bypass pedestrian crowding & walking fatigue.`;
+  }
+
+  const comparison = [
+    {
+      mode: "walk",
+      icon: "🚶",
+      label: "Walk",
+      timeMins: walkMins,
+      distFormatted: walkDistFormatted,
+      isOptimal: recommendedMode === "walk",
+      note: distKm <= 0.8 ? "Zero parking delay; enters inner barricades" : "Causes walking fatigue for long distance"
+    },
+    {
+      mode: "bike",
+      icon: "🛵",
+      label: "Bike Road",
+      timeMins: bikeMins,
+      distFormatted: bikeDistFormatted,
+      isOptimal: recommendedMode === "bike",
+      note: "Paved vehicular roads; avoids narrow footpaths"
+    }
+  ];
+
+  if (hasMetroA && hasMetroB && !sameMetroStation) {
+    comparison.push({
+      mode: "metro",
+      icon: "🚇",
+      label: "Metro",
+      timeMins: metroMins,
+      distFormatted: metroDistFormatted,
+      isOptimal: recommendedMode === "metro",
+      note: "100% traffic-free; air-conditioned corridor"
+    });
+  }
+
+  const navUrl = buildGoogleMapsNavUrl(spotB, spotA, gmapsMode);
+
+  return {
+    recommendedMode,
+    recommendedIcon,
+    recommendedLabel,
+    travelMins,
+    distanceKm: distKm,
+    distanceFormatted: distKm < 1 ? `${meters}m` : `${distKm.toFixed(1)} km`,
+    reasoning,
+    comparison,
+    navUrl
+  };
+}
+
+/**
+ * Calculates transit advice and metrics for a single leg between Spot A and Spot B
+ */
+export function calculateLegDetails(spotA, spotB, options = {}) {
+  const travelMode = options.travelMode || "smart"; // 'smart' | 'metro' | 'road' | 'bike' | 'foot'
+  const distKm = getSpotDistanceKm(spotA, spotB);
+  const meters = Math.round(distKm * 1000);
+  const junctionAnalysis = evaluateJunctionTransitChoice(spotA, spotB);
 
   let mode = "walk";
   let modeIcon = "🚶";
   let travelMins = 5;
   let recommendation = "";
+  let navUrl = "";
 
-  if (distKm < 0.4) {
-    travelMins = Math.max(2, Math.round(meters / 75));
-    recommendation = `Walk ${meters}m down the para lane (~${travelMins} mins)`;
-  } else if (distKm < 1.5) {
-    travelMins = Math.round(meters / 75);
+  if (travelMode === "metro") {
+    // Dedicated Kolkata Metro Transit Mode
+    const hasMetroA = spotA && spotA.metro && spotA.metro !== "Nearby Bus/Auto" && spotA.metro !== "Siliguri Junction";
+    const hasMetroB = spotB && spotB.metro && spotB.metro !== "Nearby Bus/Auto" && spotB.metro !== "Siliguri Junction";
+    const sameMetroStation = hasMetroA && hasMetroB && spotA.metro.toLowerCase() === spotB.metro.toLowerCase();
+
+    if (hasMetroA && hasMetroB && !sameMetroStation && distKm > 0.8) {
+      // Station-to-station Metro rail ride
+      mode = "metro";
+      modeIcon = "🚇";
+      const walkAccessA = Math.max(3, spotA.walkMin || 5);
+      const walkExitB = Math.max(3, spotB.walkMin || 5);
+      const trainRideMins = Math.max(5, Math.round(distKm * 2.2));
+      travelMins = walkAccessA + trainRideMins + walkExitB;
+      recommendation = `🚇 Kolkata Metro: Board at ${spotA.metro} Metro ➔ Ride directly to ${spotB.metro} Metro (~${travelMins} mins total incl. walk). Bypasses surface festival road gridlock & police diversions!`;
+      navUrl = buildGoogleMapsNavUrl(spotB, spotA, "transit");
+    } else if (distKm <= 0.8 || sameMetroStation) {
+      // Close spots in the same neighborhood or same station vicinity
+      mode = "walk";
+      modeIcon = "🚶";
+      travelMins = Math.max(2, Math.round(meters / 75));
+      recommendation = `🚶 Same Metro Cluster (${hasMetroA ? spotA.metro : (spotA.locality || "Neighborhood")}): Walk ${meters}m or take local rickshaw (~${travelMins} mins). Walking is faster than taking a train for this distance!`;
+      navUrl = buildGoogleMapsNavUrl(spotB, spotA, "walking");
+    } else {
+      // One or both spots require feeder transit to/from metro corridor
+      mode = "metro";
+      modeIcon = "🚇";
+      travelMins = Math.max(8, Math.round(distKm * 2.8 + 6));
+      recommendation = `🚇 Multimodal Metro Feeder: Take local auto/toto to the nearest Metro corridor (${hasMetroA ? spotA.metro : (hasMetroB ? spotB.metro : "Central Metro")}) ➔ Rapid transit (~${travelMins} mins).`;
+      navUrl = buildGoogleMapsNavUrl(spotB, spotA, "transit");
+    }
+  } else if (travelMode === "road" || travelMode === "bike") {
+    mode = "road";
+    modeIcon = "🛵";
+    travelMins = Math.max(3, Math.round(distKm * 3.0 + 2));
+    recommendation = `Ride via paved motorable roads (~${travelMins} mins, ${distKm < 1 ? `${meters}m` : `${distKm.toFixed(1)} km`}). Avoids pedestrian-only alleyways.`;
+    navUrl = buildGoogleMapsNavUrl(spotB, spotA, "two_wheeler");
+  } else if (travelMode === "foot") {
+    mode = "walk";
     modeIcon = "🚶";
-    recommendation = `Brisk walk or cycle rickshaw (${meters}m, ~${travelMins} mins)`;
-  } else if (distKm < 3.5) {
-    mode = "auto";
-    modeIcon = "🛺";
-    travelMins = Math.max(6, Math.round(distKm * 4.5));
-    recommendation = `Hop on a shared auto or Toto along arterial road (~${travelMins} mins, ₹15-₹20)`;
+    travelMins = Math.max(2, Math.round(meters / 75));
+    recommendation = `Walk via pedestrian roads & alleys (~${travelMins} mins, ${distKm < 1 ? `${meters}m` : `${distKm.toFixed(1)} km`})`;
+    navUrl = buildGoogleMapsNavUrl(spotB, spotA, "walking");
   } else {
-    mode = "metro";
-    modeIcon = "🚇";
-    travelMins = Math.max(12, Math.round(distKm * 3.2));
-    recommendation = `Board Kolkata Metro or take a quick cab (~${travelMins} mins)`;
+    // Smart Mode (Multi-Modal Junction Decision)
+    mode = junctionAnalysis.recommendedMode;
+    modeIcon = junctionAnalysis.recommendedIcon;
+    travelMins = junctionAnalysis.travelMins;
+    recommendation = junctionAnalysis.reasoning;
+    navUrl = junctionAnalysis.navUrl;
   }
-
-  const navUrl = buildGoogleMapsNavUrl(spotB, spotA);
 
   return {
     from: spotA.name,
@@ -180,14 +325,15 @@ export function calculateLegDetails(spotA, spotB) {
     mode,
     modeIcon,
     recommendation,
-    navUrl
+    navUrl,
+    junctionAnalysis
   };
 }
 
 /**
  * Calculates complete circuit stats (cumulative distance, transit duration, darshan buffer)
  */
-export function calculateCircuitSummary(spots, startCoords = null) {
+export function calculateCircuitSummary(spots, startCoords = null, travelMode = "smart") {
   if (!spots || spots.length === 0) {
     return {
       spotCount: 0,
@@ -198,13 +344,18 @@ export function calculateCircuitSummary(spots, startCoords = null) {
       transitMinutes: 0,
       darshanMinutes: 0,
       totalDurationFormatted: "0 mins",
-      legs: []
+      travelMode,
+      legs: [],
+      modalBreakdown: { walkLegs: 0, roadLegs: 0, metroLegs: 0 }
     };
   }
 
   let totalDistKm = 0;
   let totalTransitMins = 0;
   const legs = [];
+  let walkLegs = 0;
+  let roadLegs = 0;
+  let metroLegs = 0;
 
   let pandalsCount = 0;
   let foodCount = 0;
@@ -216,9 +367,12 @@ export function calculateCircuitSummary(spots, startCoords = null) {
 
   // Calculate legs
   for (let i = 0; i < spots.length - 1; i++) {
-    const leg = calculateLegDetails(spots[i], spots[i + 1]);
+    const leg = calculateLegDetails(spots[i], spots[i + 1], { travelMode });
     totalDistKm += leg.distanceKm;
     totalTransitMins += leg.travelMins;
+    if (leg.mode === "walk") walkLegs++;
+    else if (leg.mode === "road" || leg.mode === "bike") roadLegs++;
+    else if (leg.mode === "metro") metroLegs++;
     legs.push(leg);
   }
 
@@ -239,6 +393,8 @@ export function calculateCircuitSummary(spots, startCoords = null) {
     transitMinutes: totalTransitMins,
     darshanMinutes,
     totalDurationFormatted,
+    travelMode,
+    modalBreakdown: { walkLegs, roadLegs, metroLegs },
     legs
   };
 }
@@ -247,8 +403,15 @@ export function calculateCircuitSummary(spots, startCoords = null) {
  * Builds Google Maps Multi-Stop Navigation URL(s)
  * Automatically splits into parts if waypoints exceed Google Maps 10-stop limit
  */
-export function buildGoogleMapsCircuitUrl(spots, startCoords = null) {
+export function buildGoogleMapsCircuitUrl(spots, startCoords = null, travelMode = "walking") {
   if (!spots || spots.length < 2) return null;
+
+  let gmapsTravelMode = "walking";
+  if (travelMode === "road" || travelMode === "bike") {
+    gmapsTravelMode = "two_wheeler";
+  } else if (travelMode === "metro") {
+    gmapsTravelMode = "transit";
+  }
 
   // Google Maps supports 1 origin + 8 waypoints + 1 destination = 10 stops max per URL
   const CHUNK_SIZE = 9; // 1 origin + 8 waypoints + 1 destination
@@ -266,14 +429,15 @@ export function buildGoogleMapsCircuitUrl(spots, startCoords = null) {
     const destQuery = encodeURIComponent(`${destSpot.name}, ${destSpot.address || destSpot.locality || "Kolkata"}`);
 
     const url = waypoints.length > 0
-      ? `https://www.google.com/maps/dir/?api=1&origin=${origin}&destination=${destination}&destination_query=${destQuery}&waypoints=${waypoints}&travelmode=walking`
-      : `https://www.google.com/maps/dir/?api=1&origin=${origin}&destination=${destination}&destination_query=${destQuery}&travelmode=walking`;
+      ? `https://www.google.com/maps/dir/?api=1&origin=${origin}&destination=${destination}&destination_query=${destQuery}&waypoints=${waypoints}&travelmode=${gmapsTravelMode}`
+      : `https://www.google.com/maps/dir/?api=1&origin=${origin}&destination=${destination}&destination_query=${destQuery}&travelmode=${gmapsTravelMode}`;
 
     chunks.push({
       partNumber: chunks.length + 1,
       fromSpot: slice[0].name,
       toSpot: slice[slice.length - 1].name,
       spotsCount: slice.length,
+      travelMode: gmapsTravelMode,
       url
     });
   }
@@ -516,26 +680,26 @@ export const DEFAULT_ROUTE_PLANS = [
         isRestaurant: false
       },
       {
-        id: "pandal-bagbazar",
-        name: "Bagbazar Sarbojanin",
+        id: "pandal-180",
+        name: "Bagbazar Sarbojanin Durgotsav",
         bengaliName: "বাগবাজার সার্বজনীন",
         zone: "north",
         zoneLabel: "North Kolkata",
-        locality: "Bagbazar Ghat Road",
-        lat: 22.6033,
-        lng: 88.3664,
-        metro: "Shyambazar Metro",
+        locality: "Bagbazar",
+        lat: 22.6045,
+        lng: 88.3656,
+        metro: "Shyambazar",
         isRestaurant: false
       },
       {
-        id: "pandal-kumartuli",
-        name: "Kumartuli Park Sarbojanin",
+        id: "pandal-177",
+        name: "Kumartuli Park Sarbojanin Durgotsab",
         bengaliName: "কুমারটুলি পার্ক",
         zone: "north",
         zoneLabel: "North Kolkata",
         locality: "Kumartuli",
         lat: 22.5991,
-        lng: 88.3638,
+        lng: 88.3615,
         metro: "Shobhabazar Sutanuti",
         isRestaurant: false
       },
@@ -552,27 +716,27 @@ export const DEFAULT_ROUTE_PLANS = [
         isRestaurant: true
       },
       {
-        id: "pandal-chaltabagan",
-        name: "Manicktalla Chaltabagan Lohapatty",
+        id: "pandal-123",
+        name: "Maniktala Chaltabagan Lohapatty",
         bengaliName: "চালতাবাগান লোহাপট্টি",
         zone: "north",
         zoneLabel: "North Kolkata",
-        locality: "Manicktala",
-        lat: 22.5856,
-        lng: 88.3742,
-        metro: "Girish Park Metro",
+        locality: "Maniktala",
+        lat: 22.5849,
+        lng: 88.3722,
+        metro: "Girish Park",
         isRestaurant: false
       },
       {
-        id: "pandal-college-sq",
-        name: "College Square",
-        bengaliName: "কলেজ স্কোয়ার",
+        id: "pandal-108",
+        name: "College Square Sarbojanin Durgotsab",
+        bengaliName: "কলেজ স্কয়ার",
         zone: "central",
         zoneLabel: "Central Kolkata",
         locality: "College Street",
-        lat: 22.5744,
-        lng: 88.3629,
-        metro: "Central / MG Road Metro",
+        lat: 22.5746,
+        lng: 88.3645,
+        metro: "Central",
         isRestaurant: false
       }
     ]
@@ -584,87 +748,87 @@ export const DEFAULT_ROUTE_PLANS = [
     updatedAt: Date.now(),
     spots: [
       {
-        id: "pandal-suruchi",
+        id: "pandal-382",
         name: "Suruchi Sangha",
         bengaliName: "সুরুচি সংঘ",
         zone: "south",
         zoneLabel: "South Kolkata",
         locality: "New Alipore",
-        lat: 22.5115,
-        lng: 88.3302,
-        metro: "Kalighat Metro",
+        lat: 22.5090,
+        lng: 88.3340,
+        metro: "Rabindra Sarobar",
         isRestaurant: false
       },
       {
-        id: "pandal-chetla",
+        id: "pandal-377",
         name: "Chetla Agrani Club",
         bengaliName: "চেতলা অগ্রণী ক্লাব",
         zone: "south",
         zoneLabel: "South Kolkata",
         locality: "Chetla",
-        lat: 22.5186,
-        lng: 88.3415,
-        metro: "Kalighat / Rabindra Sarobar",
+        lat: 22.5165,
+        lng: 88.3368,
+        metro: "Kalighat",
         isRestaurant: false
       },
       {
-        id: "pandal-deshapriya",
+        id: "pandal-37",
         name: "Deshapriya Park",
         bengaliName: "দেশপ্রিয় পার্ক",
         zone: "south",
         zoneLabel: "South Kolkata",
         locality: "Rashbehari Avenue",
-        lat: 22.5187,
-        lng: 88.3562,
-        metro: "Kalighat Metro",
+        lat: 22.5188,
+        lng: 88.3535,
+        metro: "Kalighat",
         isRestaurant: false
       },
       {
-        id: "pandal-tridhara",
+        id: "pandal-34",
         name: "Tridhara Sammilani",
         bengaliName: "ত্রিধারা সম্মিলনী",
         zone: "south",
         zoneLabel: "South Kolkata",
         locality: "Manoherpukur",
-        lat: 22.5178,
-        lng: 88.3598,
-        metro: "Kalighat / Jatin Das Park",
+        lat: 22.5198,
+        lng: 88.3555,
+        metro: "Jatin Das Park",
         isRestaurant: false
       },
       {
-        id: "pandal-ekdalia",
+        id: "pandal-89",
         name: "Ekdalia Evergreen Club",
         bengaliName: "একডালিয়া এভারগ্রীন",
         zone: "south",
         zoneLabel: "South Kolkata",
         locality: "Gariahat",
-        lat: 22.5192,
-        lng: 88.3664,
-        metro: "Kalighat Metro",
+        lat: 22.5212,
+        lng: 88.3666,
+        metro: "Kalighat",
         isRestaurant: false
       },
       {
-        id: "pandal-singhi",
+        id: "pandal-30",
         name: "Singhi Park Sarbojanin",
         bengaliName: "সিংঘী পার্ক",
         zone: "south",
         zoneLabel: "South Kolkata",
         locality: "Dover Lane",
-        lat: 22.5218,
-        lng: 88.3678,
-        metro: "Kalighat Metro",
+        lat: 22.5211,
+        lng: 88.3632,
+        metro: "Kalighat",
         isRestaurant: false
       },
       {
-        id: "pandal-maddox",
+        id: "pandal-68",
         name: "Maddox Square",
         bengaliName: "ম্যাডক্স স্কোয়ার",
         zone: "south",
         zoneLabel: "South Kolkata",
         locality: "Ritchie Road",
-        lat: 22.5298,
-        lng: 88.3582,
-        metro: "Netaji Bhavan Metro",
+        lat: 22.5267,
+        lng: 88.3548,
+        metro: "Netaji Bhawan",
         isRestaurant: false
       }
     ]
@@ -676,27 +840,27 @@ export const DEFAULT_ROUTE_PLANS = [
     updatedAt: Date.now(),
     spots: [
       {
-        id: "pandal-taratala",
-        name: "Ajeyo Sanghati",
-        bengaliName: "অজেয় সংহতি",
+        id: "pandal-390",
+        name: "Haridevpur 41 Pally Club",
+        bengaliName: "হরিদেবপুর ৪১ পল্লী",
         zone: "south",
         zoneLabel: "South-West Kolkata",
-        locality: "Taratala Haridevpur",
-        lat: 22.4925,
-        lng: 88.3392,
-        metro: "Mahanayak Uttam Kumar",
+        locality: "Haridevpur",
+        lat: 22.4828,
+        lng: 88.3387,
+        metro: "Tollygunge",
         isRestaurant: false
       },
       {
-        id: "pandal-behala-nutan",
+        id: "pandal-422",
         name: "Behala Nutan Dal",
         bengaliName: "বেহালা নতুন দল",
         zone: "south",
         zoneLabel: "South-West Kolkata",
-        locality: "Behala 14 No. Bus Stand",
-        lat: 22.4988,
-        lng: 88.3188,
-        metro: "Taratala / Rabindra Sarobar",
+        locality: "Behala",
+        lat: 22.5003,
+        lng: 88.3202,
+        metro: "Behala Chowrasta",
         isRestaurant: false
       },
       {
@@ -712,27 +876,27 @@ export const DEFAULT_ROUTE_PLANS = [
         isRestaurant: true
       },
       {
-        id: "pandal-behala-club",
+        id: "pandal-411",
         name: "Behala Club",
         bengaliName: "বেহালা ক্লাব",
         zone: "south",
         zoneLabel: "South-West Kolkata",
-        locality: "Banamali Naskar Road",
-        lat: 22.4975,
-        lng: 88.3172,
-        metro: "Taratala Purple Line",
+        locality: "Behala",
+        lat: 22.5053,
+        lng: 88.3141,
+        metro: "Behala Chowrasta",
         isRestaurant: false
       },
       {
-        id: "pandal-barisha",
+        id: "pandal-445",
         name: "Barisha Club",
         bengaliName: "বড়িষা ক্লাব",
         zone: "south",
         zoneLabel: "South-West Kolkata",
-        locality: "Behala Chowrasta / Sakher Bazar",
-        lat: 22.4851,
-        lng: 88.3125,
-        metro: "Tollygunge / Purple Line",
+        locality: "Barisha",
+        lat: 22.4813,
+        lng: 88.3132,
+        metro: "Tollygunge",
         isRestaurant: false
       }
     ]
@@ -904,9 +1068,28 @@ export function decodePlanFromUrl(hashString) {
         }
 
         // Pandal token: numeric ID
-        const pandalId = token.replace(/^pandal-/, "");
+        const rawPandalId = token.replace(/^pandal-/, "");
+        let pandalId = rawPandalId;
+
+        // Legacy Siliguri URL backward compatibility:
+        // If the shared plan explicitly mentions Siliguri and uses old 505-524 IDs, map to 551-570
+        if (planName.toLowerCase().includes("siliguri")) {
+          const num = parseInt(rawPandalId, 10);
+          if (num >= 505 && num <= 524) {
+            pandalId = String(num + 46); // maps 505..524 to 551..570
+          }
+        }
+
         const foundPandal = PANDALS_DATA.find((p) => String(p.id) === pandalId);
         if (foundPandal) {
+          // Geographic Sanity Check:
+          // If the plan already has multiple Kolkata spots (lat ~ 22.5°), prevent an outlier > 300 km away
+          const kolkataSpots = spots.filter((s) => s.lat && s.lat >= 22.0 && s.lat <= 23.5);
+          if (kolkataSpots.length >= 2 && (foundPandal.lat > 25.0 || foundPandal.zone === "siliguri")) {
+            console.warn(`[RouteOptimizer] Prevented geographic outlier (${foundPandal.name} in ${foundPandal.zone}) in Kolkata plan`);
+            continue;
+          }
+
           spots.push({
             id: `pandal-${foundPandal.id}`,
             name: foundPandal.name,

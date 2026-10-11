@@ -73,9 +73,12 @@ export function formatRouteDuration(seconds) {
 /**
  * Deterministic cache key generator based on 5 decimal places precision (~1 meter)
  */
-export function getRouteCacheKey(spots) {
+/**
+ * Deterministic cache key generator based on mode and 5 decimal places precision (~1 meter)
+ */
+export function getRouteCacheKey(spots, mode = "foot") {
   if (!Array.isArray(spots) || spots.length === 0) {
-    return "aamar_route_empty";
+    return `aamar_route_${mode}_empty`;
   }
   const coordsKey = spots
     .map((s) => {
@@ -84,7 +87,7 @@ export function getRouteCacheKey(spots) {
       return `${lat},${lng}`;
     })
     .join(";");
-  return `aamar_route_${coordsKey}`;
+  return `aamar_route_${mode}_${coordsKey}`;
 }
 
 /**
@@ -147,7 +150,7 @@ export function clearRouteCache() {
 /**
  * Builds direct fallback polyline when network or OSRM is unavailable
  */
-export function buildDirectFallbackRoute(spots) {
+export function buildDirectFallbackRoute(spots, mode = "foot") {
   const coordinates = spots.map((s) => [s.lat, s.lng]);
   let distanceMeters = 0;
 
@@ -159,8 +162,9 @@ export function buildDirectFallbackRoute(spots) {
     }
   }
 
-  // Estimated walking speed: ~1.25 m/s (~4.5 km/h / 75m per min)
-  const durationSeconds = Math.round(distanceMeters / 1.25);
+  // Speed: Walking ~1.25 m/s (~4.5 km/h), Road/Metro ~5.55 m/s (~20 km/h in Kolkata festive traffic)
+  const speedMs = (mode === "bike" || mode === "road" || mode === "metro") ? 5.55 : 1.25;
+  const durationSeconds = Math.round(distanceMeters / speedMs);
 
   return {
     coordinates,
@@ -168,17 +172,21 @@ export function buildDirectFallbackRoute(spots) {
     distanceFormatted: formatRouteDistance(distanceMeters),
     durationSeconds,
     durationFormatted: formatRouteDuration(durationSeconds),
-    isRoadSnapped: false
+    isRoadSnapped: false,
+    mode
   };
 }
 
 /**
- * Fetches an individual chunk of waypoints from OSRM pedestrian foot profile
+ * Fetches an individual chunk of waypoints from OSRM profile (foot vs driving for road/metro corridor)
  */
-async function fetchOsrmLeg(chunkSpots, timeoutMs = 4000) {
+async function fetchOsrmLeg(chunkSpots, mode = "foot", timeoutMs = 6000) {
   // OSRM coordinates are specified as longitude,latitude;longitude,latitude...
   const coordString = chunkSpots.map((s) => `${s.lng},${s.lat}`).join(";");
-  const url = `https://router.project-osrm.org/route/v1/foot/${coordString}?overview=full&geometries=geojson`;
+  // Foot profile uses pedestrian walkways; Road & Metro use vehicular 'driving' profile along paved avenues
+  const isVehicular = mode === "bike" || mode === "road" || mode === "metro";
+  const profile = isVehicular ? "driving" : "foot";
+  const url = `https://router.project-osrm.org/route/v1/${profile}/${coordString}?overview=full&geometries=geojson`;
 
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
@@ -211,15 +219,19 @@ async function fetchOsrmLeg(chunkSpots, timeoutMs = 4000) {
 }
 
 /**
- * Generalized pedestrian road-snapped routing engine
+ * Generalized road-snapped routing engine supporting Pedestrian Foot, Road/Bike, and Metro rail corridors
  * 
  * @param {Array<Object>} spots - Array of spot objects { lat, lng, name, ... }
  * @param {Object} [options] - Optional settings
- * @param {number} [options.timeoutMs=4000] - Request timeout per chunk
+ * @param {string} [options.mode='foot'] - 'foot', 'road', 'bike', or 'metro'
+ * @param {number} [options.timeoutMs=6000] - Request timeout per chunk
  * @param {boolean} [options.skipCache=false] - Bypass cache read
  * @returns {Promise<Object>} Snapped route coordinates and metadata
  */
-export async function fetchWalkingStreetRoute(spots, options = {}) {
+export async function fetchStreetRoute(spots, options = {}) {
+  const reqMode = options.mode || "foot";
+  const mode = (reqMode === "road" || reqMode === "bike") ? "road" : (reqMode === "metro" ? "metro" : "foot");
+
   // Input validation
   if (!Array.isArray(spots)) {
     return {
@@ -228,7 +240,8 @@ export async function fetchWalkingStreetRoute(spots, options = {}) {
       distanceFormatted: "0 m",
       durationSeconds: 0,
       durationFormatted: "0 mins",
-      isRoadSnapped: false
+      isRoadSnapped: false,
+      mode
     };
   }
 
@@ -245,12 +258,13 @@ export async function fetchWalkingStreetRoute(spots, options = {}) {
       distanceFormatted: "0 m",
       durationSeconds: 0,
       durationFormatted: "0 mins",
-      isRoadSnapped: false
+      isRoadSnapped: false,
+      mode
     };
   }
 
-  const timeoutMs = options.timeoutMs || 4000;
-  const cacheKey = getRouteCacheKey(validSpots);
+  const timeoutMs = options.timeoutMs || 6000;
+  const cacheKey = getRouteCacheKey(validSpots, mode);
 
   // Cache Check
   if (!options.skipCache) {
@@ -260,8 +274,8 @@ export async function fetchWalkingStreetRoute(spots, options = {}) {
     }
   }
 
-  // Waypoint Chunking (OSRM supports best with <= 25 waypoints per request)
-  const CHUNK_SIZE = 25;
+  // Waypoint Chunking (OSRM supports best with <= 20 waypoints per request)
+  const CHUNK_SIZE = 20;
   const chunkSlices = [];
 
   for (let i = 0; i < validSpots.length - 1; i += (CHUNK_SIZE - 1)) {
@@ -276,10 +290,42 @@ export async function fetchWalkingStreetRoute(spots, options = {}) {
     let totalDurationSeconds = 0;
     const combinedCoordinates = [];
 
-    // Fetch legs consecutively to be polite to the public OSM demo cluster
+    // Fetch chunks consecutively with fallback protection against rooftop line cutting
     for (let i = 0; i < chunkSlices.length; i++) {
       const legSpots = chunkSlices[i];
-      const legRoute = await fetchOsrmLeg(legSpots, timeoutMs);
+      let legRoute = null;
+
+      try {
+        legRoute = await fetchOsrmLeg(legSpots, mode, timeoutMs);
+      } catch (chunkErr) {
+        console.warn(`OSRM chunk ${i + 1} failed, attempting resilient sub-leg road snapping:`, chunkErr?.message);
+        // Resilient sub-leg fallback: Query pair by pair so we snap to real streets instead of drawing across roofs
+        for (let j = 0; j < legSpots.length - 1; j++) {
+          const pair = [legSpots[j], legSpots[j + 1]];
+          try {
+            const pairRoute = await fetchOsrmLeg(pair, mode, 4000);
+            totalDistanceMeters += pairRoute.distance || 0;
+            totalDurationSeconds += pairRoute.duration || 0;
+            const pairLatlngs = (pairRoute.geometry?.coordinates || []).map(([lng, lat]) => [lat, lng]);
+            if (combinedCoordinates.length > 0) {
+              combinedCoordinates.push(...pairLatlngs.slice(1));
+            } else {
+              combinedCoordinates.push(...pairLatlngs);
+            }
+          } catch {
+            // Absolute emergency 2-point fallback
+            const fallbackPair = buildDirectFallbackRoute(pair, mode);
+            totalDistanceMeters += fallbackPair.distanceMeters;
+            totalDurationSeconds += fallbackPair.durationSeconds;
+            if (combinedCoordinates.length > 0) {
+              combinedCoordinates.push([pair[1].lat, pair[1].lng]);
+            } else {
+              combinedCoordinates.push([pair[0].lat, pair[0].lng], [pair[1].lat, pair[1].lng]);
+            }
+          }
+        }
+        continue;
+      }
 
       totalDistanceMeters += legRoute.distance || 0;
       totalDurationSeconds += legRoute.duration || 0;
@@ -295,18 +341,25 @@ export async function fetchWalkingStreetRoute(spots, options = {}) {
       }
     }
 
-    // If for any reason no coordinates were decoded, trigger fallback
     if (combinedCoordinates.length === 0) {
-      throw new Error("No coordinates returned from OSRM");
+      throw new Error("No road coordinates returned from OSRM");
+    }
+
+    // In road/metro mode, scale duration if OSRM gave highway speeds; festival traffic averages ~18-20 km/h
+    let adjustedDuration = totalDurationSeconds;
+    if (mode === "bike" || mode === "road" || mode === "metro") {
+      const minPlausibleDuration = Math.round((totalDistanceMeters / 5.55)); // 20 km/h
+      adjustedDuration = Math.max(totalDurationSeconds, minPlausibleDuration);
     }
 
     const result = {
       coordinates: combinedCoordinates,
       distanceMeters: Math.round(totalDistanceMeters),
       distanceFormatted: formatRouteDistance(totalDistanceMeters),
-      durationSeconds: Math.round(totalDurationSeconds),
-      durationFormatted: formatRouteDuration(totalDurationSeconds),
-      isRoadSnapped: true
+      durationSeconds: Math.round(adjustedDuration),
+      durationFormatted: formatRouteDuration(adjustedDuration),
+      isRoadSnapped: true,
+      mode
     };
 
     // Store successful result in cache
@@ -314,10 +367,16 @@ export async function fetchWalkingStreetRoute(spots, options = {}) {
 
     return result;
   } catch (error) {
-    console.warn("OSRM routing fallback to direct polyline:", error?.message || error);
-    // Smooth fallback to direct coordinate polyline
-    return buildDirectFallbackRoute(validSpots);
+    console.warn("OSRM routing complete fallback:", error?.message || error);
+    return buildDirectFallbackRoute(validSpots, mode);
   }
 }
 
-export default fetchWalkingStreetRoute;
+/**
+ * Backward-compatible wrapper for pedestrian foot street routes
+ */
+export async function fetchWalkingStreetRoute(spots, options = {}) {
+  return fetchStreetRoute(spots, { ...options, mode: "foot" });
+}
+
+export default fetchStreetRoute;

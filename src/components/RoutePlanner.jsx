@@ -23,7 +23,10 @@ import {
   Download,
   FileDown,
   Upload,
-  AlertCircle
+  AlertCircle,
+  Bike,
+  Footprints,
+  Brain
 } from "lucide-react";
 
 import {
@@ -50,14 +53,37 @@ import { buildGoogleMapsNavUrl } from "../utils/navigationHelper";
 export default function RoutePlanner({
   userLocation,
   onSelectPlanForMap,
-  onOpenModal
+  onOpenModal,
+  currentTravelMode = "smart",
+  onTravelModeChange
 }) {
   const [plans, setPlans] = useState(() => loadSavedRoutePlans());
   const [activePlanIndex, setActivePlanIndex] = useState(0);
+  const [travelMode, setTravelMode] = useState(currentTravelMode || "smart");
+
+  // Keep travelMode in sync with parent if prop updates
+  useEffect(() => {
+    if (currentTravelMode && currentTravelMode !== travelMode) {
+      setTravelMode(currentTravelMode);
+    }
+  }, [currentTravelMode]);
+
+  const handleTravelModeChange = (newMode) => {
+    setTravelMode(newMode);
+    if (onTravelModeChange) {
+      onTravelModeChange(newMode);
+    }
+    if (onSelectPlanForMap) {
+      onSelectPlanForMap(activePlan, newMode);
+    }
+  };
 
   // Search & Add Spot state
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedSearchZone, setSelectedSearchZone] = useState("all");
+  const [selectedSearchMetro, setSelectedSearchMetro] = useState("all");
+  const [selectedSearchLocality, setSelectedSearchLocality] = useState("all");
+  const [selectedSearchType, setSelectedSearchType] = useState("all");
   const [showAddMenu, setShowAddMenu] = useState(false);
 
   // Plan editing & modal state
@@ -112,12 +138,12 @@ export default function RoutePlanner({
     saveRoutePlans(plans);
   }, [plans]);
 
-  // Sync active plan with the Leaflet map above
+  // Sync active plan and travel mode with the Leaflet map above
   useEffect(() => {
     if (onSelectPlanForMap) {
-      onSelectPlanForMap(activePlan);
+      onSelectPlanForMap(activePlan, travelMode);
     }
-  }, [activePlan, activePlanIndex]);
+  }, [activePlan, activePlanIndex, travelMode]);
 
   // Compute circuit summary for active plan
   const startCoords = startFromGps && userLocation?.lat && userLocation?.lng
@@ -125,7 +151,7 @@ export default function RoutePlanner({
     : null;
 
   const summary = activePlan && activePlan.spots
-    ? calculateCircuitSummary(activePlan.spots, startCoords)
+    ? calculateCircuitSummary(activePlan.spots, startCoords, travelMode)
     : {
         spotCount: 0,
         pandalsCount: 0,
@@ -135,36 +161,87 @@ export default function RoutePlanner({
         transitMinutes: 0,
         darshanMinutes: 0,
         totalDurationFormatted: "0 mins",
+        travelMode,
+        modalBreakdown: { walkLegs: 0, bikeLegs: 0, metroLegs: 0 },
         legs: []
       };
 
   const googleMapsChunks = activePlan && activePlan.spots
-    ? buildGoogleMapsCircuitUrl(activePlan.spots, startCoords)
+    ? buildGoogleMapsCircuitUrl(activePlan.spots, startCoords, travelMode)
     : null;
 
-  // Quick suggestions for adding spots
+  // Available Metro Stations based on selected zone
+  const availableMetroStations = React.useMemo(() => {
+    const dataset = selectedSearchZone === "all"
+      ? PANDALS_DATA
+      : PANDALS_DATA.filter((p) => p.zone === selectedSearchZone);
+    const metros = new Set();
+    dataset.forEach((p) => {
+      if (p.metro && p.metro !== "Nearby Bus/Auto") {
+        metros.add(p.metro);
+      }
+    });
+    return Array.from(metros).sort();
+  }, [selectedSearchZone]);
+
+  // Available Localities based on selected zone
+  const availableLocalities = React.useMemo(() => {
+    const dataset = selectedSearchZone === "all"
+      ? PANDALS_DATA
+      : PANDALS_DATA.filter((p) => p.zone === selectedSearchZone);
+    const locs = new Set();
+    dataset.forEach((p) => {
+      if (p.locality) locs.add(p.locality);
+    });
+    return Array.from(locs).sort();
+  }, [selectedSearchZone]);
+
+  // Combined and filtered search results
   const searchSuggestions = React.useMemo(() => {
     const q = searchQuery.trim().toLowerCase();
-    if (!q && selectedSearchZone === "all") return [];
+    const isFilterActive =
+      q.length > 0 ||
+      selectedSearchZone !== "all" ||
+      selectedSearchMetro !== "all" ||
+      selectedSearchLocality !== "all" ||
+      selectedSearchType !== "all";
+
+    if (!isFilterActive && !showAddMenu) return [];
 
     const normQ = normalizePhonetic(q);
-    const existingIds = new Set(activePlan && activePlan.spots ? activePlan.spots.map((s) => s.id) : []);
 
-    // Combine Pandals & Restaurants
-    const pandalResults = PANDALS_DATA.filter((p) => {
-      if (existingIds.has(`pandal-${p.id}`)) return false;
+    // Filter Pandals
+    let pandalResults = PANDALS_DATA.filter((p) => {
       if (selectedSearchZone !== "all" && p.zone !== selectedSearchZone) return false;
+      if (selectedSearchMetro !== "all") {
+        const normSearch = selectedSearchMetro.toLowerCase().replace(/metro/g, "").trim();
+        const normPandal = (p.metro || "").toLowerCase().replace(/metro/g, "").trim();
+        if (!normPandal || (!normPandal.includes(normSearch) && !normSearch.includes(normPandal))) {
+          return false;
+        }
+      }
+      if (selectedSearchLocality !== "all") {
+        const normSearchLoc = selectedSearchLocality.toLowerCase().trim();
+        const normPandalLoc = (p.locality || "").toLowerCase().trim();
+        if (normPandalLoc !== normSearchLoc) return false;
+      }
+      if (selectedSearchType === "food") return false;
+      if (selectedSearchType === "bonedi" && !p.isBonediBari) return false;
+      if (selectedSearchType === "pandals" && p.isBonediBari) return false;
+
       if (!q) return true;
       return (
         p.name.toLowerCase().includes(q) ||
         (p.bengaliName && p.bengaliName.toLowerCase().includes(q)) ||
         (p.locality && p.locality.toLowerCase().includes(q)) ||
+        (p.metro && p.metro.toLowerCase().includes(q)) ||
         (p.aliases && p.aliases.some((a) => a.toLowerCase().includes(q) || normalizePhonetic(a).includes(normQ))) ||
         ((q === "bonedi" || q === "bonedi bari" || q === "rajbari") && p.isBonediBari) ||
         normalizePhonetic(p.name).includes(normQ)
       );
     }).map((p) => ({
       id: `pandal-${p.id}`,
+      rawId: p.id,
       name: p.name,
       bengaliName: p.bengaliName,
       lat: p.lat,
@@ -173,35 +250,68 @@ export default function RoutePlanner({
       zoneLabel: p.zoneLabel,
       locality: p.locality,
       metro: p.metro,
-      isRestaurant: false
+      walkMin: p.walkMin,
+      address: p.address,
+      isRestaurant: false,
+      isBonediBari: p.isBonediBari,
+      category: p.category
     }));
 
-    const restaurantResults = RESTAURANTS_DATA.filter((r) => {
-      if (existingIds.has(`rest-${r.id}`)) return false;
-      if (selectedSearchZone !== "all" && r.zone !== selectedSearchZone) return false;
-      if (!q) return true;
-      return (
-        r.name.toLowerCase().includes(q) ||
-        (r.bengaliName && r.bengaliName.toLowerCase().includes(q)) ||
-        (r.area && r.area.toLowerCase().includes(q)) ||
-        normalizePhonetic(r.name).includes(normQ)
-      );
-    }).map((r) => ({
-      id: `rest-${r.id}`,
-      name: r.name,
-      bengaliName: r.bengaliName,
-      lat: r.lat,
-      lng: r.lng,
-      zone: r.zone,
-      zoneLabel: r.zoneLabel,
-      locality: r.area,
-      metro: r.metro,
-      isRestaurant: true,
-      cuisine: r.cuisine
-    }));
+    // Filter Restaurants (only if not restricted to pandals/bonedi)
+    let restaurantResults = [];
+    if (selectedSearchType !== "bonedi" && selectedSearchType !== "pandals") {
+      restaurantResults = RESTAURANTS_DATA.filter((r) => {
+        if (selectedSearchZone !== "all" && r.zone !== selectedSearchZone) return false;
+        if (selectedSearchMetro !== "all") {
+          const normSearch = selectedSearchMetro.toLowerCase().replace(/metro/g, "").trim();
+          const normRest = (r.metro || "").toLowerCase().replace(/metro/g, "").trim();
+          if (!normRest || (!normRest.includes(normSearch) && !normSearch.includes(normRest))) {
+            return false;
+          }
+        }
+        if (selectedSearchLocality !== "all") {
+          const normSearchLoc = selectedSearchLocality.toLowerCase().trim();
+          const normArea = (r.area || "").toLowerCase().trim();
+          const normLoc = (r.locality || "").toLowerCase().trim();
+          if (!normArea.includes(normSearchLoc) && !normLoc.includes(normSearchLoc)) return false;
+        }
 
-    return [...pandalResults, ...restaurantResults].slice(0, 10);
-  }, [searchQuery, selectedSearchZone, activePlan?.spots]);
+        if (!q) return true;
+        return (
+          r.name.toLowerCase().includes(q) ||
+          (r.bengaliName && r.bengaliName.toLowerCase().includes(q)) ||
+          (r.area && r.area.toLowerCase().includes(q)) ||
+          normalizePhonetic(r.name).includes(normQ)
+        );
+      }).map((r) => ({
+        id: `rest-${r.id}`,
+        rawId: r.id,
+        name: r.name,
+        bengaliName: r.bengaliName,
+        lat: r.lat,
+        lng: r.lng,
+        zone: r.zone,
+        zoneLabel: r.zoneLabel,
+        locality: r.area,
+        metro: r.metro,
+        isRestaurant: true,
+        cuisine: r.cuisine
+      }));
+    }
+
+    return [...pandalResults, ...restaurantResults].slice(0, 80);
+  }, [searchQuery, selectedSearchZone, selectedSearchMetro, selectedSearchLocality, selectedSearchType, showAddMenu]);
+
+  // Group filtered results by Zone for clean, categorized browsing
+  const groupedSuggestions = React.useMemo(() => {
+    const groups = {};
+    searchSuggestions.forEach((spot) => {
+      const zoneKey = spot.zoneLabel || "Other Spots";
+      if (!groups[zoneKey]) groups[zoneKey] = [];
+      groups[zoneKey].push(spot);
+    });
+    return groups;
+  }, [searchSuggestions]);
 
   // PLAN MANAGEMENT HANDLERS
   const handleCreatePlan = () => {
@@ -255,8 +365,8 @@ export default function RoutePlanner({
     setIsEditingPlanName(false);
   };
 
-  // SPOT MANAGEMENT HANDLERS
-  const handleAddSpot = (spot) => {
+  // SPOT MANAGEMENT HANDLERS (PERSISTENT MULTI-ADD)
+  const handleToggleSpot = (spot) => {
     if (!activePlan) {
       const newPlan = {
         id: `custom-plan-${Date.now()}`,
@@ -267,16 +377,35 @@ export default function RoutePlanner({
       };
       setPlans([newPlan]);
       setActivePlanIndex(0);
-      setSearchQuery("");
-      setShowAddMenu(false);
+      setOptimizationNotice(null);
       return;
     }
 
+    const alreadyIdx = activePlan.spots.findIndex(
+      (s) => s.id === spot.id || (s.lat === spot.lat && s.lng === spot.lng)
+    );
+
+    if (alreadyIdx >= 0) {
+      // Already in plan -> remove
+      const updatedSpots = activePlan.spots.filter((_, idx) => idx !== alreadyIdx);
+      const updatedPlans = plans.map((p, idx) => {
+        if (idx === activePlanIndex) {
+          return { ...p, spots: updatedSpots, updatedAt: Date.now() };
+        }
+        return p;
+      });
+      setPlans(updatedPlans);
+      setOptimizationNotice(null);
+      return;
+    }
+
+    // Check capacity limit (40 spots)
     if (activePlan.spots.length >= MAX_SPOTS_PER_PLAN) {
       alert(`Maximum ${MAX_SPOTS_PER_PLAN} spots per plan reached! Remove a spot to add more.`);
       return;
     }
 
+    // Add to plan and STAY OPEN (do not close modal, do not clear search)
     const updatedSpots = [...activePlan.spots, spot];
     const updatedPlans = plans.map((p, idx) => {
       if (idx === activePlanIndex) {
@@ -286,10 +415,10 @@ export default function RoutePlanner({
     });
 
     setPlans(updatedPlans);
-    setSearchQuery("");
-    setShowAddMenu(false);
     setOptimizationNotice(null);
   };
+
+  const handleAddSpot = handleToggleSpot;
 
   const handleRemoveSpot = (spotIndex) => {
     const updatedSpots = activePlan.spots.filter((_, idx) => idx !== spotIndex);
@@ -485,7 +614,7 @@ export default function RoutePlanner({
         <div>
           <div className="inline-flex items-center space-x-2 px-3.5 py-1 rounded-full bg-gradient-to-r from-amber-500/20 to-rose-500/20 border border-amber-500/40 text-amber-300 text-xs font-bold mb-2">
             <Sparkles className="w-3.5 h-3.5 text-amber-400" />
-            <span>AI Smart Hop Optimizer · 5 Plans (Max 25 Spots Each)</span>
+            <span>AI Smart Hop Optimizer · 5 Plans (Max 40 Spots Each)</span>
           </div>
           <h3 className="font-heritage text-2xl sm:text-3xl md:text-4xl font-black text-white">
             Smart Pujo <span className="text-gold-gradient">Route Planner</span>
@@ -617,7 +746,7 @@ export default function RoutePlanner({
               No Route Plans Created Yet
             </h3>
             <p className="text-xs sm:text-sm text-slate-400">
-              Create your own customized pandal hopping route! Add up to 25 pandals and Kolkata eateries, optimize your path with AI, and download a step-by-step PDF itinerary.
+              Create your own customized pandal hopping route! Add up to 40 pandals and Kolkata eateries, optimize your path with AI, and download a step-by-step PDF itinerary.
             </p>
           </div>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
@@ -716,6 +845,72 @@ export default function RoutePlanner({
           </div>
         </div>
 
+        {/* 3. TRAVEL ROUTING MODE SWITCHER (DROPDOWN MENU) */}
+        <div className="p-3 sm:p-3.5 rounded-2xl bg-black/60 border border-white/10 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 shadow-lg">
+          <div className="flex items-center space-x-2.5">
+            <label htmlFor="planner-travel-mode-select" className="text-xs font-bold text-slate-200 flex items-center space-x-1.5 cursor-pointer">
+              <span>🧭 Travel Mode:</span>
+            </label>
+            {travelMode === "smart" && (
+              <span className="text-[10px] px-2.5 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/40 font-bold flex items-center space-x-1 animate-pulse">
+                <Brain className="w-3 h-3 text-amber-400" />
+                <span>Smart Multi-Modal (Junction AI)</span>
+              </span>
+            )}
+            {travelMode === "metro" && (
+              <span className="text-[10px] px-2.5 py-0.5 rounded-full bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 font-bold flex items-center space-x-1">
+                <Train className="w-3 h-3 text-cyan-400" />
+                <span>Metro Mode (Kolkata Rail Corridors)</span>
+              </span>
+            )}
+            {(travelMode === "road" || travelMode === "bike") && (
+              <span className="text-[10px] px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 font-bold flex items-center space-x-1">
+                <Bike className="w-3 h-3 text-emerald-400" />
+                <span>Road Mode (Paved Streets & Bypasses)</span>
+              </span>
+            )}
+            {travelMode === "foot" && (
+              <span className="text-[10px] px-2.5 py-0.5 rounded-full bg-rose-500/20 text-rose-300 border border-rose-500/40 font-bold flex items-center space-x-1">
+                <Footprints className="w-3 h-3 text-rose-400" />
+                <span>Foot Mode (Pedestrian Lanes & Para Alleys)</span>
+              </span>
+            )}
+          </div>
+
+          <div className="flex items-center space-x-2">
+            <div className="relative w-full sm:w-auto">
+              <select
+                id="planner-travel-mode-select"
+                value={travelMode === "bike" ? "road" : travelMode}
+                onChange={(e) => handleTravelModeChange(e.target.value)}
+                className="w-full sm:w-auto appearance-none bg-slate-900 text-slate-100 pl-9 pr-9 py-2 rounded-xl border border-white/20 hover:border-amber-400/60 focus:border-amber-400 focus:outline-none focus:ring-1 focus:ring-amber-400/50 text-xs font-bold transition shadow-md cursor-pointer"
+              >
+                <option value="foot" className="bg-slate-900 text-white py-1">
+                  🚶 Foot Mode (Pedestrian Lanes)
+                </option>
+                <option value="road" className="bg-slate-900 text-white py-1">
+                  🛵 Road Mode (Paved Streets & Arteries)
+                </option>
+                <option value="metro" className="bg-slate-900 text-white py-1">
+                  🚇 Metro Mode (Kolkata Rail Corridors)
+                </option>
+                <option value="smart" className="bg-slate-900 text-amber-300 py-1 font-bold">
+                  🧠 Smart Mode (AI Multi-Modal Decision)
+                </option>
+              </select>
+              <div className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none text-xs">
+                {travelMode === "foot" && "🚶"}
+                {(travelMode === "road" || travelMode === "bike") && "🛵"}
+                {travelMode === "metro" && "🚇"}
+                {travelMode === "smart" && "🧠"}
+              </div>
+              <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400 text-[10px]">
+                ▼
+              </div>
+            </div>
+          </div>
+        </div>
+
         {/* Plan Circuit Metric Pills */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 sm:gap-3 text-xs">
           <div className="p-3 rounded-2xl bg-black/40 border border-white/5">
@@ -733,8 +928,14 @@ export default function RoutePlanner({
             <span className="text-base sm:text-lg font-black text-rose-300 font-mono">
               {summary.totalDistanceFormatted}
             </span>
-            <span className="text-[10px] text-slate-500 block">
-              Sequential circuit
+            <span className="text-[10px] text-slate-500 block truncate">
+              {travelMode === "smart" && summary.modalBreakdown
+                ? `${summary.modalBreakdown.walkLegs} Walk · ${summary.modalBreakdown.roadLegs ?? summary.modalBreakdown.bikeLegs ?? 0} Road · ${summary.modalBreakdown.metroLegs} Metro`
+                : travelMode === "metro"
+                ? "🚇 Kolkata Metro rail circuit"
+                : (travelMode === "road" || travelMode === "bike")
+                ? "🛵 Vehicular road circuit"
+                : "🚶 Pedestrian walking circuit"}
             </span>
           </div>
 
@@ -827,117 +1028,283 @@ export default function RoutePlanner({
           </div>
         </div>
 
-        {/* 5. ADD SPOT AUTOCOMPLETE SEARCH */}
-        <div className="pt-4 border-t border-white/10 space-y-2.5">
+        {/* 5. ADD SPOT AUTOCOMPLETE & FILTERABLE BROWSE DRAWER */}
+        <div className="pt-4 border-t border-white/10 space-y-3">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-amber-300 flex items-center space-x-1">
-              <Plus className="w-3.5 h-3.5 text-amber-400" />
-              <span>Add Spots to Plan ({activePlan.spots.length} / {MAX_SPOTS_PER_PLAN})</span>
-            </span>
+            <div className="flex items-center space-x-2">
+              <span className="text-xs font-bold text-amber-300 flex items-center space-x-1">
+                <Plus className="w-3.5 h-3.5 text-amber-400" />
+                <span>Add Spots to Plan ({activePlan.spots.length} / {MAX_SPOTS_PER_PLAN})</span>
+              </span>
+              <button
+                type="button"
+                onClick={() => setShowAddMenu((prev) => !prev)}
+                className="text-[11px] px-2.5 py-0.5 rounded-full bg-amber-500/15 hover:bg-amber-500/25 text-amber-300 border border-amber-500/30 transition flex items-center space-x-1"
+              >
+                <span>{showAddMenu ? "Hide Picker ▴" : "Browse & Add ▾"}</span>
+              </button>
+            </div>
 
-            {activePlan.spots.length >= MAX_SPOTS_PER_PLAN && (
+            {activePlan.spots.length >= MAX_SPOTS_PER_PLAN ? (
               <span className="text-[11px] text-rose-400 font-bold flex items-center space-x-1">
                 <AlertCircle className="w-3.5 h-3.5" />
-                <span>Limit Reached (25/25)</span>
+                <span>Limit Reached (40/40)</span>
+              </span>
+            ) : (
+              <span className="text-[10px] text-slate-400">
+                {MAX_SPOTS_PER_PLAN - activePlan.spots.length} slots left
               </span>
             )}
           </div>
 
           {activePlan.spots.length < MAX_SPOTS_PER_PLAN && (
-            <div className="space-y-2">
-              {/* Search Inputs */}
-              <div className="flex items-center gap-2">
-                <div className="relative flex-1">
-                  <input
-                    ref={searchInputRef}
-                    type="text"
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    onFocus={() => setShowAddMenu(true)}
-                    placeholder="Search 504+ pandals or 186+ eateries to add (e.g. Sreebhumi, Bagbazar, Peter Cat, Abhijato)..."
-                    className="w-full py-2.5 px-3.5 pl-9 rounded-2xl bg-black/60 border border-white/15 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-amber-400 transition"
-                  />
-                  <Compass className="w-4 h-4 text-slate-500 absolute left-3 top-3" />
-                  {searchQuery && (
-                    <button
-                      onClick={() => setSearchQuery("")}
-                      className="absolute right-3 top-3 text-slate-400 hover:text-white text-xs"
-                    >
-                      ✕
-                    </button>
-                  )}
-                </div>
-
-                {/* Quick Zone Filter */}
-                <select
-                  value={selectedSearchZone}
-                  onChange={(e) => setSelectedSearchZone(e.target.value)}
-                  className="py-2.5 px-3 rounded-2xl bg-black/60 border border-white/15 text-xs text-slate-300 focus:outline-none focus:border-amber-400"
-                >
-                  <option value="all">All Zones</option>
-                  <option value="south">South Kolkata</option>
-                  <option value="north">North Kolkata</option>
-                  <option value="central">Central Kolkata</option>
-                  <option value="east">East / Salt Lake</option>
-                  <option value="howrah">Howrah</option>
-                  <option value="siliguri">Siliguri</option>
-                </select>
+            <div className="space-y-2.5">
+              {/* Primary Search Input */}
+              <div className="relative">
+                <input
+                  ref={searchInputRef}
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => {
+                    setSearchQuery(e.target.value);
+                    if (!showAddMenu) setShowAddMenu(true);
+                  }}
+                  onFocus={() => setShowAddMenu(true)}
+                  placeholder="Search 541+ pandals or eateries (e.g. Sreebhumi, Bagbazar, 76 Pally, Peter Cat)..."
+                  className="w-full py-2.5 px-3.5 pl-9 pr-8 rounded-2xl bg-black/60 border border-white/15 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-amber-400 transition"
+                />
+                <Compass className="w-4 h-4 text-slate-500 absolute left-3 top-3" />
+                {searchQuery && (
+                  <button
+                    onClick={() => setSearchQuery("")}
+                    className="absolute right-3 top-3 text-slate-400 hover:text-white text-xs"
+                  >
+                    ✕
+                  </button>
+                )}
               </div>
 
-              {/* Autocomplete Dropdown List */}
-              {showAddMenu && (searchQuery.trim().length > 0 || searchSuggestions.length > 0) && (
-                <div className="p-2 bg-[#1A1126] border border-amber-500/40 rounded-2xl shadow-2xl max-h-60 overflow-y-auto space-y-1 z-30 animate-fadeIn scrollbar-thin">
-                  {searchSuggestions.length > 0 ? (
-                    searchSuggestions.map((spot) => (
-                      <div
-                        key={spot.id}
-                        onClick={() => handleAddSpot(spot)}
-                        className="p-2.5 rounded-xl hover:bg-white/10 cursor-pointer flex items-center justify-between transition group"
-                      >
-                        <div className="min-w-0 flex-1 pr-2">
-                          <div className="flex items-center space-x-1.5">
-                            <span className="font-bold text-xs text-white group-hover:text-amber-300 transition truncate">
-                              {spot.name}
-                            </span>
-                            {spot.bengaliName && (
-                              <span className="text-[10px] text-amber-200/70 font-bengali truncate">
-                                ({spot.bengaliName})
-                              </span>
-                            )}
+              {/* Advanced Filter Selectors: Zone, Metro Station, Locality, Type */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5 text-xs">
+                {/* Zone Filter */}
+                <div>
+                  <label className="block text-[10px] text-slate-400 font-medium mb-0.5">Zone</label>
+                  <select
+                    value={selectedSearchZone}
+                    onChange={(e) => {
+                      setSelectedSearchZone(e.target.value);
+                      setSelectedSearchMetro("all");
+                      setSelectedSearchLocality("all");
+                      if (!showAddMenu) setShowAddMenu(true);
+                    }}
+                    className="w-full py-1.5 px-2 rounded-xl bg-black/60 border border-white/15 text-xs text-slate-300 focus:outline-none focus:border-amber-400"
+                  >
+                    <option value="all">All Zones</option>
+                    <option value="north">North Kolkata</option>
+                    <option value="central">Central Kolkata</option>
+                    <option value="south">South Kolkata</option>
+                    <option value="east">East & Salt Lake</option>
+                    <option value="southwest">South-West Kolkata</option>
+                    <option value="howrah">Howrah & Salkia</option>
+                    <option value="siliguri">Siliguri</option>
+                  </select>
+                </div>
+
+                {/* Metro Station Filter */}
+                <div>
+                  <label className="block text-[10px] text-slate-400 font-medium mb-0.5">Metro Station</label>
+                  <select
+                    value={selectedSearchMetro}
+                    onChange={(e) => {
+                      setSelectedSearchMetro(e.target.value);
+                      if (!showAddMenu) setShowAddMenu(true);
+                    }}
+                    className="w-full py-1.5 px-2 rounded-xl bg-black/60 border border-white/15 text-xs text-slate-300 focus:outline-none focus:border-amber-400"
+                  >
+                    <option value="all">All Metros</option>
+                    {availableMetroStations.map((metro) => (
+                      <option key={metro} value={metro}>
+                        🚊 {metro}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Locality Filter */}
+                <div>
+                  <label className="block text-[10px] text-slate-400 font-medium mb-0.5">Locality</label>
+                  <select
+                    value={selectedSearchLocality}
+                    onChange={(e) => {
+                      setSelectedSearchLocality(e.target.value);
+                      if (!showAddMenu) setShowAddMenu(true);
+                    }}
+                    className="w-full py-1.5 px-2 rounded-xl bg-black/60 border border-white/15 text-xs text-slate-300 focus:outline-none focus:border-amber-400"
+                  >
+                    <option value="all">All Localities</option>
+                    {availableLocalities.map((loc) => (
+                      <option key={loc} value={loc}>
+                        📍 {loc}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Type Filter */}
+                <div>
+                  <label className="block text-[10px] text-slate-400 font-medium mb-0.5">Type</label>
+                  <select
+                    value={selectedSearchType}
+                    onChange={(e) => {
+                      setSelectedSearchType(e.target.value);
+                      if (!showAddMenu) setShowAddMenu(true);
+                    }}
+                    className="w-full py-1.5 px-2 rounded-xl bg-black/60 border border-white/15 text-xs text-slate-300 focus:outline-none focus:border-amber-400"
+                  >
+                    <option value="all">All Types</option>
+                    <option value="pandals">🛕 Pandals Only</option>
+                    <option value="bonedi">🏛️ Bonedi Bari</option>
+                    <option value="food">🍽️ Eateries</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Persistent Autocomplete & Selection Drawer */}
+              {showAddMenu && (
+                <div className="p-2.5 bg-[#170e24] border border-amber-500/40 rounded-2xl shadow-2xl space-y-2 z-30 animate-fadeIn">
+                  {/* Top Bar with Live Counter and Done Button */}
+                  <div className="flex items-center justify-between pb-2 border-b border-white/10 px-1">
+                    <div className="flex items-center space-x-2">
+                      <span className="text-xs font-bold text-amber-300">
+                        {searchSuggestions.length} Results
+                      </span>
+                      <span className="text-[11px] text-slate-400">
+                        ({activePlan.spots.length} / {MAX_SPOTS_PER_PLAN} in plan)
+                      </span>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => setShowAddMenu(false)}
+                      className="px-3 py-1 rounded-xl bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/40 text-xs font-bold transition flex items-center space-x-1 shadow-sm"
+                    >
+                      <Check className="w-3.5 h-3.5" />
+                      <span>Done Adding</span>
+                    </button>
+                  </div>
+
+                  {/* Grouped Spots List */}
+                  <div className="max-h-80 overflow-y-auto space-y-3.5 pr-1 scrollbar-thin">
+                    {Object.keys(groupedSuggestions).length > 0 ? (
+                      Object.entries(groupedSuggestions).map(([zoneName, spotsInZone]) => (
+                        <div key={zoneName} className="space-y-1.5">
+                          {/* Zone Category Header */}
+                          <div className="text-[10px] font-bold uppercase tracking-wider text-amber-400/90 bg-white/5 px-2.5 py-1 rounded-lg flex items-center justify-between border-l-2 border-amber-400">
+                            <span>{zoneName}</span>
+                            <span className="text-slate-400 font-normal">{spotsInZone.length} spots</span>
                           </div>
-                          <div className="text-[10px] text-slate-400 flex items-center space-x-2 mt-0.5">
-                            <span>{spot.locality || spot.zoneLabel}</span>
-                            <span>•</span>
-                            <span>{spot.isRestaurant ? "🍽️ Eatery" : "🏛️ Pandal"}</span>
-                            {spot.metro && (
-                              <>
-                                <span>•</span>
-                                <span className="text-blue-300">🚊 {spot.metro}</span>
-                              </>
-                            )}
+
+                          {/* Spots in this Zone */}
+                          <div className="space-y-1">
+                            {spotsInZone.map((spot) => {
+                              const isInPlan = activePlan.spots.some(
+                                (s) => s.id === spot.id || (s.lat === spot.lat && s.lng === spot.lng)
+                              );
+
+                              return (
+                                <div
+                                  key={spot.id}
+                                  className={`p-2 rounded-xl flex items-center justify-between transition group ${
+                                    isInPlan
+                                      ? "bg-emerald-500/10 border border-emerald-500/30"
+                                      : "hover:bg-white/10 bg-black/20 border border-transparent"
+                                  }`}
+                                >
+                                  <div className="min-w-0 flex-1 pr-2">
+                                    <div className="flex items-center space-x-1.5">
+                                      <span className={`font-bold text-xs truncate ${isInPlan ? "text-emerald-200" : "text-white group-hover:text-amber-300"}`}>
+                                        {spot.name}
+                                      </span>
+                                      {spot.bengaliName && (
+                                        <span className="text-[10px] text-amber-200/70 font-bengali truncate">
+                                          ({spot.bengaliName})
+                                        </span>
+                                      )}
+                                      {spot.isBonediBari && (
+                                        <span className="text-[9px] px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                                          🏛️ Bonedi
+                                        </span>
+                                      )}
+                                    </div>
+                                    <div className="text-[10px] text-slate-400 flex items-center space-x-2 mt-0.5 truncate">
+                                      <span>{spot.locality || spot.zoneLabel}</span>
+                                      <span>•</span>
+                                      <span>{spot.isRestaurant ? "🍽️ Eatery" : "🛕 Pandal"}</span>
+                                      {spot.metro && (
+                                        <>
+                                          <span>•</span>
+                                          <span className="text-blue-300 font-medium">
+                                            🚊 {spot.metro} {spot.walkMin ? `(${spot.walkMin}m)` : ""}
+                                          </span>
+                                        </>
+                                      )}
+                                    </div>
+                                  </div>
+
+                                  {isInPlan ? (
+                                    <button
+                                      type="button"
+                                      onClick={() => handleToggleSpot(spot)}
+                                      className="px-2.5 py-1 rounded-lg bg-emerald-500/25 hover:bg-rose-500/30 text-emerald-300 hover:text-rose-200 border border-emerald-500/40 hover:border-rose-500/40 text-[11px] font-bold transition flex items-center space-x-1 flex-shrink-0"
+                                      title="Click to remove from plan"
+                                    >
+                                      <Check className="w-3 h-3 text-emerald-400" />
+                                      <span>Added</span>
+                                    </button>
+                                  ) : (
+                                    <button
+                                      type="button"
+                                      onClick={() => handleToggleSpot(spot)}
+                                      className="px-2.5 py-1 rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-950 text-[11px] font-bold transition flex items-center space-x-1 flex-shrink-0 shadow-sm"
+                                    >
+                                      <Plus className="w-3 h-3" />
+                                      <span>Add</span>
+                                    </button>
+                                  )}
+                                </div>
+                              );
+                            })}
                           </div>
                         </div>
-
-                        <button
-                          type="button"
-                          className="px-2.5 py-1 rounded-lg bg-amber-500/20 group-hover:bg-amber-500 group-hover:text-slate-950 text-amber-300 text-[11px] font-bold transition flex-shrink-0"
-                        >
-                          + Add
-                        </button>
+                      ))
+                    ) : (
+                      <div className="p-4 text-center text-xs text-slate-400">
+                        No matching pandals or eateries found for current filters.
                       </div>
-                    ))
-                  ) : (
-                    <div className="p-3 text-center text-xs text-slate-400">
-                      No matching pandal or eatery found for "{searchQuery}".
-                    </div>
-                  )}
+                    )}
+                  </div>
+
+                  {/* Bottom Bar Close Button */}
+                  <div className="pt-2 border-t border-white/10 flex items-center justify-between px-1">
+                    <span className="text-[11px] text-slate-400">
+                      Keep clicking <b>+ Add</b> to add multiple spots!
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setShowAddMenu(false)}
+                      className="px-3 py-1 rounded-xl bg-amber-500/20 hover:bg-amber-500 text-amber-300 hover:text-slate-950 border border-amber-500/40 text-xs font-bold transition flex items-center space-x-1"
+                    >
+                      <Check className="w-3.5 h-3.5" />
+                      <span>Done Adding ({activePlan.spots.length} Spots)</span>
+                    </button>
+                  </div>
                 </div>
               )}
             </div>
           )}
         </div>
 
-        {/* 6. SEQUENTIAL HOP TIMELINE (1 TO 25 SPOTS) */}
+        {/* 6. SEQUENTIAL HOP TIMELINE (1 TO 40 SPOTS) */}
         <div className="space-y-3 pt-2">
           <div className="flex items-center justify-between text-xs text-slate-400 pb-1">
             <span className="font-bold text-slate-200">
@@ -1022,11 +1389,11 @@ export default function RoutePlanner({
                         </button>
 
                         <a
-                          href={buildGoogleMapsNavUrl(spot, userLocation)}
+                          href={buildGoogleMapsNavUrl(spot, userLocation, (travelMode === "road" || travelMode === "bike") ? "two_wheeler" : travelMode === "metro" ? "transit" : "walking")}
                           target="_blank"
                           rel="noopener noreferrer"
                           className="p-1.5 rounded-lg text-blue-400 hover:bg-blue-600/20 transition"
-                          title="Navigate to spot via Google Maps"
+                          title={`Navigate to spot via Google Maps (${(travelMode === "road" || travelMode === "bike") ? "Road Route" : travelMode === "metro" ? "Metro Transit" : "Walking"})`}
                         >
                           <ExternalLink className="w-3.5 h-3.5" />
                         </a>
@@ -1043,21 +1410,73 @@ export default function RoutePlanner({
 
                     {/* INTER-LEG TRANSIT RECOMMENDATION BADGE */}
                     {leg && (
-                      <div className="ml-4 sm:ml-6 pl-4 border-l-2 border-dashed border-amber-500/30 py-1 my-0.5">
-                        <div className="inline-flex items-center space-x-2 px-2.5 py-1 rounded-xl bg-[#1C1226] border border-amber-500/25 text-[11px] text-amber-200/90 shadow-sm">
-                          <span>{leg.modeIcon}</span>
-                          <span className="font-semibold text-amber-300">{leg.distanceFormatted}</span>
-                          <span>•</span>
-                          <span className="text-slate-300">{leg.recommendation}</span>
-                          <a
-                            href={leg.navUrl}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-blue-400 hover:underline ml-1 font-bold inline-flex items-center gap-0.5"
-                          >
-                            <span>Navigate Leg</span>
-                            <ExternalLink className="w-2.5 h-2.5" />
-                          </a>
+                      <div className="ml-4 sm:ml-6 pl-4 border-l-2 border-dashed border-amber-500/30 py-1.5 my-1">
+                        <div className="p-3 rounded-2xl bg-[#170E24] border border-amber-500/35 space-y-2 shadow-md">
+                          <div className="flex items-center justify-between flex-wrap gap-2">
+                            <div className="flex items-center space-x-2 flex-wrap">
+                              <span className="text-base">{leg.modeIcon}</span>
+                              <span className="font-extrabold text-xs text-amber-300">{leg.distanceFormatted}</span>
+                              {travelMode === "metro" ? (
+                                <span className="text-[10px] px-2.5 py-0.5 rounded-full bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 font-bold flex items-center space-x-1">
+                                  <span>🚇 Metro Transit</span>
+                                  <span>(~{leg.travelMins}m)</span>
+                                </span>
+                              ) : (travelMode === "road" || travelMode === "bike") ? (
+                                <span className="text-[10px] px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 font-bold flex items-center space-x-1">
+                                  <span>🛵 Road Route</span>
+                                  <span>(~{leg.travelMins}m)</span>
+                                </span>
+                              ) : travelMode === "smart" ? (
+                                <span className="text-[10px] px-2.5 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/40 font-bold flex items-center space-x-1">
+                                  <span>✨ Optimal:</span>
+                                  <span>{leg.mode === "walk" ? "🚶 Walk" : (leg.mode === "road" || leg.mode === "bike") ? "🛵 Road" : "🚇 Metro"}</span>
+                                  <span>(~{leg.travelMins}m)</span>
+                                </span>
+                              ) : (
+                                <span className="text-[10px] px-2.5 py-0.5 rounded-full bg-rose-500/20 text-rose-300 border border-rose-500/40 font-medium">
+                                  <span>🚶 Walking Hop</span>
+                                  <span>(~{leg.travelMins}m)</span>
+                                </span>
+                              )}
+                            </div>
+
+                            <a
+                              href={leg.navUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="px-3 py-1 rounded-xl bg-blue-600/30 hover:bg-blue-600/50 text-blue-300 border border-blue-500/40 text-[11px] font-bold transition inline-flex items-center space-x-1 shadow-sm"
+                            >
+                              <span>Navigate Leg</span>
+                              <ExternalLink className="w-2.5 h-2.5" />
+                            </a>
+                          </div>
+
+                          <p className="text-[11px] text-slate-300 leading-relaxed font-sans">
+                            {leg.recommendation}
+                          </p>
+
+                          {/* Multi-modal Junction Comparison in Smart Mode */}
+                          {travelMode === "smart" && leg.junctionAnalysis?.comparison && (
+                            <div className="pt-1.5 border-t border-white/10 flex items-center gap-1.5 flex-wrap">
+                              <span className="text-[10px] text-slate-400 font-semibold mr-0.5">Junction Options:</span>
+                              {leg.junctionAnalysis.comparison.map((opt) => (
+                                <div
+                                  key={opt.mode}
+                                  className={`px-2 py-0.5 rounded-lg text-[10px] font-mono border flex items-center space-x-1 ${
+                                    opt.isOptimal
+                                      ? "bg-amber-400/20 text-amber-200 border-amber-400/50 font-bold"
+                                      : "bg-white/5 text-slate-400 border-white/10 opacity-75"
+                                  }`}
+                                  title={opt.note}
+                                >
+                                  <span>{opt.icon}</span>
+                                  <span>{opt.label}:</span>
+                                  <span className="font-bold">~{opt.timeMins}m</span>
+                                  {opt.isOptimal && <span className="text-amber-400 ml-0.5">★</span>}
+                                </div>
+                              ))}
+                            </div>
+                          )}
                         </div>
                       </div>
                     )}
@@ -1070,7 +1489,7 @@ export default function RoutePlanner({
               <Compass className="w-10 h-10 text-amber-400 mx-auto opacity-50" />
               <p className="text-xs text-slate-300 font-bold">This route plan is empty</p>
               <p className="text-[11px] text-slate-500 max-w-sm mx-auto">
-                Use the search bar above to add up to 25 pandals and eateries to build your custom itinerary!
+                Use the search bar above to add up to 40 pandals and eateries to build your custom itinerary!
               </p>
             </div>
           )}

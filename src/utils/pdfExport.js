@@ -387,7 +387,12 @@ export function exportTripPlanToPdf(plan, summary) {
     <div class="brand-row">
       <div>
         <h1 class="brand-title">Aamar Pujo 2026<span class="brand-bengali">আমাদের পুজো ২০২৬</span></h1>
-        <div class="plan-name">${escapeHtml(plan.name)}</div>
+        <div class="plan-name">
+          ${escapeHtml(plan.name)}
+          <span style="font-size: 11px; padding: 2px 8px; border-radius: 6px; background: #fef3c7; color: #92400e; border: 1px solid #fde68a; margin-left: 8px; font-weight: 700; vertical-align: middle;">
+            ${summary.travelMode === "metro" ? "🚇 Metro Mode" : (summary.travelMode === "road" || summary.travelMode === "bike") ? "🛵 Road Mode" : summary.travelMode === "smart" ? "🧠 Smart Multi-Modal" : "🚶 Foot Mode"}
+          </span>
+        </div>
         <p class="plan-desc">${escapeHtml(plan.description || "Official Kolkata Durga Puja Step-by-Step Hopping Circuit")}</p>
       </div>
       <div class="date-badge">
@@ -404,7 +409,7 @@ export function exportTripPlanToPdf(plan, summary) {
     </div>
     <div class="metric-card">
       <span class="metric-val">${summary.totalDistanceFormatted}</span>
-      <span class="metric-lbl">Est. Walking / Transit</span>
+      <span class="metric-lbl">${summary.travelMode === "metro" ? "Metro Rail Transit" : (summary.travelMode === "road" || summary.travelMode === "bike") ? "Road Transit" : summary.travelMode === "smart" ? "Multi-Modal Distance" : "Walking / Transit"}</span>
     </div>
     <div class="metric-card">
       <span class="metric-val">${summary.totalDurationFormatted}</span>
