@@ -26,7 +26,11 @@ import {
   AlertCircle,
   Bike,
   Footprints,
-  Brain
+  Brain,
+  GripVertical,
+  Undo2,
+  Flag,
+  X
 } from "lucide-react";
 
 import {
@@ -50,6 +54,19 @@ import { RESTAURANTS_DATA } from "../data/restaurantsData";
 import { normalizePhonetic } from "../utils/phoneticSearch";
 import { buildGoogleMapsNavUrl } from "../utils/navigationHelper";
 
+export const TRANSIT_ANCHOR_PRESETS = [
+  { id: "howrah", name: "Howrah Railway Station", locality: "Howrah", lat: 22.5839, lng: 88.3426, icon: "🚂" },
+  { id: "sealdah", name: "Sealdah Railway Station", locality: "Sealdah", lat: 22.5674, lng: 88.3712, icon: "🚂" },
+  { id: "airport", name: "Kolkata Airport (CCU)", locality: "Dum Dum", lat: 22.6547, lng: 88.4467, icon: "✈️" },
+  { id: "esplanade", name: "Esplanade Metro & Bus Hub", locality: "Central Kolkata", lat: 22.5647, lng: 88.3518, icon: "🚇" },
+  { id: "dumdum", name: "Dum Dum Metro Station", locality: "North Kolkata", lat: 22.6223, lng: 88.3934, icon: "🚇" },
+  { id: "kalighat", name: "Kalighat Metro Station", locality: "South Kolkata", lat: 22.5186, lng: 88.3444, icon: "🚇" },
+  { id: "kavisubhash", name: "Kavi Subhash Metro (New Garia)", locality: "South Terminal", lat: 22.4704, lng: 88.3980, icon: "🚇" },
+  { id: "sectorv", name: "Salt Lake Sector V Metro", locality: "East / IT Hub", lat: 22.5735, lng: 88.4331, icon: "🚇" },
+  { id: "parkstreet", name: "Park Street Metro", locality: "Central Kolkata", lat: 22.5535, lng: 88.3524, icon: "🚇" },
+  { id: "ruby", name: "Ruby General Hospital (EM Bypass)", locality: "East Bypass", lat: 22.5134, lng: 88.4026, icon: "🏥" }
+];
+
 export default function RoutePlanner({
   userLocation,
   onSelectPlanForMap,
@@ -60,6 +77,21 @@ export default function RoutePlanner({
   const [plans, setPlans] = useState(() => loadSavedRoutePlans());
   const [activePlanIndex, setActivePlanIndex] = useState(0);
   const [travelMode, setTravelMode] = useState(currentTravelMode || "smart");
+
+  // Undo History Stack (stores last 25 route snapshots)
+  const [undoHistory, setUndoHistory] = useState([]);
+
+  // Drag and drop sliding order state
+  const [draggedIndex, setDraggedIndex] = useState(null);
+  const [dragOverIndex, setDragOverIndex] = useState(null);
+
+  // Custom Endpoint configuration modal state ('start' | 'end' | null)
+  const [showEndpointModal, setShowEndpointModal] = useState(null);
+  const [customEndpointName, setCustomEndpointName] = useState("");
+  const [customEndpointLocality, setCustomEndpointLocality] = useState("");
+  const [customEndpointLat, setCustomEndpointLat] = useState("");
+  const [customEndpointLng, setCustomEndpointLng] = useState("");
+  const [customSearchQuery, setCustomSearchQuery] = useState("");
 
   // Keep travelMode in sync with parent if prop updates
   useEffect(() => {
@@ -138,20 +170,58 @@ export default function RoutePlanner({
     saveRoutePlans(plans);
   }, [plans]);
 
-  // Sync active plan and travel mode with the Leaflet map above
+  // Determine Effective Starting Coordinates (anchors TSP & transit)
+  const effectiveStartCoords = React.useMemo(() => {
+    if (activePlan?.startPoint) {
+      if (activePlan.startPoint.type === "gps") {
+        return userLocation?.lat && userLocation?.lng
+          ? { lat: userLocation.lat, lng: userLocation.lng, name: "📍 Live GPS Position", locality: "Your Location" }
+          : null;
+      }
+      if (activePlan.startPoint.type === "spot") {
+        return null; // Starts at Spot #1
+      }
+      return activePlan.startPoint;
+    }
+    if (startFromGps && userLocation?.lat && userLocation?.lng) {
+      return { lat: userLocation.lat, lng: userLocation.lng, name: "📍 Live GPS Position", locality: "Your Location" };
+    }
+    return null;
+  }, [activePlan?.startPoint, startFromGps, userLocation]);
+
+  // Determine Effective Ending Coordinates (anchors TSP & transit)
+  const effectiveEndCoords = React.useMemo(() => {
+    if (activePlan?.endPoint) {
+      if (activePlan.endPoint.type === "round") {
+        return effectiveStartCoords || (activePlan.spots?.[0] ? { ...activePlan.spots[0], name: `${activePlan.spots[0].name} (Round Trip Return)` } : null);
+      }
+      if (activePlan.endPoint.type === "gps") {
+        return userLocation?.lat && userLocation?.lng
+          ? { lat: userLocation.lat, lng: userLocation.lng, name: "📍 Live GPS Position", locality: "Your Location" }
+          : null;
+      }
+      if (activePlan.endPoint.type === "spot") {
+        return null; // Ends at Spot #N
+      }
+      return activePlan.endPoint;
+    }
+    return null;
+  }, [activePlan?.endPoint, effectiveStartCoords, userLocation, activePlan?.spots]);
+
+  // Sync active plan, endpoints, and travel mode with the Leaflet map above
   useEffect(() => {
     if (onSelectPlanForMap) {
-      onSelectPlanForMap(activePlan, travelMode);
+      onSelectPlanForMap({
+        ...activePlan,
+        startPoint: effectiveStartCoords,
+        endPoint: effectiveEndCoords
+      }, travelMode);
     }
-  }, [activePlan, activePlanIndex, travelMode]);
+  }, [activePlan, activePlanIndex, travelMode, effectiveStartCoords, effectiveEndCoords]);
 
-  // Compute circuit summary for active plan
-  const startCoords = startFromGps && userLocation?.lat && userLocation?.lng
-    ? { lat: userLocation.lat, lng: userLocation.lng, name: "Your GPS Position" }
-    : null;
-
+  // Compute circuit summary for active plan with anchored start and end points
   const summary = activePlan && activePlan.spots
-    ? calculateCircuitSummary(activePlan.spots, startCoords, travelMode)
+    ? calculateCircuitSummary(activePlan.spots, effectiveStartCoords, travelMode, effectiveEndCoords)
     : {
         spotCount: 0,
         pandalsCount: 0,
@@ -167,7 +237,11 @@ export default function RoutePlanner({
       };
 
   const googleMapsChunks = activePlan && activePlan.spots
-    ? buildGoogleMapsCircuitUrl(activePlan.spots, startCoords, travelMode)
+    ? buildGoogleMapsCircuitUrl(activePlan.spots, {
+        travelMode,
+        startPoint: effectiveStartCoords,
+        endPoint: effectiveEndCoords
+      })
     : null;
 
   // Available Metro Stations based on selected zone
@@ -365,6 +439,182 @@ export default function RoutePlanner({
     setIsEditingPlanName(false);
   };
 
+  // UNDO SNAPSHOT & RESTORATION STACK
+  const pushUndoSnapshot = (description = "Route Change") => {
+    if (!activePlan) return;
+    const snapshot = {
+      planId: activePlan.id,
+      spots: JSON.parse(JSON.stringify(activePlan.spots || [])),
+      startPoint: activePlan.startPoint ? JSON.parse(JSON.stringify(activePlan.startPoint)) : null,
+      endPoint: activePlan.endPoint ? JSON.parse(JSON.stringify(activePlan.endPoint)) : null,
+      description,
+      timestamp: Date.now()
+    };
+    setUndoHistory((prev) => [snapshot, ...prev].slice(0, 25));
+  };
+
+  const handleUndo = () => {
+    if (undoHistory.length === 0 || !activePlan) return;
+    const [latest, ...rest] = undoHistory;
+
+    const updatedPlans = plans.map((p, idx) => {
+      if (idx === activePlanIndex) {
+        return {
+          ...p,
+          spots: latest.spots,
+          startPoint: latest.startPoint,
+          endPoint: latest.endPoint,
+          updatedAt: Date.now()
+        };
+      }
+      return p;
+    });
+
+    setPlans(updatedPlans);
+    setUndoHistory(rest);
+    setShareToast(`↩️ Reverted: ${latest.description || "Previous change"}`);
+    setTimeout(() => setShareToast(""), 3500);
+  };
+
+  // Keyboard shortcut listener: Ctrl+Z / Cmd+Z for instant undo
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "z" && !e.shiftKey) {
+        const tag = document.activeElement ? document.activeElement.tagName.toLowerCase() : "";
+        if (tag === "input" || tag === "textarea" || document.activeElement?.isContentEditable) {
+          return;
+        }
+        if (undoHistory.length > 0) {
+          e.preventDefault();
+          handleUndo();
+        }
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [undoHistory, plans, activePlanIndex]);
+
+  // ENDPOINTS MANAGEMENT (START & DESTINATION ANCHORS)
+  const handleSetStartPoint = (point) => {
+    if (!activePlan) return;
+    pushUndoSnapshot("Changed Starting Point");
+    const updatedPlans = plans.map((p, idx) => {
+      if (idx === activePlanIndex) {
+        return {
+          ...p,
+          startPoint: point,
+          updatedAt: Date.now()
+        };
+      }
+      return p;
+    });
+    setPlans(updatedPlans);
+  };
+
+  const handleSetEndPoint = (point) => {
+    if (!activePlan) return;
+    pushUndoSnapshot("Changed Ending Point");
+    const updatedPlans = plans.map((p, idx) => {
+      if (idx === activePlanIndex) {
+        return {
+          ...p,
+          endPoint: point,
+          updatedAt: Date.now()
+        };
+      }
+      return p;
+    });
+    setPlans(updatedPlans);
+  };
+
+  const handleSaveCustomEndpoint = (type) => {
+    const cleanName = customEndpointName.trim();
+    if (!cleanName) {
+      alert("Please provide a name for your custom location.");
+      return;
+    }
+    const latNum = parseFloat(customEndpointLat);
+    const lngNum = parseFloat(customEndpointLng);
+    if (isNaN(latNum) || isNaN(lngNum)) {
+      alert("Please provide valid numeric coordinates (latitude & longitude) or pick a location from suggestions.");
+      return;
+    }
+
+    const customPoint = {
+      type: "custom",
+      name: cleanName,
+      locality: customEndpointLocality.trim() || "Custom Kolkata Landmark",
+      lat: latNum,
+      lng: lngNum
+    };
+
+    if (type === "start") {
+      handleSetStartPoint(customPoint);
+    } else {
+      handleSetEndPoint(customPoint);
+    }
+
+    setShowEndpointModal(null);
+    setCustomEndpointName("");
+    setCustomEndpointLocality("");
+    setCustomEndpointLat("");
+    setCustomEndpointLng("");
+    setCustomSearchQuery("");
+  };
+
+  // DRAG & DROP SLIDING ORDER HANDLERS
+  const handleDragStart = (e, index) => {
+    setDraggedIndex(index);
+    e.dataTransfer.effectAllowed = "move";
+    e.dataTransfer.setData("text/plain", `${index}`);
+  };
+
+  const handleDragOver = (e, index) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = "move";
+    if (dragOverIndex !== index) {
+      setDragOverIndex(index);
+    }
+  };
+
+  const handleDragLeave = (index) => {
+    if (dragOverIndex === index) {
+      setDragOverIndex(null);
+    }
+  };
+
+  const handleDrop = (e, targetIndex) => {
+    e.preventDefault();
+    const sourceIndex = draggedIndex !== null ? draggedIndex : parseInt(e.dataTransfer.getData("text/plain"), 10);
+    
+    setDraggedIndex(null);
+    setDragOverIndex(null);
+
+    if (isNaN(sourceIndex) || sourceIndex === targetIndex || !activePlan) return;
+
+    pushUndoSnapshot(`Reordered #${sourceIndex + 1} to #${targetIndex + 1}`);
+
+    const reordered = [...activePlan.spots];
+    const [movedSpot] = reordered.splice(sourceIndex, 1);
+    reordered.splice(targetIndex, 0, movedSpot);
+
+    const updatedPlans = plans.map((p, idx) => {
+      if (idx === activePlanIndex) {
+        return { ...p, spots: reordered, updatedAt: Date.now() };
+      }
+      return p;
+    });
+
+    setPlans(updatedPlans);
+    setOptimizationNotice(null);
+  };
+
+  const handleDragEnd = () => {
+    setDraggedIndex(null);
+    setDragOverIndex(null);
+  };
+
   // SPOT MANAGEMENT HANDLERS (PERSISTENT MULTI-ADD)
   const handleToggleSpot = (spot) => {
     if (!activePlan) {
@@ -387,6 +637,7 @@ export default function RoutePlanner({
 
     if (alreadyIdx >= 0) {
       // Already in plan -> remove
+      pushUndoSnapshot(`Removed "${spot.name}"`);
       const updatedSpots = activePlan.spots.filter((_, idx) => idx !== alreadyIdx);
       const updatedPlans = plans.map((p, idx) => {
         if (idx === activePlanIndex) {
@@ -406,6 +657,7 @@ export default function RoutePlanner({
     }
 
     // Add to plan and STAY OPEN (do not close modal, do not clear search)
+    pushUndoSnapshot(`Added "${spot.name}"`);
     const updatedSpots = [...activePlan.spots, spot];
     const updatedPlans = plans.map((p, idx) => {
       if (idx === activePlanIndex) {
@@ -421,6 +673,9 @@ export default function RoutePlanner({
   const handleAddSpot = handleToggleSpot;
 
   const handleRemoveSpot = (spotIndex) => {
+    if (activePlan?.spots?.[spotIndex]) {
+      pushUndoSnapshot(`Removed "${activePlan.spots[spotIndex].name}"`);
+    }
     const updatedSpots = activePlan.spots.filter((_, idx) => idx !== spotIndex);
     const updatedPlans = plans.map((p, idx) => {
       if (idx === activePlanIndex) {
@@ -436,6 +691,10 @@ export default function RoutePlanner({
   const handleMoveSpot = (spotIndex, direction) => {
     const newIdx = spotIndex + direction;
     if (newIdx < 0 || newIdx >= activePlan.spots.length) return;
+
+    if (activePlan?.spots?.[spotIndex]) {
+      pushUndoSnapshot(`Moved "${activePlan.spots[spotIndex].name}" ${direction > 0 ? "down" : "up"}`);
+    }
 
     const reordered = [...activePlan.spots];
     const temp = reordered[spotIndex];
@@ -453,14 +712,16 @@ export default function RoutePlanner({
     setOptimizationNotice(null);
   };
 
-  // AI SEQUENTIAL OPTIMIZATION
+  // AI SEQUENTIAL OPTIMIZATION (Anchored between Start Point and End Point)
   const handleOptimizeRoute = () => {
     if (activePlan.spots.length <= 1) {
       alert("Please add at least 2 spots to your plan to optimize the sequential route!");
       return;
     }
 
-    const res = optimizeRouteSequential(activePlan.spots, startCoords);
+    pushUndoSnapshot("AI Route Optimization");
+
+    const res = optimizeRouteSequential(activePlan.spots, effectiveStartCoords, effectiveEndCoords);
 
     const updatedPlans = plans.map((p, idx) => {
       if (idx === activePlanIndex) {
@@ -475,15 +736,20 @@ export default function RoutePlanner({
 
     setPlans(updatedPlans);
 
+    const anchorDetails = [];
+    if (effectiveStartCoords) anchorDetails.push(`From: ${effectiveStartCoords.name}`);
+    if (effectiveEndCoords) anchorDetails.push(`To: ${effectiveEndCoords.name}`);
+    const anchorSuffix = anchorDetails.length > 0 ? ` (${anchorDetails.join(" • ")})` : "";
+
     if (res.savedDistanceKm > 0.1) {
       setOptimizationNotice({
         type: "success",
-        msg: `⚡ AI Route Optimized! Saved ${res.savedDistanceKm.toFixed(1)} km (~${res.percentSaved}%) by eliminating backtracking.`
+        msg: `⚡ AI Route Optimized! Saved ${res.savedDistanceKm.toFixed(1)} km (~${res.percentSaved}%)${anchorSuffix} by eliminating backtracking.`
       });
     } else {
       setOptimizationNotice({
         type: "info",
-        msg: `✨ Your spots are already in the optimal geographical sequence!`
+        msg: `✨ Your spots are already in the optimal geographical sequence${anchorSuffix}!`
       });
     }
 
@@ -950,41 +1216,207 @@ export default function RoutePlanner({
           </div>
 
           <div className="p-3 rounded-2xl bg-black/40 border border-white/5 flex flex-col justify-between">
-            <span className="text-[10px] text-slate-400 block font-medium">Starting Point:</span>
-            <div className="flex items-center space-x-1.5">
-              <button
-                onClick={() => setStartFromGps(!startFromGps)}
-                className={`px-2 py-1 rounded-lg text-[10px] font-bold border transition ${
-                  startFromGps
-                    ? "bg-rose-600 text-white border-rose-400"
-                    : "bg-white/5 text-slate-400 border-white/10"
-                }`}
-              >
-                {startFromGps ? "📍 Live GPS" : "🏁 1st Spot"}
-              </button>
+            <span className="text-[10px] text-slate-400 block font-medium">Route Endpoints:</span>
+            <div className="text-[11px] font-bold text-slate-200 truncate">
+              <span className="text-emerald-400 font-mono">🏁 {effectiveStartCoords ? (effectiveStartCoords.name.length > 14 ? effectiveStartCoords.name.slice(0, 14) + "…" : effectiveStartCoords.name) : "Spot #1"}</span>
+              <span className="mx-1 text-slate-500">➔</span>
+              <span className="text-blue-400 font-mono">🎯 {effectiveEndCoords ? (effectiveEndCoords.name.length > 14 ? effectiveEndCoords.name.slice(0, 14) + "…" : effectiveEndCoords.name) : "Spot #N"}</span>
             </div>
             <span className="text-[9px] text-slate-500">
-              {startFromGps ? "Anchored from your phone" : "Starts at Spot #1"}
+              {effectiveStartCoords || effectiveEndCoords ? "Anchored by AI TSP" : "Spot-to-spot default"}
             </span>
           </div>
         </div>
 
-        {/* 4. AI OPTIMIZER & GOOGLE MAPS LAUNCH BAR */}
+        {/* 3.1 ROUTE ANCHOR ENDPOINTS (STARTING POINT & DESTINATION SELECTION) */}
+        <div className="p-3.5 sm:p-4 rounded-2xl bg-gradient-to-r from-slate-900/90 via-black/80 to-slate-900/90 border border-white/10 shadow-xl space-y-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-2">
+              <Flag className="w-4 h-4 text-emerald-400" />
+              <span className="text-xs sm:text-sm font-bold text-slate-100">
+                Route Anchor Endpoints <span className="text-slate-400 text-[11px] font-normal">(Start & Destination)</span>
+              </span>
+            </div>
+            <span className="text-[10px] text-amber-300 font-medium hidden sm:inline">
+              ✨ AI TSP optimizer will sequence your spots between these anchors
+            </span>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
+            {/* Starting Point Selector */}
+            <div className="p-2.5 rounded-xl bg-slate-950/70 border border-emerald-500/30 space-y-1.5">
+              <div className="flex items-center justify-between">
+                <label className="text-[11px] font-bold text-emerald-300 flex items-center space-x-1">
+                  <span>🏁 Starting Point:</span>
+                </label>
+                {effectiveStartCoords && (
+                  <span className="text-[10px] text-emerald-400 font-mono font-bold truncate max-w-[140px]">
+                    {effectiveStartCoords.name}
+                  </span>
+                )}
+              </div>
+
+              <div className="flex items-center space-x-1.5">
+                <select
+                  value={activePlan.startPoint?.type === "custom" ? "custom" : (activePlan.startPoint?.id || activePlan.startPoint?.type || (startFromGps ? "gps" : "spot"))}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    if (val === "spot") {
+                      setStartFromGps(false);
+                      handleSetStartPoint({ type: "spot" });
+                    } else if (val === "gps") {
+                      setStartFromGps(true);
+                      handleSetStartPoint({ type: "gps", name: "📍 Live GPS Position", locality: "Your Current Location" });
+                    } else if (val === "custom") {
+                      setShowEndpointModal("start");
+                    } else {
+                      setStartFromGps(false);
+                      const preset = TRANSIT_ANCHOR_PRESETS.find((p) => p.id === val);
+                      if (preset) {
+                        handleSetStartPoint({
+                          type: "preset",
+                          id: preset.id,
+                          name: preset.name,
+                          locality: preset.locality,
+                          lat: preset.lat,
+                          lng: preset.lng
+                        });
+                      }
+                    }
+                  }}
+                  className="flex-1 bg-slate-900 text-slate-200 py-1.5 px-2.5 rounded-lg border border-white/15 focus:border-emerald-400 focus:outline-none text-xs font-semibold cursor-pointer"
+                >
+                  <option value="spot">🏁 1st Spot in Plan (Default)</option>
+                  <option value="gps">📍 Live GPS Position (Your Phone)</option>
+                  <optgroup label="🏛️ Kolkata Transit Anchors & Stations">
+                    {TRANSIT_ANCHOR_PRESETS.map((p) => (
+                      <option key={p.id} value={p.id}>
+                        {p.icon} {p.name} ({p.locality})
+                      </option>
+                    ))}
+                  </optgroup>
+                  <option value="custom">✏️ Custom Location / Address / Home...</option>
+                </select>
+
+                {activePlan.startPoint?.type === "custom" && (
+                  <button
+                    onClick={() => setShowEndpointModal("start")}
+                    className="px-2 py-1.5 rounded-lg bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-[10px] font-bold hover:bg-emerald-500/30"
+                    title="Edit Custom Start Location"
+                  >
+                    Edit
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {/* Ending Point Selector */}
+            <div className="p-2.5 rounded-xl bg-slate-950/70 border border-blue-500/30 space-y-1.5">
+              <div className="flex items-center justify-between">
+                <label className="text-[11px] font-bold text-blue-300 flex items-center space-x-1">
+                  <span>🎯 Ending Destination:</span>
+                </label>
+                {effectiveEndCoords && (
+                  <span className="text-[10px] text-blue-400 font-mono font-bold truncate max-w-[140px]">
+                    {effectiveEndCoords.name}
+                  </span>
+                )}
+              </div>
+
+              <div className="flex items-center space-x-1.5">
+                <select
+                  value={activePlan.endPoint?.type === "custom" ? "custom" : (activePlan.endPoint?.id || activePlan.endPoint?.type || "spot")}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    if (val === "spot") {
+                      handleSetEndPoint({ type: "spot" });
+                    } else if (val === "round") {
+                      handleSetEndPoint({ type: "round", name: "🔄 Return to Start Point" });
+                    } else if (val === "gps") {
+                      handleSetEndPoint({ type: "gps", name: "📍 Live GPS Position", locality: "Your Current Location" });
+                    } else if (val === "custom") {
+                      setShowEndpointModal("end");
+                    } else {
+                      const preset = TRANSIT_ANCHOR_PRESETS.find((p) => p.id === val);
+                      if (preset) {
+                        handleSetEndPoint({
+                          type: "preset",
+                          id: preset.id,
+                          name: preset.name,
+                          locality: preset.locality,
+                          lat: preset.lat,
+                          lng: preset.lng
+                        });
+                      }
+                    }
+                  }}
+                  className="flex-1 bg-slate-900 text-slate-200 py-1.5 px-2.5 rounded-lg border border-white/15 focus:border-blue-400 focus:outline-none text-xs font-semibold cursor-pointer"
+                >
+                  <option value="spot">🎯 Last Spot in Plan (Default)</option>
+                  <option value="round">🔄 Return to Start (Round Trip)</option>
+                  <option value="gps">📍 Live GPS Position (Your Phone)</option>
+                  <optgroup label="🏛️ Kolkata Transit Anchors & Stations">
+                    {TRANSIT_ANCHOR_PRESETS.map((p) => (
+                      <option key={p.id} value={p.id}>
+                        {p.icon} {p.name} ({p.locality})
+                      </option>
+                    ))}
+                  </optgroup>
+                  <option value="custom">✏️ Custom Location / Address / Home...</option>
+                </select>
+
+                {activePlan.endPoint?.type === "custom" && (
+                  <button
+                    onClick={() => setShowEndpointModal("end")}
+                    className="px-2 py-1.5 rounded-lg bg-blue-500/20 text-blue-300 border border-blue-500/30 text-[10px] font-bold hover:bg-blue-500/30"
+                    title="Edit Custom Destination"
+                  >
+                    Edit
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* 4. AI OPTIMIZER & ACTION BAR */}
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 pt-2">
           
-          {/* AI Optimizer Button */}
-          <button
-            onClick={handleOptimizeRoute}
-            disabled={activePlan.spots.length < 2}
-            className={`px-5 py-3 rounded-2xl font-black text-xs sm:text-sm flex items-center justify-center space-x-2 transition shadow-xl ${
-              activePlan.spots.length >= 2
-                ? "bg-gradient-to-r from-amber-500 via-rose-600 to-amber-500 hover:from-amber-400 hover:to-rose-500 text-slate-950 shadow-rose-900/30 hover:scale-[1.02] cursor-pointer"
-                : "bg-white/5 text-slate-500 border border-white/5 cursor-not-allowed"
-            }`}
-          >
-            <Sparkles className="w-4 h-4 text-slate-950 animate-spin" />
-            <span>✨ AI Optimize Route (Sequential Hop)</span>
-          </button>
+          <div className="flex items-center space-x-2 flex-wrap">
+            {/* AI Optimizer Button */}
+            <button
+              onClick={handleOptimizeRoute}
+              disabled={activePlan.spots.length < 2}
+              className={`px-5 py-3 rounded-2xl font-black text-xs sm:text-sm flex items-center justify-center space-x-2 transition shadow-xl ${
+                activePlan.spots.length >= 2
+                  ? "bg-gradient-to-r from-amber-500 via-rose-600 to-amber-500 hover:from-amber-400 hover:to-rose-500 text-slate-950 shadow-rose-900/30 hover:scale-[1.02] cursor-pointer"
+                  : "bg-white/5 text-slate-500 border border-white/5 cursor-not-allowed"
+              }`}
+            >
+              <Sparkles className="w-4 h-4 text-slate-950 animate-spin" />
+              <span>✨ AI Optimize Route (Sequential Hop)</span>
+            </button>
+
+            {/* Undo Button with History Counter */}
+            <button
+              onClick={handleUndo}
+              disabled={undoHistory.length === 0}
+              className={`px-3.5 py-3 rounded-2xl font-bold text-xs sm:text-sm flex items-center justify-center space-x-1.5 transition shadow-lg ${
+                undoHistory.length > 0
+                  ? "bg-slate-800 hover:bg-slate-700 text-amber-300 border border-amber-400/40 hover:scale-[1.02] cursor-pointer"
+                  : "bg-white/5 text-slate-600 border border-white/5 cursor-not-allowed opacity-50"
+              }`}
+              title="Undo last route edit, reorder, or optimization (Ctrl+Z)"
+            >
+              <Undo2 className="w-4 h-4 text-amber-400" />
+              <span>↩️ Undo</span>
+              {undoHistory.length > 0 && (
+                <span className="px-1.5 py-0.2 rounded-full bg-amber-400/20 text-amber-300 text-[10px] font-mono">
+                  {undoHistory.length}
+                </span>
+              )}
+            </button>
+          </div>
 
           {/* Action Launchers: PDF Download & Google Maps */}
           <div className="flex items-center space-x-2 flex-wrap">
@@ -1311,22 +1743,105 @@ export default function RoutePlanner({
               Sequential Hopping Itinerary ({activePlan.spots.length} Spots)
             </span>
             <span className="text-[11px] text-slate-500">
-              Use 🔼 🔽 to manually reorder, or click AI Optimize
+              Drag ⋮⋮ handle to slide order, 🔼 🔽 for 1-tap, or click AI Optimize
             </span>
           </div>
 
           {activePlan.spots.length > 0 ? (
             <div className="space-y-2">
+              {/* DEPARTURE ENDPOINT CARD (if effectiveStartCoords is configured) */}
+              {effectiveStartCoords && (
+                <div className="space-y-2">
+                  <div className="p-3.5 rounded-2xl bg-gradient-to-r from-emerald-950/80 via-slate-900 to-emerald-950/40 border border-emerald-500/50 shadow-lg flex items-center justify-between gap-3">
+                    <div className="flex items-center space-x-3 min-w-0">
+                      <div className="w-8 h-8 rounded-full bg-emerald-500 text-slate-950 font-black text-sm flex items-center justify-center flex-shrink-0 shadow-lg shadow-emerald-900/40">
+                        🏁
+                      </div>
+                      <div className="min-w-0">
+                        <div className="flex items-center space-x-2">
+                          <span className="text-[10px] font-black text-emerald-400 uppercase tracking-wider">Starting Point</span>
+                          <span className="text-[10px] text-slate-400">({effectiveStartCoords.locality || "Origin"})</span>
+                        </div>
+                        <div className="text-xs sm:text-sm font-bold text-white truncate">
+                          {effectiveStartCoords.name}
+                        </div>
+                      </div>
+                    </div>
+                    <div className="text-[10px] px-2.5 py-1 rounded-xl bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 font-bold whitespace-nowrap">
+                      Route Departure
+                    </div>
+                  </div>
+
+                  {/* Departure Leg Transit Advice */}
+                  {summary.legs.find((l) => l.isStartEndpointLeg) && (() => {
+                    const depLeg = summary.legs.find((l) => l.isStartEndpointLeg);
+                    return (
+                      <div className="ml-4 sm:ml-6 pl-4 border-l-2 border-dashed border-emerald-500/40 py-1.5 my-1">
+                        <div className="p-3 rounded-2xl bg-[#0F171A] border border-emerald-500/35 space-y-2 shadow-md">
+                          <div className="flex items-center justify-between flex-wrap gap-2">
+                            <div className="flex items-center space-x-2 flex-wrap">
+                              <span className="text-base">{depLeg.modeIcon}</span>
+                              <span className="font-extrabold text-xs text-emerald-300">{depLeg.distanceFormatted}</span>
+                              <span className="text-[10px] px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 font-bold flex items-center space-x-1">
+                                <span>Departure Leg</span>
+                                <span>(~{depLeg.travelMins}m)</span>
+                              </span>
+                            </div>
+                            {depLeg.navUrl && (
+                              <a
+                                href={depLeg.navUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="px-3 py-1 rounded-xl bg-blue-600/30 hover:bg-blue-600/50 text-blue-300 border border-blue-500/40 text-[11px] font-bold transition inline-flex items-center space-x-1 shadow-sm"
+                              >
+                                <span>Navigate Leg</span>
+                                <ExternalLink className="w-2.5 h-2.5" />
+                              </a>
+                            )}
+                          </div>
+                          <p className="text-[11px] text-slate-300 leading-relaxed font-sans">
+                            {depLeg.recommendation}
+                          </p>
+                        </div>
+                      </div>
+                    );
+                  })()}
+                </div>
+              )}
+
+              {/* ROUTE SPOTS TIMELINE (SLIDING REORDER + DRAG AND DROP) */}
               {activePlan.spots.map((spot, idx) => {
-                const leg = summary.legs[idx];
+                const intermediateLegs = summary.legs.filter((l) => !l.isStartEndpointLeg && !l.isEndEndpointLeg);
+                const leg = intermediateLegs[idx];
                 const isFirst = idx === 0;
                 const isLast = idx === activePlan.spots.length - 1;
 
                 return (
                   <React.Fragment key={spot.id || idx}>
-                    {/* SPOT CARD */}
-                    <div className="p-3.5 rounded-2xl bg-black/50 border border-white/10 hover:border-amber-400/40 transition flex items-center justify-between gap-3 group">
-                      
+                    {/* SPOT CARD WITH DRAG & DROP REORDER */}
+                    <div
+                      draggable={true}
+                      onDragStart={(e) => handleDragStart(e, idx)}
+                      onDragOver={(e) => handleDragOver(e, idx)}
+                      onDragLeave={() => handleDragLeave(idx)}
+                      onDrop={(e) => handleDrop(e, idx)}
+                      onDragEnd={handleDragEnd}
+                      className={`p-3.5 rounded-2xl bg-black/50 border transition flex items-center justify-between gap-2.5 sm:gap-3 group select-none ${
+                        dragOverIndex === idx
+                          ? "border-amber-400 bg-amber-500/15 ring-2 ring-amber-400/50 scale-[1.01]"
+                          : draggedIndex === idx
+                          ? "opacity-50 border-dashed border-amber-500/40"
+                          : "border-white/10 hover:border-amber-400/40"
+                      }`}
+                    >
+                      {/* Grip Drag Handle */}
+                      <div
+                        className="p-1 -ml-1 text-slate-500 group-hover:text-amber-400 cursor-grab active:cursor-grabbing hover:bg-white/5 rounded-lg transition"
+                        title="Drag / Slide to reorder stop"
+                      >
+                        <GripVertical className="w-4 h-4" />
+                      </div>
+
                       {/* Step Number Badge & Name */}
                       <div className="flex items-center space-x-3 min-w-0 flex-1">
                         <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-gradient-to-tr from-amber-500 to-rose-600 text-slate-950 font-black text-xs sm:text-sm flex items-center justify-center flex-shrink-0 shadow-md">
@@ -1409,7 +1924,7 @@ export default function RoutePlanner({
                     </div>
 
                     {/* INTER-LEG TRANSIT RECOMMENDATION BADGE */}
-                    {leg && (
+                    {idx < activePlan.spots.length - 1 && leg && (
                       <div className="ml-4 sm:ml-6 pl-4 border-l-2 border-dashed border-amber-500/30 py-1.5 my-1">
                         <div className="p-3 rounded-2xl bg-[#170E24] border border-amber-500/35 space-y-2 shadow-md">
                           <div className="flex items-center justify-between flex-wrap gap-2">
@@ -1483,6 +1998,66 @@ export default function RoutePlanner({
                   </React.Fragment>
                 );
               })}
+
+              {/* ARRIVAL ENDPOINT CARD (if effectiveEndCoords is configured) */}
+              {effectiveEndCoords && activePlan.spots.length > 0 && (
+                <div className="space-y-2 pt-1">
+                  {/* Arrival Leg Transit Advice */}
+                  {summary.legs.find((l) => l.isEndEndpointLeg) && (() => {
+                    const arrLeg = summary.legs.find((l) => l.isEndEndpointLeg);
+                    return (
+                      <div className="ml-4 sm:ml-6 pl-4 border-l-2 border-dashed border-blue-500/40 py-1.5 my-1">
+                        <div className="p-3 rounded-2xl bg-[#0D1527] border border-blue-500/35 space-y-2 shadow-md">
+                          <div className="flex items-center justify-between flex-wrap gap-2">
+                            <div className="flex items-center space-x-2 flex-wrap">
+                              <span className="text-base">{arrLeg.modeIcon}</span>
+                              <span className="font-extrabold text-xs text-blue-300">{arrLeg.distanceFormatted}</span>
+                              <span className="text-[10px] px-2.5 py-0.5 rounded-full bg-blue-500/20 text-blue-300 border border-blue-500/40 font-bold flex items-center space-x-1">
+                                <span>Arrival Leg</span>
+                                <span>(~{arrLeg.travelMins}m)</span>
+                              </span>
+                            </div>
+                            {arrLeg.navUrl && (
+                              <a
+                                href={arrLeg.navUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="px-3 py-1 rounded-xl bg-blue-600/30 hover:bg-blue-600/50 text-blue-300 border border-blue-500/40 text-[11px] font-bold transition inline-flex items-center space-x-1 shadow-sm"
+                              >
+                                <span>Navigate Leg</span>
+                                <ExternalLink className="w-2.5 h-2.5" />
+                              </a>
+                            )}
+                          </div>
+                          <p className="text-[11px] text-slate-300 leading-relaxed font-sans">
+                            {arrLeg.recommendation}
+                          </p>
+                        </div>
+                      </div>
+                    );
+                  })()}
+
+                  <div className="p-3.5 rounded-2xl bg-gradient-to-r from-blue-950/80 via-slate-900 to-blue-950/40 border border-blue-500/50 shadow-lg flex items-center justify-between gap-3">
+                    <div className="flex items-center space-x-3 min-w-0">
+                      <div className="w-8 h-8 rounded-full bg-blue-500 text-slate-950 font-black text-sm flex items-center justify-center flex-shrink-0 shadow-lg shadow-blue-900/40">
+                        🎯
+                      </div>
+                      <div className="min-w-0">
+                        <div className="flex items-center space-x-2">
+                          <span className="text-[10px] font-black text-blue-400 uppercase tracking-wider">Destination End Point</span>
+                          <span className="text-[10px] text-slate-400">({effectiveEndCoords.locality || "Arrival"})</span>
+                        </div>
+                        <div className="text-xs sm:text-sm font-bold text-white truncate">
+                          {effectiveEndCoords.name}
+                        </div>
+                      </div>
+                    </div>
+                    <div className="text-[10px] px-2.5 py-1 rounded-xl bg-blue-500/20 text-blue-300 border border-blue-500/30 font-bold whitespace-nowrap">
+                      Route Terminal
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           ) : (
             <div className="p-8 rounded-2xl bg-black/40 border border-white/5 text-center space-y-2">
@@ -1551,6 +2126,156 @@ export default function RoutePlanner({
                   className="px-4 py-2 rounded-xl bg-gradient-to-r from-amber-500 to-rose-600 text-slate-950 font-black text-xs shadow-md"
                 >
                   Import Plan
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* 8. CUSTOM ENDPOINT CONFIGURATION MODAL */}
+      {showEndpointModal && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 animate-fadeIn">
+          <div className="bg-[#120A1A] border-2 border-amber-400/60 rounded-3xl p-5 sm:p-6 max-w-lg w-full space-y-4 shadow-2xl">
+            <div className="flex items-center justify-between pb-2 border-b border-white/10">
+              <h4 className="font-heritage text-lg font-bold text-amber-300 flex items-center space-x-2">
+                <span>{showEndpointModal === "start" ? "🏁 Set Custom Starting Location" : "🎯 Set Custom Destination Location"}</span>
+              </h4>
+              <button
+                onClick={() => {
+                  setShowEndpointModal(null);
+                  setCustomSearchQuery("");
+                }}
+                className="text-slate-400 hover:text-white text-sm"
+              >
+                ✕
+              </button>
+            </div>
+
+            <p className="text-xs text-slate-300 leading-relaxed">
+              Enter any landmark, railway station, home address, or pick from our database to anchor your AI optimized route:
+            </p>
+
+            {/* Quick Picker from Pandals/Restaurants */}
+            <div className="space-y-2">
+              <label className="text-[11px] font-bold text-slate-400 block">
+                Quick Pick from Kolkata Pandals & Landmarks:
+              </label>
+              <input
+                type="text"
+                value={customSearchQuery}
+                onChange={(e) => setCustomSearchQuery(e.target.value)}
+                placeholder="Type to find pandal/landmark (e.g. Sreebhumi, Bagbazar, Flurys)..."
+                className="w-full p-2.5 rounded-xl bg-black/60 border border-white/20 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-amber-400"
+              />
+
+              {customSearchQuery.trim().length > 1 && (
+                <div className="max-h-36 overflow-y-auto space-y-1 p-1 bg-black/50 rounded-xl border border-white/10 scrollbar-thin">
+                  {PANDALS_DATA.filter((p) =>
+                    p.name.toLowerCase().includes(customSearchQuery.toLowerCase()) ||
+                    (p.locality && p.locality.toLowerCase().includes(customSearchQuery.toLowerCase()))
+                  ).slice(0, 6).map((p) => (
+                    <button
+                      key={p.id}
+                      type="button"
+                      onClick={() => {
+                        setCustomEndpointName(p.name);
+                        setCustomEndpointLocality(p.locality || p.zoneLabel);
+                        setCustomEndpointLat(String(p.lat));
+                        setCustomEndpointLng(String(p.lng));
+                        setCustomSearchQuery("");
+                      }}
+                      className="w-full text-left p-2 rounded-lg bg-white/5 hover:bg-amber-500/20 transition flex items-center justify-between text-xs"
+                    >
+                      <span className="font-bold text-white truncate">{p.name}</span>
+                      <span className="text-[10px] text-amber-300 font-mono flex-shrink-0 ml-2">
+                        {p.locality}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Manual Form Fields */}
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                handleSaveCustomEndpoint(showEndpointModal);
+              }}
+              className="space-y-3 pt-1"
+            >
+              <div>
+                <label className="block text-[10px] text-slate-400 font-medium mb-1">
+                  Location / Landmark Name *
+                </label>
+                <input
+                  type="text"
+                  value={customEndpointName}
+                  onChange={(e) => setCustomEndpointName(e.target.value)}
+                  placeholder="e.g. Home, Salt Lake Block BD, Gariahat Police Station"
+                  required
+                  className="w-full p-2.5 rounded-xl bg-black/60 border border-white/20 text-xs text-white focus:outline-none focus:border-amber-400 font-semibold"
+                />
+              </div>
+
+              <div>
+                <label className="block text-[10px] text-slate-400 font-medium mb-1">
+                  Area / Locality Description
+                </label>
+                <input
+                  type="text"
+                  value={customEndpointLocality}
+                  onChange={(e) => setCustomEndpointLocality(e.target.value)}
+                  placeholder="e.g. Salt Lake Sector 1, Bhowanipore, Howrah"
+                  className="w-full p-2.5 rounded-xl bg-black/60 border border-white/20 text-xs text-slate-200 focus:outline-none focus:border-amber-400"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="block text-[10px] text-slate-400 font-medium mb-1">
+                    Latitude (e.g. 22.5800) *
+                  </label>
+                  <input
+                    type="number"
+                    step="any"
+                    value={customEndpointLat}
+                    onChange={(e) => setCustomEndpointLat(e.target.value)}
+                    placeholder="22.5800"
+                    required
+                    className="w-full p-2.5 rounded-xl bg-black/60 border border-white/20 text-xs text-slate-200 focus:outline-none focus:border-amber-400 font-mono"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[10px] text-slate-400 font-medium mb-1">
+                    Longitude (e.g. 88.3600) *
+                  </label>
+                  <input
+                    type="number"
+                    step="any"
+                    value={customEndpointLng}
+                    onChange={(e) => setCustomEndpointLng(e.target.value)}
+                    placeholder="88.3600"
+                    required
+                    className="w-full p-2.5 rounded-xl bg-black/60 border border-white/20 text-xs text-slate-200 focus:outline-none focus:border-amber-400 font-mono"
+                  />
+                </div>
+              </div>
+
+              <div className="flex items-center justify-end space-x-2 pt-3 border-t border-white/10">
+                <button
+                  type="button"
+                  onClick={() => setShowEndpointModal(null)}
+                  className="px-3 py-1.5 rounded-xl bg-white/5 text-slate-400 text-xs"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-4 py-2 rounded-xl bg-gradient-to-r from-amber-500 to-rose-600 text-slate-950 font-black text-xs shadow-md"
+                >
+                  Save {showEndpointModal === "start" ? "Start Point" : "End Point"}
                 </button>
               </div>
             </form>

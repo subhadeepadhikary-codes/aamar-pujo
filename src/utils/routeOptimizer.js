@@ -25,9 +25,9 @@ export function getSpotDistanceKm(spotA, spotB) {
 }
 
 /**
- * Computes total cumulative distance of a sequential path
+ * Computes total cumulative distance of a sequential path with optional start and end coordinates
  */
-export function calculatePathDistanceKm(spots, startCoords = null) {
+export function calculatePathDistanceKm(spots, startCoords = null, endCoords = null) {
   if (!spots || spots.length === 0) return 0;
   let total = 0;
 
@@ -39,17 +39,21 @@ export function calculatePathDistanceKm(spots, startCoords = null) {
     total += getSpotDistanceKm(spots[i], spots[i + 1]);
   }
 
+  if (endCoords && endCoords.lat && endCoords.lng && spots[spots.length - 1]) {
+    total += getSpotDistanceKm(spots[spots.length - 1], endCoords);
+  }
+
   return total;
 }
 
 /**
  * AI Sequential Route Optimizer (TSP: Nearest Neighbor + 2-Opt Local Search)
  * Takes a list of up to 40 spots and reorders them into the most time-effective,
- * continuous path that eliminates zigzagging and backtracking.
+ * continuous path that eliminates zigzagging and backtracking between startCoords and endCoords.
  */
-export function optimizeRouteSequential(spots, startCoords = null) {
-  if (!spots || spots.length <= 2) {
-    const dist = calculatePathDistanceKm(spots, startCoords);
+export function optimizeRouteSequential(spots, startCoords = null, endCoords = null) {
+  if (!spots || spots.length <= 1) {
+    const dist = calculatePathDistanceKm(spots, startCoords, endCoords);
     return {
       optimizedSpots: spots ? [...spots] : [],
       initialDistanceKm: dist,
@@ -59,11 +63,11 @@ export function optimizeRouteSequential(spots, startCoords = null) {
     };
   }
 
-  const initialDistanceKm = calculatePathDistanceKm(spots, startCoords);
+  const initialDistanceKm = calculatePathDistanceKm(spots, startCoords, endCoords);
   const remaining = [...spots];
   const tour = [];
 
-  // Step 1: Nearest Neighbor Heuristic
+  // Step 1: Nearest Neighbor Heuristic anchored from startCoords if provided
   let currentPos = startCoords && startCoords.lat && startCoords.lng
     ? startCoords
     : remaining.shift();
@@ -88,7 +92,7 @@ export function optimizeRouteSequential(spots, startCoords = null) {
     tour.push(currentPos);
   }
 
-  // Step 2: 2-Opt Pairwise Local Search
+  // Step 2: 2-Opt Pairwise Local Search anchored between startCoords and endCoords
   let improved = true;
   let iterations = 0;
   const maxIterations = 50;
@@ -101,7 +105,7 @@ export function optimizeRouteSequential(spots, startCoords = null) {
       for (let j = i + 1; j < tour.length; j++) {
         // Evaluate distance before swap
         const prevA = i === 0 ? (startCoords || null) : tour[i - 1];
-        const nextB = j === tour.length - 1 ? null : tour[j + 1];
+        const nextB = j === tour.length - 1 ? (endCoords || null) : tour[j + 1];
 
         const dCurrent =
           (prevA ? getSpotDistanceKm(prevA, tour[i]) : 0) +
@@ -123,7 +127,7 @@ export function optimizeRouteSequential(spots, startCoords = null) {
     }
   }
 
-  const optimizedDistanceKm = calculatePathDistanceKm(tour, startCoords);
+  const optimizedDistanceKm = calculatePathDistanceKm(tour, startCoords, endCoords);
   const savedDistanceKm = Math.max(0, initialDistanceKm - optimizedDistanceKm);
   const percentSaved = initialDistanceKm > 0
     ? Math.round((savedDistanceKm / initialDistanceKm) * 100)
@@ -332,8 +336,35 @@ export function calculateLegDetails(spotA, spotB, options = {}) {
 
 /**
  * Calculates complete circuit stats (cumulative distance, transit duration, darshan buffer)
+ * with support for optional custom startPoint and endPoint.
  */
-export function calculateCircuitSummary(spots, startCoords = null, travelMode = "smart") {
+export function calculateCircuitSummary(spots, startCoordsOrOptions = null, travelModeParam = "smart", endCoordsParam = null) {
+  let startPoint = null;
+  let endPoint = null;
+  let travelMode = "smart";
+
+  if (typeof startCoordsOrOptions === "string") {
+    travelMode = startCoordsOrOptions;
+  } else if (startCoordsOrOptions && typeof startCoordsOrOptions === "object") {
+    if ("travelMode" in startCoordsOrOptions || "startPoint" in startCoordsOrOptions) {
+      startPoint = startCoordsOrOptions.startPoint || null;
+      endPoint = startCoordsOrOptions.endPoint || null;
+      travelMode = startCoordsOrOptions.travelMode || "smart";
+    } else {
+      startPoint = startCoordsOrOptions;
+    }
+  }
+
+  if (typeof travelModeParam === "string") {
+    travelMode = travelModeParam;
+  } else if (travelModeParam && typeof travelModeParam === "object") {
+    endPoint = travelModeParam;
+  }
+
+  if (endCoordsParam) {
+    endPoint = endCoordsParam;
+  }
+
   if (!spots || spots.length === 0) {
     return {
       spotCount: 0,
@@ -345,6 +376,8 @@ export function calculateCircuitSummary(spots, startCoords = null, travelMode = 
       darshanMinutes: 0,
       totalDurationFormatted: "0 mins",
       travelMode,
+      startPoint,
+      endPoint,
       legs: [],
       modalBreakdown: { walkLegs: 0, roadLegs: 0, metroLegs: 0 }
     };
@@ -365,7 +398,22 @@ export function calculateCircuitSummary(spots, startCoords = null, travelMode = 
     else pandalsCount++;
   });
 
-  // Calculate legs
+  // Optional Departure Leg from Start Point to Stop #1
+  if (startPoint && startPoint.lat && startPoint.lng && spots[0]) {
+    const isSameSpot = spots[0].lat === startPoint.lat && spots[0].lng === startPoint.lng;
+    if (!isSameSpot) {
+      const startLeg = calculateLegDetails(startPoint, spots[0], { travelMode });
+      startLeg.isStartEndpointLeg = true;
+      totalDistKm += startLeg.distanceKm;
+      totalTransitMins += startLeg.travelMins;
+      if (startLeg.mode === "walk") walkLegs++;
+      else if (startLeg.mode === "road" || startLeg.mode === "bike") roadLegs++;
+      else if (startLeg.mode === "metro") metroLegs++;
+      legs.push(startLeg);
+    }
+  }
+
+  // Calculate intermediate legs between spots
   for (let i = 0; i < spots.length - 1; i++) {
     const leg = calculateLegDetails(spots[i], spots[i + 1], { travelMode });
     totalDistKm += leg.distanceKm;
@@ -374,6 +422,22 @@ export function calculateCircuitSummary(spots, startCoords = null, travelMode = 
     else if (leg.mode === "road" || leg.mode === "bike") roadLegs++;
     else if (leg.mode === "metro") metroLegs++;
     legs.push(leg);
+  }
+
+  // Optional Arrival Leg from Stop #N to End Point
+  if (endPoint && endPoint.lat && endPoint.lng && spots[spots.length - 1]) {
+    const lastSpot = spots[spots.length - 1];
+    const isSameSpot = lastSpot.lat === endPoint.lat && lastSpot.lng === endPoint.lng;
+    if (!isSameSpot) {
+      const endLeg = calculateLegDetails(lastSpot, endPoint, { travelMode });
+      endLeg.isEndEndpointLeg = true;
+      totalDistKm += endLeg.distanceKm;
+      totalTransitMins += endLeg.travelMins;
+      if (endLeg.mode === "walk") walkLegs++;
+      else if (endLeg.mode === "road" || endLeg.mode === "bike") roadLegs++;
+      else if (endLeg.mode === "metro") metroLegs++;
+      legs.push(endLeg);
+    }
   }
 
   // Estimated dwell / darshan buffer (~20 mins per pandal, ~40 mins per food stop)
@@ -394,17 +458,55 @@ export function calculateCircuitSummary(spots, startCoords = null, travelMode = 
     darshanMinutes,
     totalDurationFormatted,
     travelMode,
+    startPoint,
+    endPoint,
     modalBreakdown: { walkLegs, roadLegs, metroLegs },
     legs
   };
 }
 
 /**
- * Builds Google Maps Multi-Stop Navigation URL(s)
+ * Builds Google Maps Multi-Stop Navigation URL(s) with startPoint and endPoint support
  * Automatically splits into parts if waypoints exceed Google Maps 10-stop limit
  */
-export function buildGoogleMapsCircuitUrl(spots, startCoords = null, travelMode = "walking") {
-  if (!spots || spots.length < 2) return null;
+export function buildGoogleMapsCircuitUrl(spots, travelModeOrOptions = "walking", startCoords = null, endCoords = null) {
+  if (!spots || spots.length === 0) return null;
+
+  let travelMode = "walking";
+  let startPoint = startCoords;
+  let endPoint = endCoords;
+
+  if (typeof travelModeOrOptions === "string") {
+    travelMode = travelModeOrOptions;
+  } else if (travelModeOrOptions && typeof travelModeOrOptions === "object") {
+    travelMode = travelModeOrOptions.travelMode || "walking";
+    startPoint = travelModeOrOptions.startPoint || startPoint;
+    endPoint = travelModeOrOptions.endPoint || endPoint;
+  }
+
+  const combined = [];
+  if (startPoint && startPoint.lat && startPoint.lng) {
+    if (!spots[0] || spots[0].lat !== startPoint.lat || spots[0].lng !== startPoint.lng) {
+      combined.push({
+        ...startPoint,
+        name: startPoint.name || "Start Location",
+        address: startPoint.address || startPoint.locality || "Kolkata"
+      });
+    }
+  }
+  combined.push(...spots);
+  if (endPoint && endPoint.lat && endPoint.lng) {
+    const last = combined[combined.length - 1];
+    if (!last || last.lat !== endPoint.lat || last.lng !== endPoint.lng) {
+      combined.push({
+        ...endPoint,
+        name: endPoint.name || "End Location",
+        address: endPoint.address || endPoint.locality || "Kolkata"
+      });
+    }
+  }
+
+  if (combined.length < 2) return null;
 
   let gmapsTravelMode = "walking";
   if (travelMode === "road" || travelMode === "bike") {
@@ -417,8 +519,8 @@ export function buildGoogleMapsCircuitUrl(spots, startCoords = null, travelMode 
   const CHUNK_SIZE = 9; // 1 origin + 8 waypoints + 1 destination
   const chunks = [];
 
-  for (let i = 0; i < spots.length - 1; i += (CHUNK_SIZE - 1)) {
-    const slice = spots.slice(i, i + CHUNK_SIZE);
+  for (let i = 0; i < combined.length - 1; i += (CHUNK_SIZE - 1)) {
+    const slice = combined.slice(i, i + CHUNK_SIZE);
     if (slice.length < 2) break;
 
     const origin = `${slice[0].lat},${slice[0].lng}`;

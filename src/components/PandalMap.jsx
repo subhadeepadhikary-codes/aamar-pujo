@@ -40,6 +40,7 @@ export default function PandalMap({ userLocation, onOpenModal, selectedZone, onU
   const [isLiveTracking, setIsLiveTracking] = useState(false);
   const [followUser, setFollowUser] = useState(false);
   const [currentAccuracy, setCurrentAccuracy] = useState(null);
+  const [isRouteFocused, setIsRouteFocused] = useState(false);
 
   // Helper function to update user location marker and accuracy aura
   const updateUserMarkerAndCircle = (coords, accuracy, shouldPan = false) => {
@@ -214,10 +215,12 @@ export default function PandalMap({ userLocation, onOpenModal, selectedZone, onU
       });
     };
 
-    // Filter pandals by active zone
-    const targetPandals = activeZone === "all" 
-      ? PANDALS_DATA 
-      : PANDALS_DATA.filter((p) => p.zone === activeZone);
+    // Filter pandals by active zone (or hide all background pandals when Route Focused is on)
+    const targetPandals = (isRouteFocused && activeMapPlan?.spots?.length >= 2)
+      ? []
+      : (activeZone === "all" 
+          ? PANDALS_DATA 
+          : PANDALS_DATA.filter((p) => p.zone === activeZone));
 
     // Plot pandals with universal, pinpoint Google Maps links
     targetPandals.forEach((p) => {
@@ -255,7 +258,7 @@ export default function PandalMap({ userLocation, onOpenModal, selectedZone, onU
 
       markersLayer.addLayer(marker);
     });
-  }, [userLocation, activeZone]);
+  }, [userLocation, activeZone, isRouteFocused, activeMapPlan]);
 
   // Road-Snapped Street Polyline & Numbered Step Markers
   useEffect(() => {
@@ -272,13 +275,34 @@ export default function PandalMap({ userLocation, onOpenModal, selectedZone, onU
     const spots = activeMapPlan.spots;
     let isCancelled = false;
 
+    // Assemble complete route sequence including optional startPoint and endPoint
+    const fullRoutePoints = [];
+    if (activeMapPlan.startPoint && activeMapPlan.startPoint.lat && activeMapPlan.startPoint.lng) {
+      if (!spots[0] || spots[0].lat !== activeMapPlan.startPoint.lat || spots[0].lng !== activeMapPlan.startPoint.lng) {
+        fullRoutePoints.push({
+          ...activeMapPlan.startPoint,
+          isStartAnchor: true
+        });
+      }
+    }
+    fullRoutePoints.push(...spots);
+    if (activeMapPlan.endPoint && activeMapPlan.endPoint.lat && activeMapPlan.endPoint.lng) {
+      const last = fullRoutePoints[fullRoutePoints.length - 1];
+      if (!last || last.lat !== activeMapPlan.endPoint.lat || last.lng !== activeMapPlan.endPoint.lng) {
+        fullRoutePoints.push({
+          ...activeMapPlan.endPoint,
+          isEndAnchor: true
+        });
+      }
+    }
+
     // Draw route along actual pedestrian roads, road vehicular streets, or metro rail corridors
-    if (spots.length >= 2) {
+    if (fullRoutePoints.length >= 2) {
       setIsRoutingLoading(true);
 
       const routeMode = travelMode === "foot" ? "foot" : travelMode === "metro" ? "metro" : "road";
 
-      fetchStreetRoute(spots, { mode: routeMode })
+      fetchStreetRoute(fullRoutePoints, { mode: routeMode })
         .then((routeResult) => {
           if (isCancelled || !routeLayerRef.current) return;
 
@@ -363,7 +387,7 @@ export default function PandalMap({ userLocation, onOpenModal, selectedZone, onU
         .catch((err) => {
           console.warn("Street routing fallback to direct lines:", err);
           if (isCancelled || !routeLayerRef.current) return;
-          const directCoords = spots.map((s) => [s.lat, s.lng]);
+          const directCoords = fullRoutePoints.map((s) => [s.lat, s.lng]);
           const glowColor = travelMode === "metro" ? "#0284C7" : (travelMode === "road" || travelMode === "bike") ? "#059669" : "#E11D48";
           const coreColor = travelMode === "metro" ? "#38BDF8" : (travelMode === "road" || travelMode === "bike") ? "#3B82F6" : "#FBBF24";
           L.polyline(directCoords, { color: glowColor, weight: 6, opacity: 0.65 }).addTo(routeLayer);
@@ -371,6 +395,53 @@ export default function PandalMap({ userLocation, onOpenModal, selectedZone, onU
           setStreetRouteMeta(null);
           setIsRoutingLoading(false);
         });
+    }
+
+    // Departure Start Marker (if distinct from Spot #1)
+    if (activeMapPlan.startPoint && activeMapPlan.startPoint.lat && activeMapPlan.startPoint.lng) {
+      const isSameAsFirst = spots[0] && spots[0].lat === activeMapPlan.startPoint.lat && spots[0].lng === activeMapPlan.startPoint.lng;
+      if (!isSameAsFirst) {
+        const startIcon = L.divIcon({
+          className: "route-start-marker",
+          html: `
+            <div style="
+              background: #10B981;
+              color: #000000;
+              width: 32px;
+              height: 32px;
+              border-radius: 50%;
+              border: 2.5px solid #ffffff;
+              box-shadow: 0 0 16px #10B981cc;
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              font-size: 14px;
+            ">
+              🏁
+            </div>
+          `,
+          iconSize: [32, 32],
+          iconAnchor: [16, 16],
+          popupAnchor: [0, -16]
+        });
+
+        const startMarker = L.marker([activeMapPlan.startPoint.lat, activeMapPlan.startPoint.lng], {
+          icon: startIcon,
+          zIndexOffset: 1500
+        });
+
+        startMarker.bindPopup(`
+          <div style="color: #ffffff; font-family: sans-serif; min-width: 200px; padding: 6px;">
+            <span style="background: #10B981; color: #000; font-size: 10px; font-weight: 900; padding: 2px 7px; border-radius: 6px;">
+              🏁 ROUTE START POINT
+            </span>
+            <h4 style="font-weight: 800; font-size: 13px; margin: 4px 0 2px 0; color: #10B981;">${activeMapPlan.startPoint.name}</h4>
+            <p style="font-size: 11px; color: #CBD5E1; margin: 0;">${activeMapPlan.startPoint.locality || "Origin"}</p>
+          </div>
+        `, { className: "custom-dark-popup" });
+
+        routeLayer.addLayer(startMarker);
+      }
     }
 
     // Numbered sequential step badges (1 to N)
@@ -446,6 +517,54 @@ export default function PandalMap({ userLocation, onOpenModal, selectedZone, onU
       marker.bindPopup(popupHtml, { className: "custom-dark-popup" });
       routeLayer.addLayer(marker);
     });
+
+    // Arrival End Marker (if distinct from Spot #N)
+    if (activeMapPlan.endPoint && activeMapPlan.endPoint.lat && activeMapPlan.endPoint.lng) {
+      const lastSpot = spots[spots.length - 1];
+      const isSameAsLast = lastSpot && lastSpot.lat === activeMapPlan.endPoint.lat && lastSpot.lng === activeMapPlan.endPoint.lng;
+      if (!isSameAsLast) {
+        const endIcon = L.divIcon({
+          className: "route-end-marker",
+          html: `
+            <div style="
+              background: #3B82F6;
+              color: #ffffff;
+              width: 32px;
+              height: 32px;
+              border-radius: 50%;
+              border: 2.5px solid #ffffff;
+              box-shadow: 0 0 16px #3B82F6cc;
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              font-size: 14px;
+            ">
+              🎯
+            </div>
+          `,
+          iconSize: [32, 32],
+          iconAnchor: [16, 16],
+          popupAnchor: [0, -16]
+        });
+
+        const endMarker = L.marker([activeMapPlan.endPoint.lat, activeMapPlan.endPoint.lng], {
+          icon: endIcon,
+          zIndexOffset: 1501
+        });
+
+        endMarker.bindPopup(`
+          <div style="color: #ffffff; font-family: sans-serif; min-width: 200px; padding: 6px;">
+            <span style="background: #3B82F6; color: #fff; font-size: 10px; font-weight: 900; padding: 2px 7px; border-radius: 6px;">
+              🎯 ROUTE DESTINATION END
+            </span>
+            <h4 style="font-weight: 800; font-size: 13px; margin: 4px 0 2px 0; color: #60A5FA;">${activeMapPlan.endPoint.name}</h4>
+            <p style="font-size: 11px; color: #CBD5E1; margin: 0;">${activeMapPlan.endPoint.locality || "Destination Terminal"}</p>
+          </div>
+        `, { className: "custom-dark-popup" });
+
+        routeLayer.addLayer(endMarker);
+      }
+    }
 
     return () => {
       isCancelled = true;
@@ -547,12 +666,22 @@ export default function PandalMap({ userLocation, onOpenModal, selectedZone, onU
 
             {activeMapPlan?.spots?.length >= 2 && (
               <button
-                onClick={zoomToActiveRoute}
-                className="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-amber-500/30 to-rose-600/30 hover:from-amber-500/40 hover:to-rose-600/40 text-amber-300 text-xs font-bold border border-amber-500/40 transition flex items-center space-x-1.5 shadow-lg shadow-amber-500/10"
-                title="Zoom into the active route circuit"
+                onClick={() => {
+                  const nextFocused = !isRouteFocused;
+                  setIsRouteFocused(nextFocused);
+                  if (nextFocused) {
+                    zoomToActiveRoute();
+                  }
+                }}
+                className={`px-3.5 py-1.5 rounded-xl text-xs font-bold border transition flex items-center space-x-1.5 shadow-lg ${
+                  isRouteFocused
+                    ? "bg-amber-400 text-slate-950 border-amber-300 font-black shadow-amber-400/30 scale-105"
+                    : "bg-gradient-to-r from-amber-500/30 to-rose-600/30 hover:from-amber-500/40 hover:to-rose-600/40 text-amber-300 border-amber-500/40 shadow-amber-500/10"
+                }`}
+                title={isRouteFocused ? "Show all pandal pins on map" : "Hide all other pandals to focus only on your route circuit"}
               >
-                <Route className="w-3.5 h-3.5 text-amber-400" />
-                <span>Focus Route ({activeMapPlan.spots.length})</span>
+                <Route className="w-3.5 h-3.5" />
+                <span>{isRouteFocused ? "👁️ Show All Pins" : `🎯 Focus Route (${activeMapPlan.spots.length})`}</span>
               </button>
             )}
             <button
@@ -573,18 +702,21 @@ export default function PandalMap({ userLocation, onOpenModal, selectedZone, onU
             {/* Zone Filter Buttons */}
             {[
               { id: "all", label: "All Pins" },
-              { id: "south", label: "South (179)" },
-              { id: "north", label: "North (98)" },
-              { id: "central", label: "Central (62)" },
-              { id: "east", label: "East (43)" },
+              { id: "south", label: "South (185)" },
+              { id: "north", label: "North (114)" },
+              { id: "central", label: "Central (63)" },
+              { id: "east", label: "East (56)" },
               { id: "howrah", label: "Howrah (20)" },
               { id: "siliguri", label: "Siliguri (20)" }
             ].map((z) => (
               <button
                 key={z.id}
-                onClick={() => setActiveZone(z.id)}
+                onClick={() => {
+                  setActiveZone(z.id);
+                  if (isRouteFocused) setIsRouteFocused(false);
+                }}
                 className={`px-3 py-1.5 rounded-xl text-xs font-medium transition ${
-                  activeZone === z.id
+                  activeZone === z.id && !isRouteFocused
                     ? "bg-amber-400 text-slate-950 font-bold shadow-md shadow-amber-400/20"
                     : "bg-[#140E1B] text-slate-300 hover:text-white border border-white/5"
                 }`}
@@ -627,7 +759,7 @@ export default function PandalMap({ userLocation, onOpenModal, selectedZone, onU
                     <Footprints className="w-4 h-4 text-rose-400" />
                   )}
                   <div>
-                    <div className="font-bold text-amber-300 flex items-center space-x-1.5">
+                    <div className="font-bold text-amber-300 flex items-center space-x-1.5 flex-wrap">
                       <span>
                         {travelMode === "metro"
                           ? (streetRouteMeta?.isRoadSnapped ? "🚇 Kolkata Metro Rail Route" : "🚇 Metro Rail Transit")
@@ -640,6 +772,11 @@ export default function PandalMap({ userLocation, onOpenModal, selectedZone, onU
                       {streetRouteMeta?.isRoadSnapped && (
                         <span className="text-[10px] px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-300 border border-amber-500/40 font-mono">
                           OSRM Snapped
+                        </span>
+                      )}
+                      {isRouteFocused && (
+                        <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-400/25 text-amber-300 border border-amber-400/50 font-bold">
+                          🎯 Focused
                         </span>
                       )}
                     </div>
@@ -656,27 +793,21 @@ export default function PandalMap({ userLocation, onOpenModal, selectedZone, onU
 
           {/* Map Travel Mode Quick Switcher Dropdown (Top Right) */}
           {activeMapPlan?.spots?.length >= 2 && (
-            <div className="absolute top-4 right-4 z-20 glass-panel rounded-2xl p-1.5 border border-white/10 bg-black/75 shadow-xl backdrop-blur-md flex items-center space-x-2">
+            <div className="absolute top-4 right-4 z-20 glass-panel rounded-2xl p-1.5 border border-blue-500/50 bg-slate-950/90 shadow-xl shadow-blue-950/60 backdrop-blur-md flex items-center space-x-2">
               <label htmlFor="map-travel-mode-select" className="sr-only">Travel Mode</label>
               <div className="relative">
                 <select
                   id="map-travel-mode-select"
                   value={travelMode === "bike" ? "road" : travelMode}
                   onChange={(e) => setTravelMode(e.target.value)}
-                  className="appearance-none bg-slate-900/90 text-slate-100 pl-8 pr-7 py-1.5 rounded-xl border border-white/20 hover:border-amber-400/60 focus:border-amber-400 focus:outline-none text-[11px] font-bold transition shadow-sm cursor-pointer"
+                  className="appearance-none bg-blue-950/60 text-blue-400 hover:text-blue-300 pl-3.5 pr-8 py-1.5 rounded-xl border border-blue-400/50 hover:border-blue-300 focus:border-blue-400 focus:ring-1 focus:ring-blue-400 focus:outline-none text-xs font-black transition shadow-inner cursor-pointer"
                 >
-                  <option value="foot" className="bg-slate-900 text-white">🚶 Foot Mode</option>
-                  <option value="road" className="bg-slate-900 text-white">🛵 Road Mode</option>
-                  <option value="metro" className="bg-slate-900 text-white">🚇 Metro Mode</option>
-                  <option value="smart" className="bg-slate-900 text-amber-300 font-bold">🧠 Smart Mode</option>
+                  <option value="foot" className="bg-slate-900 text-slate-100 font-semibold">Foot Mode (Walking)</option>
+                  <option value="road" className="bg-slate-900 text-slate-100 font-semibold">Road Mode (Vehicular)</option>
+                  <option value="metro" className="bg-slate-900 text-cyan-300 font-semibold">Metro Mode (Rail Transit)</option>
+                  <option value="smart" className="bg-slate-900 text-blue-300 font-bold">Smart Mode (Junction AI)</option>
                 </select>
-                <div className="absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-xs">
-                  {travelMode === "foot" && "🚶"}
-                  {(travelMode === "road" || travelMode === "bike") && "🛵"}
-                  {travelMode === "metro" && "🚇"}
-                  {travelMode === "smart" && "🧠"}
-                </div>
-                <div className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400 text-[9px]">
+                <div className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-blue-400 text-[10px]">
                   ▼
                 </div>
               </div>
