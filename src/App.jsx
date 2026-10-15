@@ -14,6 +14,7 @@ import DawonChatbot from "./components/DawonChatbot";
 import TutorialSlideshowModal, { TOUR_STORAGE_KEY } from "./components/TutorialSlideshowModal";
 import FullscreenPromptModal from "./components/FullscreenPromptModal";
 import BottomTaskbar from "./components/BottomTaskbar";
+import PwaInstallBanner from "./components/PwaInstallBanner";
 import { POPULAR_HUBS } from "./utils/geo";
 import { PUJO_SONGS } from "./data/songsData";
 import { ArrowUp, Music, Play, Pause, X, SkipForward, Disc3, Volume2, VolumeX } from "lucide-react";
@@ -488,6 +489,9 @@ export default function App() {
         }}
         isAudioPlaying={isAudioPlaying && currentPage !== "melodies"}
       />
+
+      {/* Mobile PWA Install Prompt Banner (Floats right above bottom taskbar) */}
+      <PwaInstallBanner />
 
       {/* Mobile Persistent Bottom Taskbar */}
       <BottomTaskbar

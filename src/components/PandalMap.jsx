@@ -49,6 +49,9 @@ export default function PandalMap({ userLocation, onOpenModal, selectedZone, onU
   const targetPandalsRef = useRef([]);
   const targetRestaurantsRef = useRef([]);
   const updateDebounceTimerRef = useRef(null);
+  const showRestaurantsRef = useRef(false);
+  const isRouteFocusedRef = useRef(false);
+  const renderVisibleMarkersRef = useRef(null);
 
   // Sync ref continuously without re-rendering markers
   useEffect(() => {
@@ -260,6 +263,15 @@ export default function PandalMap({ userLocation, onOpenModal, selectedZone, onU
     });
   };
 
+  // Keep refs in sync with state on every render
+  useEffect(() => {
+    showRestaurantsRef.current = showRestaurants;
+  }, [showRestaurants]);
+
+  useEffect(() => {
+    isRouteFocusedRef.current = isRouteFocused;
+  }, [isRouteFocused]);
+
   // 60 FPS Viewport Bounds Culling: Only mounts ~35 markers in view box
   const renderVisibleMarkers = useCallback(() => {
     if (!mapInstanceRef.current || !markersLayerRef.current) return;
@@ -283,11 +295,11 @@ export default function PandalMap({ userLocation, onOpenModal, selectedZone, onU
       }
     }
 
-    // 2. Restaurant markers culling
+    // 2. Restaurant markers culling (always read from showRestaurantsRef for guaranteed scroll persistence)
     if (restaurantsLayerRef.current) {
       const restLayer = restaurantsLayerRef.current;
       restLayer.clearLayers();
-      if (showRestaurants) {
+      if (showRestaurantsRef.current) {
         const rests = targetRestaurantsRef.current || [];
         for (let i = 0; i < rests.length; i++) {
           const r = rests[i];
@@ -303,7 +315,10 @@ export default function PandalMap({ userLocation, onOpenModal, selectedZone, onU
         }
       }
     }
-  }, [showRestaurants]);
+  }, []);
+
+  // Update ref callback on every render
+  renderVisibleMarkersRef.current = renderVisibleMarkers;
 
   // Initialize Map Instance Once
   useEffect(() => {
@@ -334,17 +349,17 @@ export default function PandalMap({ userLocation, onOpenModal, selectedZone, onU
       restaurantsLayerRef.current = L.layerGroup().addTo(map);
       routeLayerRef.current = L.layerGroup().addTo(map);
 
-      // Viewport Bounds Culling listener: Debounced 80ms on pan/pinch
+      // Viewport Bounds Culling listener: Debounced 60ms on pan/pinch scroll
       map.on("moveend zoomend", () => {
         if (updateDebounceTimerRef.current) clearTimeout(updateDebounceTimerRef.current);
         updateDebounceTimerRef.current = setTimeout(() => {
-          renderVisibleMarkers();
-        }, 80);
+          renderVisibleMarkersRef.current?.();
+        }, 60);
       });
 
       mapInstanceRef.current = map;
     }
-  }, [renderVisibleMarkers]);
+  }, []);
 
   // Update Target Pandals & Trigger Viewport Culling
   useEffect(() => {
@@ -360,6 +375,7 @@ export default function PandalMap({ userLocation, onOpenModal, selectedZone, onU
 
   // Update Target Restaurants & Trigger Viewport Culling
   useEffect(() => {
+    showRestaurantsRef.current = showRestaurants;
     const targetRestaurants = activeZone === "all"
       ? RESTAURANTS_DATA
       : RESTAURANTS_DATA.filter((r) => r.zone === activeZone);

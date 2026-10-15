@@ -163,10 +163,6 @@ export default function Navbar({
                   <span className="font-heritage text-base sm:text-2xl font-black tracking-tight text-white group-hover:text-amber-300 transition truncate">
                     Aamar<span className="text-amber-400">Pujo</span>
                   </span>
-                  <span className="inline-flex items-center px-1.5 py-0.2 rounded text-[8px] sm:text-[10px] font-bold bg-amber-500/15 text-amber-300 border border-amber-500/30 flex-shrink-0">
-                    <Flame className="w-2 h-2 sm:w-2.5 sm:h-2.5 mr-0.5 text-rose-500 animate-pulse" />
-                    Live
-                  </span>
                 </div>
                 <p className="hidden md:block text-[11px] font-bengali text-amber-200/80 tracking-wide">
                   এবার পুজো, অন্য ভাবে · <span className="font-sans text-[10px] text-slate-400">One Click Away</span>
@@ -264,29 +260,29 @@ export default function Navbar({
             </div>
           </nav>
 
-          {/* RIGHT: Action Controls (Guide, GPS & Audio — Never Crowded or Cut Off) */}
-          <div className="flex items-center space-x-1 sm:space-x-2 flex-shrink-0">
+          {/* RIGHT: Action Controls (Mobile shows Guide & Fullscreen; Desktop includes GPS & Audio) */}
+          <div className="flex items-center space-x-1.5 sm:space-x-2 flex-shrink-0">
             
             {/* 💡 Feature Guide Tutorial Button */}
             {onOpenTutorial && (
               <button
                 onClick={onOpenTutorial}
-                className="flex items-center space-x-1 p-2 sm:px-3 sm:py-2 rounded-xl text-xs font-bold transition-all border shadow-sm bg-[#1E1408] text-amber-300 border-amber-500/50 hover:border-amber-400 hover:bg-[#2A1D0B] active:scale-95 cursor-pointer"
+                className="flex items-center space-x-1 px-2.5 py-1.5 sm:px-3 sm:py-2 rounded-xl text-xs font-bold transition-all border shadow-sm bg-[#1E1408] text-amber-300 border-amber-500/50 hover:border-amber-400 hover:bg-[#2A1D0B] active:scale-95 cursor-pointer"
                 title="Interactive Feature Guide & Tour"
               >
                 <Sparkles className="w-3.5 h-3.5 text-amber-400 flex-shrink-0" />
-                <span className="hidden sm:inline text-xs font-bold">Guide</span>
+                <span className="text-xs font-bold">Guide</span>
               </button>
             )}
 
-            {/* 📍 Near Me GPS */}
+            {/* 📍 Near Me GPS (Desktop only; on mobile it's in the thumb-friendly Bottom Taskbar) */}
             <button
               onClick={() => {
                 onToggleNearMe();
                 setCurrentPage("pandals");
                 window.scrollTo({ top: 0, behavior: "smooth" });
               }}
-              className={`flex items-center space-x-1 p-2 sm:px-3 sm:py-2 rounded-xl text-xs font-bold transition-all border shadow-sm ${
+              className={`hidden md:flex items-center space-x-1 p-2 sm:px-3 sm:py-2 rounded-xl text-xs font-bold transition-all border shadow-sm ${
                 isNearMeActive
                   ? "bg-rose-600 text-white border-rose-400 ring-2 ring-rose-400/40"
                   : "bg-[#1E0D1A] text-rose-200 border-rose-500/50 hover:border-rose-400 hover:bg-[#2A1224]"
@@ -297,10 +293,10 @@ export default function Navbar({
               <span className="hidden sm:inline text-xs font-bold">GPS</span>
             </button>
 
-            {/* 🔊 Audio Toggle */}
+            {/* 🔊 Audio Toggle (Desktop only; on mobile it's in the thumb-friendly Bottom Taskbar) */}
             <button
               onClick={onToggleAudio}
-              className={`flex items-center space-x-1 p-2 sm:px-3 sm:py-2 rounded-xl text-xs font-bold transition border shadow-sm ${
+              className={`hidden md:flex items-center space-x-1 p-2 sm:px-3 sm:py-2 rounded-xl text-xs font-bold transition border shadow-sm ${
                 isAudioPlaying 
                   ? "bg-[#25170B] text-amber-300 border-amber-400 ring-2 ring-amber-400/30"
                   : "bg-[#181122] text-slate-300 border-white/20 hover:border-amber-400/60 hover:bg-[#20152D]"
@@ -323,7 +319,7 @@ export default function Navbar({
             {/* ⛶ Fullscreen Toggle */}
             <button
               onClick={handleToggleFullscreen}
-              className={`flex items-center space-x-1 p-2 sm:px-3 sm:py-2 rounded-xl text-xs font-bold transition-all border shadow-sm cursor-pointer ${
+              className={`flex items-center space-x-1 px-2.5 py-1.5 sm:px-3 sm:py-2 rounded-xl text-xs font-bold transition-all border shadow-sm cursor-pointer ${
                 isFullscreen
                   ? "bg-amber-400 text-slate-950 border-amber-300 font-black shadow-amber-400/30"
                   : "bg-[#160E20] text-amber-300 border-amber-500/40 hover:border-amber-400 hover:bg-[#221630]"
@@ -335,7 +331,7 @@ export default function Navbar({
               ) : (
                 <Maximize2 className="w-3.5 h-3.5 text-amber-400 flex-shrink-0" />
               )}
-              <span className="hidden sm:inline text-xs font-bold">{isFullscreen ? "Exit" : "Full"}</span>
+              <span className="text-xs font-bold">{isFullscreen ? "Exit" : "Full"}</span>
             </button>
 
           </div>

@@ -133,14 +133,21 @@ export const FESTIVAL_DATE_MAPPING_2026 = {
 
 /**
  * Returns the matching Tithi schedule item for any date/time.
- * Aligns both festival daytime celebrations (e.g. Saturday Oct 17 -> Shashthi)
- * and Panjika lunar timestamps.
+ * Strictly prioritizes authentic Panjika astronomical timestamps.
  */
 export function getActiveTithi(targetDate = new Date()) {
   const d = targetDate instanceof Date ? targetDate : new Date(targetDate);
   const timeMs = d.getTime();
 
-  // 1. Format date key in Indian Standard Time (YYYY-MM-DD)
+  // 1. Primary Check: Exact Panjika Astronomical Lunar Tithi Interval
+  for (let i = 0; i < TITHI_SCHEDULE_2026.length; i++) {
+    const item = TITHI_SCHEDULE_2026[i];
+    if (timeMs >= item.startTime && timeMs < item.endTime) {
+      return item;
+    }
+  }
+
+  // 2. Secondary fallback: Map date in Indian Standard Time (YYYY-MM-DD)
   const formatter = new Intl.DateTimeFormat("en-CA", {
     timeZone: "Asia/Kolkata",
     year: "numeric",
@@ -153,14 +160,6 @@ export function getActiveTithi(targetDate = new Date()) {
     const dayId = FESTIVAL_DATE_MAPPING_2026[dateKey];
     const item = TITHI_SCHEDULE_2026.find((t) => t.dayId === dayId);
     if (item) return item;
-  }
-
-  // 2. Astronomical tithi timestamp matching fallback
-  for (let i = 0; i < TITHI_SCHEDULE_2026.length; i++) {
-    const item = TITHI_SCHEDULE_2026[i];
-    if (timeMs >= item.startTime && timeMs < item.endTime) {
-      return item;
-    }
   }
 
   // 3. Before Mahalaya -> default to Mahalaya (Dawn of Pujo)
@@ -179,4 +178,41 @@ export function getActiveTithi(targetDate = new Date()) {
 export function getCurrentTithiSongIndex(targetDate = new Date()) {
   const active = getActiveTithi(targetDate);
   return typeof active.songIndex === "number" ? active.songIndex : 0;
+}
+
+/**
+ * Detailed live astronomical status for any tithi node:
+ * - isLive: currently ongoing right now
+ * - isUpcoming: begins in future
+ * - isConcluded: has ended
+ * - timeUntilStartMs: ms until start
+ * - timeRemainingMs: ms until transition to next tithi
+ */
+export function getLiveTithiStatus(tithiOrDayId, targetDate = new Date()) {
+  const d = targetDate instanceof Date ? targetDate : new Date(targetDate);
+  const nowMs = d.getTime();
+
+  let tithiItem = typeof tithiOrDayId === "string"
+    ? TITHI_SCHEDULE_2026.find((t) => t.dayId === tithiOrDayId)
+    : tithiOrDayId;
+
+  if (!tithiItem) {
+    tithiItem = getActiveTithi(d);
+  }
+
+  const isLive = nowMs >= tithiItem.startTime && nowMs < tithiItem.endTime;
+  const isUpcoming = nowMs < tithiItem.startTime;
+  const isConcluded = nowMs >= tithiItem.endTime;
+
+  const timeUntilStartMs = isUpcoming ? tithiItem.startTime - nowMs : 0;
+  const timeRemainingMs = isLive ? tithiItem.endTime - nowMs : 0;
+
+  return {
+    tithi: tithiItem,
+    isLive,
+    isUpcoming,
+    isConcluded,
+    timeUntilStartMs,
+    timeRemainingMs
+  };
 }
