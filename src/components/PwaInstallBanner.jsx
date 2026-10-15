@@ -1,35 +1,55 @@
 import React, { useState, useEffect } from "react";
-import { Download, X, Sparkles, Share2, Check } from "lucide-react";
+import { Download, X, Share2, Rocket, ExternalLink, CheckCircle2 } from "lucide-react";
 import logoImg from "../assets/logo.png";
 
-const BANNER_DISMISSED_KEY = "aamar_pwa_banner_dismissed";
+const BANNER_DISMISSED_KEY = "aamar_pwa_dismissed_until";
+const PWA_INSTALLED_KEY = "aamar_pwa_installed";
 
 export default function PwaInstallBanner() {
   const [deferredPrompt, setDeferredPrompt] = useState(null);
   const [isStandalone, setIsStandalone] = useState(false);
-  const [isDismissed, setIsDismissed] = useState(true); // default true until verified
-  const [isInstalled, setIsInstalled] = useState(false);
+  const [isDismissed, setIsDismissed] = useState(true); // default true until checked
+  const [isInstalledPreviously, setIsInstalledPreviously] = useState(false);
   const [showIosGuide, setShowIosGuide] = useState(false);
+  const [showOpenAppHelp, setShowOpenAppHelp] = useState(false);
 
   useEffect(() => {
-    // 1. Detect if already running in standalone PWA mode
+    // 1. Detect if running inside standalone PWA mode
     const standaloneMode = 
       window.matchMedia("(display-mode: standalone)").matches || 
       window.navigator.standalone === true;
     
     setIsStandalone(standaloneMode);
+    if (standaloneMode) return;
 
-    // 2. Check if dismissed for current session
+    // 2. Check if previously installed
     try {
-      const dismissed = sessionStorage.getItem(BANNER_DISMISSED_KEY);
-      if (!dismissed && !standaloneMode) {
-        setIsDismissed(false);
+      const installedFlag = localStorage.getItem(PWA_INSTALLED_KEY);
+      if (installedFlag === "true") {
+        setIsInstalledPreviously(true);
       }
     } catch {
-      if (!standaloneMode) setIsDismissed(false);
+      // storage fallback
     }
 
-    // 3. Capture Android / Chromium beforeinstallprompt event
+    // 3. Check persistent dismissal in localStorage (14 days cooldown)
+    try {
+      const dismissedUntil = localStorage.getItem(BANNER_DISMISSED_KEY);
+      if (dismissedUntil) {
+        const expiry = parseInt(dismissedUntil, 10);
+        if (Date.now() < expiry) {
+          setIsDismissed(true);
+          return;
+        }
+      }
+    } catch {
+      // storage fallback
+    }
+
+    // If not in standalone and not within dismissal cooldown, show banner
+    setIsDismissed(false);
+
+    // 4. Capture Chromium / Android beforeinstallprompt
     const handleBeforeInstallPrompt = (e) => {
       e.preventDefault();
       setDeferredPrompt(e);
@@ -39,9 +59,11 @@ export default function PwaInstallBanner() {
     };
 
     const handleAppInstalled = () => {
-      setIsInstalled(true);
+      setIsInstalledPreviously(true);
       setDeferredPrompt(null);
-      setIsDismissed(true);
+      try {
+        localStorage.setItem(PWA_INSTALLED_KEY, "true");
+      } catch {}
     };
 
     window.addEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
@@ -56,7 +78,9 @@ export default function PwaInstallBanner() {
   const handleDismiss = () => {
     setIsDismissed(true);
     try {
-      sessionStorage.setItem(BANNER_DISMISSED_KEY, "true");
+      // Remember dismissal for 14 days so returning users aren't nagged
+      const expiry = Date.now() + 14 * 24 * 60 * 60 * 1000;
+      localStorage.setItem(BANNER_DISMISSED_KEY, expiry.toString());
     } catch {
       // storage fallback
     }
@@ -68,8 +92,10 @@ export default function PwaInstallBanner() {
         await deferredPrompt.prompt();
         const choice = await deferredPrompt.userChoice;
         if (choice.outcome === "accepted") {
-          setIsInstalled(true);
-          setIsDismissed(true);
+          setIsInstalledPreviously(true);
+          try {
+            localStorage.setItem(PWA_INSTALLED_KEY, "true");
+          } catch {}
         }
         setDeferredPrompt(null);
       } catch (err) {
@@ -78,78 +104,141 @@ export default function PwaInstallBanner() {
       return;
     }
 
-    // iOS Safari or browsers without beforeinstallprompt
+    // iOS Safari or browser without beforeinstallprompt
     const isIos = /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCase());
     if (isIos) {
       setShowIosGuide(true);
     } else {
-      alert("To install Aamar Pujo: Tap your browser's menu (⋮ or share) and select 'Install app' or 'Add to Home screen'.");
+      alert("To install Aamar Pujo: Tap your browser's menu (⋮ or share icon) and select 'Install app' or 'Add to Home screen'.");
     }
   };
 
-  if (isStandalone || isDismissed || isInstalled) {
+  const handleOpenAppClick = () => {
+    setShowOpenAppHelp(true);
+  };
+
+  if (isStandalone || isDismissed) {
     return null;
   }
 
   return (
     <>
-      {/* Floating Pill Banner directly above the mobile bottom taskbar */}
-      <div 
-        className="fixed left-2.5 right-2.5 bottom-[64px] z-40 md:hidden bg-gradient-to-r from-[#1A0E28]/95 via-[#12081C]/95 to-[#1A0E28]/95 backdrop-blur-xl border border-amber-400/40 rounded-2xl p-2.5 shadow-2xl shadow-black/80 flex items-center justify-between gap-2 animate-fadeIn select-none"
+      {/* 
+        Sleek Compact Floating Banner:
+        - Anchored right above bottom taskbar (bottom-[62px])
+        - Stops at right-[74px] to guarantee 12px+ clearance before Dawon mascot (right-3, w-12)
+        - Zero overlap with Dawon!
+      */}
+      <aside 
+        className="fixed left-2.5 right-[74px] bottom-[62px] z-40 md:hidden bg-[#160D22]/95 backdrop-blur-xl border border-amber-400/35 rounded-2xl py-1.5 px-2.5 shadow-xl shadow-black/80 flex items-center justify-between gap-1.5 animate-fadeIn select-none"
         role="alert"
-        aria-label="Install Aamar Pujo App"
+        aria-label="App Notification Banner"
       >
-        {/* Left: App Icon & Info */}
-        <div className="flex items-center space-x-2.5 min-w-0 flex-1">
+        {/* Left: App Logo + Text Info */}
+        <div className="flex items-center space-x-2 min-w-0 flex-1">
           <div className="relative flex-shrink-0">
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-amber-500 to-rose-600 p-0.5 shadow-md">
+            <div className="w-7 h-7 rounded-lg bg-gradient-to-tr from-amber-500 to-rose-600 p-0.5 shadow-sm">
               <img 
                 src={logoImg} 
-                alt="Aamar Pujo App Icon" 
-                className="w-full h-full object-contain rounded-[10px] bg-[#120D17]"
+                alt="Aamar Pujo Logo" 
+                className="w-full h-full object-contain rounded-[6px] bg-[#120D17]"
               />
             </div>
-            <span className="absolute -top-1 -right-1 flex h-2.5 w-2.5">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-amber-500"></span>
-            </span>
+            {isInstalledPreviously && (
+              <span className="absolute -top-1 -right-1 flex h-2 w-2">
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-400 border border-slate-950"></span>
+              </span>
+            )}
           </div>
 
           <div className="min-w-0 flex-1">
-            <div className="flex items-center space-x-1">
-              <h4 className="text-xs font-black text-white truncate tracking-tight">
-                Install Aamar Pujo App
-              </h4>
-              <span className="text-[9px] px-1 py-0.2 rounded bg-amber-400/20 text-amber-300 font-bold flex-shrink-0">
-                PWA
-              </span>
-            </div>
-            <p className="text-[10px] text-amber-200/80 truncate">
-              Edge-to-edge full screen & zero browser bars!
+            <h4 className="text-[11px] font-bold text-white truncate leading-tight">
+              {isInstalledPreviously ? "Aamar Pujo App" : "Install Aamar Pujo"}
+            </h4>
+            <p className="text-[9px] text-amber-200/80 truncate leading-tight">
+              {isInstalledPreviously ? "Installed on device" : "Full screen & zero bars"}
             </p>
           </div>
         </div>
 
-        {/* Right: Actions */}
-        <div className="flex items-center space-x-1.5 flex-shrink-0">
-          <button
-            onClick={handleInstallClick}
-            className="px-3 py-1.5 rounded-xl bg-gradient-to-r from-amber-400 via-amber-300 to-amber-500 hover:from-amber-300 hover:to-amber-400 text-slate-950 font-black text-xs shadow-md shadow-amber-500/20 active:scale-95 transition flex items-center space-x-1 cursor-pointer"
-          >
-            <Download className="w-3.5 h-3.5 text-slate-950 stroke-[2.5]" />
-            <span>Install</span>
-          </button>
+        {/* Right: Action Button & Dismiss */}
+        <div className="flex items-center space-x-1 flex-shrink-0">
+          {isInstalledPreviously ? (
+            <button
+              onClick={handleOpenAppClick}
+              className="px-2 py-1 rounded-lg bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-400 hover:to-emerald-500 text-white font-black text-[10px] shadow-sm active:scale-95 transition flex items-center space-x-1 cursor-pointer"
+              title="Open installed app on Home Screen"
+            >
+              <Rocket className="w-3 h-3" />
+              <span>Open</span>
+            </button>
+          ) : (
+            <button
+              onClick={handleInstallClick}
+              className="px-2 py-1 rounded-lg bg-gradient-to-r from-amber-400 via-amber-300 to-amber-500 hover:from-amber-300 hover:to-amber-400 text-slate-950 font-black text-[10px] shadow-sm active:scale-95 transition flex items-center space-x-0.5 cursor-pointer"
+              title="Add to Home Screen"
+            >
+              <Download className="w-3 h-3 stroke-[2.5]" />
+              <span>Install</span>
+            </button>
+          )}
 
           <button
             onClick={handleDismiss}
-            className="p-1.5 rounded-xl bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white transition cursor-pointer"
-            title="Dismiss"
-            aria-label="Dismiss app install banner"
+            className="p-1 rounded-lg bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white transition cursor-pointer"
+            title="Dismiss for 14 days"
+            aria-label="Dismiss banner"
           >
-            <X className="w-3.5 h-3.5" />
+            <X className="w-3 h-3" />
           </button>
         </div>
-      </div>
+      </aside>
+
+      {/* "Open in App" Guidance Modal */}
+      {showOpenAppHelp && (
+        <div 
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 backdrop-blur-sm p-4 animate-fadeIn"
+          onClick={() => setShowOpenAppHelp(false)}
+        >
+          <div 
+            className="w-full max-w-sm bg-[#140C20] border-2 border-emerald-500/50 rounded-3xl p-5 shadow-2xl space-y-4 text-left"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between border-b border-white/10 pb-3">
+              <div className="flex items-center space-x-2">
+                <Rocket className="w-5 h-5 text-emerald-400" />
+                <h4 className="font-bold text-white text-sm">Open Aamar Pujo App</h4>
+              </div>
+              <button
+                onClick={() => setShowOpenAppHelp(false)}
+                className="p-1 rounded-lg text-slate-400 hover:text-white"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="space-y-2 text-xs text-slate-200 leading-relaxed">
+              <p className="flex items-center space-x-2 text-emerald-300 font-semibold">
+                <CheckCircle2 className="w-4 h-4 text-emerald-400 flex-shrink-0" />
+                <span>Aamar Pujo is already installed on your phone!</span>
+              </p>
+              <p className="text-slate-300">
+                To experience the edge-to-edge full-screen view without browser bars, simply open the <strong className="text-amber-300">"Aamar Pujo"</strong> icon from your phone's Home Screen or App Drawer.
+              </p>
+            </div>
+
+            <button
+              onClick={() => {
+                setShowOpenAppHelp(false);
+                handleDismiss();
+              }}
+              className="w-full py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-emerald-600 text-white font-black text-xs hover:from-emerald-400 hover:to-emerald-500 transition cursor-pointer shadow-lg"
+            >
+              Got it, thanks!
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* iOS Safari 3-Step Guide Modal */}
       {showIosGuide && (

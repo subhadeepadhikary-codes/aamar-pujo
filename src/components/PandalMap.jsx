@@ -52,6 +52,7 @@ export default function PandalMap({ userLocation, onOpenModal, selectedZone, onU
   const showRestaurantsRef = useRef(false);
   const isRouteFocusedRef = useRef(false);
   const renderVisibleMarkersRef = useRef(null);
+  const followUserRef = useRef(false);
 
   // Sync ref continuously without re-rendering markers
   useEffect(() => {
@@ -139,7 +140,7 @@ export default function PandalMap({ userLocation, onOpenModal, selectedZone, onU
       }).addTo(map);
     }
 
-    if (shouldPan) {
+    if (shouldPan && followUserRef.current) {
       map.panTo([coords.lat, coords.lng], { animate: true, duration: 0.5 });
     }
   };
@@ -173,7 +174,8 @@ export default function PandalMap({ userLocation, onOpenModal, selectedZone, onU
         if (onUpdateUserLocation) {
           onUpdateUserLocation(newCoords);
         }
-        updateUserMarkerAndCircle(newCoords, accuracy, followUser);
+        // Marker and accuracy circle always track silently in background
+        updateUserMarkerAndCircle(newCoords, accuracy, followUserRef.current);
       },
       (err) => {
         console.warn("Live GPS watchPosition error:", err);
@@ -188,7 +190,7 @@ export default function PandalMap({ userLocation, onOpenModal, selectedZone, onU
         navigator.geolocation.clearWatch(id);
       }
     };
-  }, [isLiveTracking, followUser]);
+  }, [isLiveTracking]);
 
   // Sync external userLocation prop if live tracking is idle (Does NOT touch pandal markers!)
   useEffect(() => {
@@ -357,6 +359,12 @@ export default function PandalMap({ userLocation, onOpenModal, selectedZone, onU
         }, 60);
       });
 
+      // Free-scroll decoupling: Immediately unlock camera from GPS auto-centering when user touches, drags, or zooms map!
+      map.on("dragstart touchstart zoomstart", () => {
+        followUserRef.current = false;
+        setFollowUser(false);
+      });
+
       mapInstanceRef.current = map;
     }
   }, []);
@@ -435,7 +443,7 @@ export default function PandalMap({ userLocation, onOpenModal, selectedZone, onU
           if (travelMode === "metro") {
             L.polyline(polyCoords, {
               color: "#0284C7",
-              weight: 7.5,
+              weight: 4.5,
               opacity: 0.8,
               lineCap: "round",
               lineJoin: "round"
@@ -443,41 +451,41 @@ export default function PandalMap({ userLocation, onOpenModal, selectedZone, onU
 
             L.polyline(polyCoords, {
               color: "#38BDF8",
-              weight: 3.5,
+              weight: 2,
               opacity: 1,
-              dashArray: "12, 10",
+              dashArray: "10, 8",
               lineCap: "round"
             }).addTo(routeLayer);
           } else if (travelMode === "road" || travelMode === "bike") {
             L.polyline(polyCoords, {
               color: "#059669",
-              weight: 6.5,
-              opacity: 0.9,
-              lineCap: "round",
-              lineJoin: "round"
-            }).addTo(routeLayer);
-
-            L.polyline(polyCoords, {
-              color: "#34D399",
-              weight: 2.5,
-              opacity: 1,
-              dashArray: "8, 6",
-              lineCap: "round"
-            }).addTo(routeLayer);
-          } else {
-            L.polyline(polyCoords, {
-              color: "#E11D48",
-              weight: 7.5,
+              weight: 4,
               opacity: 0.85,
               lineCap: "round",
               lineJoin: "round"
             }).addTo(routeLayer);
 
             L.polyline(polyCoords, {
-              color: "#FB7185",
-              weight: 3,
+              color: "#34D399",
+              weight: 1.8,
               opacity: 1,
-              dashArray: "6, 6",
+              dashArray: "6, 8",
+              lineCap: "round"
+            }).addTo(routeLayer);
+          } else {
+            L.polyline(polyCoords, {
+              color: "#E11D48",
+              weight: 4,
+              opacity: 0.8,
+              lineCap: "round",
+              lineJoin: "round"
+            }).addTo(routeLayer);
+
+            L.polyline(polyCoords, {
+              color: "#FB7185",
+              weight: 1.8,
+              opacity: 1,
+              dashArray: "6, 8",
               lineCap: "round"
             }).addTo(routeLayer);
           }
@@ -491,9 +499,9 @@ export default function PandalMap({ userLocation, onOpenModal, selectedZone, onU
           const fallbackCoords = fullRoutePoints.map((s) => [s.lat, s.lng]);
           L.polyline(fallbackCoords, {
             color: "#E11D48",
-            weight: 5,
+            weight: 3,
             opacity: 0.8,
-            dashArray: "8, 6"
+            dashArray: "6, 6"
           }).addTo(routeLayer);
 
           setIsRoutingLoading(false);
@@ -651,9 +659,12 @@ export default function PandalMap({ userLocation, onOpenModal, selectedZone, onU
 
   const centerOnUser = () => {
     if (mapInstanceRef.current && userLocation?.lat && userLocation?.lng) {
+      followUserRef.current = true;
+      setFollowUser(true);
       mapInstanceRef.current.setView([userLocation.lat, userLocation.lng], 16, { animate: true });
     } else {
       setIsLiveTracking(true);
+      followUserRef.current = true;
       setFollowUser(true);
     }
   };
@@ -727,8 +738,18 @@ export default function PandalMap({ userLocation, onOpenModal, selectedZone, onU
               {/* Live GPS Toggle */}
               <button
                 onClick={() => {
-                  setIsLiveTracking((prev) => !prev);
-                  if (!isLiveTracking) setFollowUser(true);
+                  const nextState = !isLiveTracking;
+                  setIsLiveTracking(nextState);
+                  if (nextState) {
+                    followUserRef.current = true;
+                    setFollowUser(true);
+                    if (userLocationRef.current?.lat && userLocationRef.current?.lng && mapInstanceRef.current) {
+                      mapInstanceRef.current.panTo([userLocationRef.current.lat, userLocationRef.current.lng], { animate: true, duration: 0.5 });
+                    }
+                  } else {
+                    followUserRef.current = false;
+                    setFollowUser(false);
+                  }
                 }}
                 className={`px-3 py-1.5 rounded-xl text-xs font-bold border transition flex items-center space-x-1.5 flex-shrink-0 shadow-lg ${
                   isLiveTracking
