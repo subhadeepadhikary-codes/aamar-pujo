@@ -19,9 +19,9 @@ import { getDurgaFace } from "../utils/imageFallback";
 import { buildGoogleMapsNavUrl } from "../utils/navigationHelper";
 
 export default function PandalModal({ pandal, userLocation, onClose }) {
-  if (!pandal) return null;
-
   const [activePhotoIdx, setActivePhotoIdx] = useState(0);
+
+  if (!pandal) return null;
 
   const fallbackImg = getDurgaFace(pandal.id);
   const images = pandal.images && pandal.images.length > 0 ? pandal.images : [fallbackImg];

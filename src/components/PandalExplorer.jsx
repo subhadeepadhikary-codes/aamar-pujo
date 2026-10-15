@@ -36,6 +36,7 @@ export default function PandalExplorer({
   const [selectedCategory, setSelectedCategory] = useState("All Themes");
   const [maxRadiusKm, setMaxRadiusKm] = useState(10); // for Near Me radius
   const [visibleCount, setVisibleCount] = useState(24);
+  const [visibleFoodCount, setVisibleFoodCount] = useState(24);
   const [crowdFilter, setCrowdFilter] = useState("all");
   const [metroSelectorOpen, setMetroSelectorOpen] = useState(false);
   const [showMobileFilters, setShowMobileFilters] = useState(false);
@@ -230,6 +231,7 @@ export default function PandalExplorer({
   const handleTabSwitch = (newTab) => {
     setActiveTab(newTab);
     setVisibleCount(24);
+    setVisibleFoodCount(24);
     // If switching to food and selected zone has no restaurants, reset to "all"
     if (newTab === "food" && selectedZone !== "all") {
       const exists = RESTAURANTS_DATA.some((r) => r.zone === selectedZone);
@@ -245,6 +247,7 @@ export default function PandalExplorer({
     setCrowdFilter("all");
     setSearchQuery("");
     setVisibleCount(24);
+    setVisibleFoodCount(24);
     if (onSelectMetroStation) onSelectMetroStation(null);
   };
 
@@ -257,7 +260,7 @@ export default function PandalExplorer({
           <div>
             <div className="inline-flex items-center space-x-1.5 px-3 py-0.5 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-300 text-[10px] sm:text-xs font-semibold mb-2">
               <Compass className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
-              <span>Full Bengal Directory · 518+ Verified Pandals & 185+ Famous Eateries</span>
+              <span>Full Bengal Directory · 541+ Verified Pandals & 228+ Iconic Eateries</span>
             </div>
             <h2 className="font-heritage text-xl sm:text-3xl md:text-5xl font-black text-white">
               Pujo & Food <span className="text-gold-gradient">Navigation Hub</span>
@@ -283,7 +286,7 @@ export default function PandalExplorer({
           </div>
         </div>
 
-        {/* Tab Switcher: 500+ Pandals vs 150+ Eateries */}
+        {/* Tab Switcher: 541+ Pandals vs 228+ Eateries */}
         <div className="grid grid-cols-2 gap-2 sm:gap-3 mb-6">
           <button
             onClick={() => handleTabSwitch("pandals")}
@@ -294,7 +297,7 @@ export default function PandalExplorer({
             }`}
           >
             <Compass className="w-3.5 h-3.5 sm:w-4 sm:h-4 flex-shrink-0" />
-            <span className="whitespace-nowrap font-bold">500+ Pandals</span>
+            <span className="whitespace-nowrap font-bold">541+ Pandals</span>
           </button>
 
           <button
@@ -306,7 +309,7 @@ export default function PandalExplorer({
             }`}
           >
             <Utensils className="w-3.5 h-3.5 sm:w-4 sm:h-4 flex-shrink-0" />
-            <span className="whitespace-nowrap font-bold">150+ Eateries</span>
+            <span className="whitespace-nowrap font-bold">228+ Eateries</span>
           </button>
         </div>
 
@@ -392,8 +395,8 @@ export default function PandalExplorer({
                 }}
                 placeholder={
                   activeTab === "pandals"
-                    ? "Search 518+ pandals (e.g. Sribhumi, Jorasanko Daw Bari, Beleghata Karmi)..."
-                    : "Search 185+ eateries (e.g. Peter Cat, Arsalan, Mitra Cafe, Dada Boudi)..."
+                    ? "Search 541+ pandals (e.g. Sribhumi, Jorasanko Daw Bari, Beleghata Karmi)..."
+                    : "Search 228+ eateries (e.g. Peter Cat, Arsalan, Mitra Cafe, Dada Boudi)..."
                 }
                 className="w-full py-3.5 pl-11 pr-4 bg-[#140E1B] border border-white/10 rounded-2xl text-xs sm:text-sm text-white placeholder-slate-400 focus:outline-none focus:border-amber-400/50"
               />
@@ -593,7 +596,7 @@ export default function PandalExplorer({
                 <Compass className="w-12 h-12 text-amber-400 mx-auto mb-3 opacity-60" />
                 <h3 className="font-heritage text-xl font-bold text-white mb-2">No Pandals Found</h3>
                 <p className="text-xs text-slate-300 mb-6">
-                  We couldn't find any pandal matching your current filter criteria. Try clicking Reset Filters to view all 500+ pandals.
+                  We couldn't find any pandal matching your current filter criteria. Try clicking Reset Filters to view all 541+ pandals.
                 </p>
                 <button
                   onClick={handleResetFilters}
@@ -606,11 +609,11 @@ export default function PandalExplorer({
           </>
         )}
 
-        {/* --- VIEW 2: RESTAURANTS & FOOD SPOTS GRID (65+ SPOTS) --- */}
+        {/* --- VIEW 2: RESTAURANTS & FOOD SPOTS GRID (228+ SPOTS PAGINATED) --- */}
         {activeTab === "food" && (
           <>
             <div className="mb-6 flex items-center justify-between text-xs text-slate-400">
-              <span>Showing <strong>{filteredRestaurants.length}</strong> iconic Kolkata Puja food spots & restaurants</span>
+              <span>Showing <strong>{Math.min(visibleFoodCount, filteredRestaurants.length)}</strong> of <strong>{filteredRestaurants.length}</strong> iconic Kolkata Puja food spots & restaurants</span>
               <button
                 onClick={handleResetFilters}
                 className="text-amber-400 hover:underline flex items-center space-x-1"
@@ -621,15 +624,29 @@ export default function PandalExplorer({
             </div>
 
             {filteredRestaurants.length > 0 ? (
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 gap-6">
-                {filteredRestaurants.map((rest) => (
-                  <RestaurantCard
-                    key={rest.id}
-                    restaurant={rest}
-                    userLocation={userLocation}
-                  />
-                ))}
-              </div>
+              <>
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 gap-6">
+                  {filteredRestaurants.slice(0, visibleFoodCount).map((rest) => (
+                    <RestaurantCard
+                      key={rest.id}
+                      restaurant={rest}
+                      userLocation={userLocation}
+                    />
+                  ))}
+                </div>
+
+                {/* Load More Eateries Button */}
+                {visibleFoodCount < filteredRestaurants.length && (
+                  <div className="mt-12 text-center">
+                    <button
+                      onClick={() => setVisibleFoodCount((prev) => prev + 24)}
+                      className="px-8 py-3.5 rounded-2xl bg-gradient-to-r from-amber-500 to-rose-600 hover:from-amber-400 hover:to-rose-500 text-slate-950 font-black text-xs sm:text-sm shadow-xl shadow-amber-500/20 transition transform hover:-translate-y-0.5 cursor-pointer"
+                    >
+                      Load More Food Spots ({filteredRestaurants.length - visibleFoodCount} remaining)
+                    </button>
+                  </div>
+                )}
+              </>
             ) : (
               <div className="glass-card rounded-3xl p-12 text-center max-w-md mx-auto my-12 border border-white/10">
                 <Utensils className="w-12 h-12 text-amber-400 mx-auto mb-3 opacity-60" />

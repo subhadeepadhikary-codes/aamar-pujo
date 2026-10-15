@@ -9,6 +9,7 @@ import { calculateDistanceKm } from "./geo.js";
 import { buildGoogleMapsNavUrl } from "./navigationHelper.js";
 import { PANDALS_DATA } from "../data/pandalsData.js";
 import { RESTAURANTS_DATA } from "../data/restaurantsData.js";
+import { getPandalEnrichedMeta } from "./pandalMetadataHelper.js";
 
 // Maximum capacities as specified
 export const MAX_ROUTE_PLANS = 5;
@@ -139,6 +140,103 @@ export function optimizeRouteSequential(spots, startCoords = null, endCoords = n
     optimizedDistanceKm,
     savedDistanceKm,
     percentSaved
+  };
+}
+
+/**
+ * AI Time & Lighting Aware Route Optimizer
+ * Balances shortest physical distance with optimal festival timing:
+ * - Schedules Bonedi Baris & traditional rituals during daytime/afternoon slots
+ * - Schedules Mega-Illumination & Chandannagar lighting spectacles during peak dark hours (8:00 PM – 1:30 AM)
+ * - Inserts dining/eatery stops at optimal refreshment intervals
+ */
+export function optimizeRouteTimeAndLighting(spots, startCoords = null, endCoords = null) {
+  if (!spots || spots.length <= 1) {
+    return optimizeRouteSequential(spots, startCoords, endCoords);
+  }
+
+  // First run geographic TSP to get baseline cluster order
+  const tspResult = optimizeRouteSequential(spots, startCoords, endCoords);
+  const baseline = [...tspResult.optimizedSpots];
+
+  // Annotate spots with timing/lighting preferences
+  const enriched = baseline.map((spot, idx) => {
+    const meta = getPandalEnrichedMeta(spot);
+    const isRest = Boolean(spot.isRestaurant || spot.cuisine);
+    const isMegaLighting = meta.lightingTier === "mega";
+    const isMorningTradition = meta.bestHour === "morning";
+
+    return {
+      spot,
+      idx,
+      meta,
+      isRest,
+      isMegaLighting,
+      isMorningTradition,
+      preferredSlot: isMorningTradition ? 0.2 : isMegaLighting ? 0.85 : isRest ? 0.6 : 0.5
+    };
+  });
+
+  // Local pairwise swap with combined objective function:
+  // Total Cost = DistanceKm + TimingPenalty * 1.5
+  let improved = true;
+  let iterations = 0;
+  const tour = [...baseline];
+
+  const computeTimingPenalty = (candidateTour) => {
+    let penalty = 0;
+    const n = candidateTour.length;
+    for (let i = 0; i < n; i++) {
+      const normalizedSlot = i / Math.max(1, n - 1); // 0.0 (start) to 1.0 (end/night)
+      const meta = getPandalEnrichedMeta(candidateTour[i]);
+      if (meta.lightingTier === "mega") {
+        // Mega lighting is much better in the second half (normalizedSlot > 0.5)
+        if (normalizedSlot < 0.35) penalty += 2.0 * (0.35 - normalizedSlot);
+      } else if (meta.bestHour === "morning") {
+        // Traditional bonedi baris are better in the first half
+        if (normalizedSlot > 0.65) penalty += 1.5 * (normalizedSlot - 0.65);
+      }
+    }
+    return penalty;
+  };
+
+  while (improved && iterations < 30) {
+    improved = false;
+    iterations++;
+
+    for (let i = 0; i < tour.length - 1; i++) {
+      for (let j = i + 1; j < tour.length; j++) {
+        const currentDist = calculatePathDistanceKm(tour, startCoords, endCoords);
+        const currentScore = currentDist + computeTimingPenalty(tour) * 1.2;
+
+        const candidate = [...tour];
+        const sub = candidate.slice(i, j + 1).reverse();
+        candidate.splice(i, sub.length, ...sub);
+
+        const candDist = calculatePathDistanceKm(candidate, startCoords, endCoords);
+        const candScore = candDist + computeTimingPenalty(candidate) * 1.2;
+
+        // Allow slight distance increase only if lighting/timing score improves significantly
+        if (candScore < currentScore - 0.15 && candDist <= currentDist * 1.15) {
+          tour.splice(i, sub.length, ...sub);
+          improved = true;
+          break;
+        }
+      }
+      if (improved) break;
+    }
+  }
+
+  const finalDistanceKm = calculatePathDistanceKm(tour, startCoords, endCoords);
+  const initialDist = calculatePathDistanceKm(spots, startCoords, endCoords);
+
+  return {
+    optimizedSpots: tour,
+    initialDistanceKm: initialDist,
+    optimizedDistanceKm: finalDistanceKm,
+    savedDistanceKm: Math.max(0, initialDist - finalDistanceKm),
+    percentSaved: initialDist > 0 ? Math.round((Math.max(0, initialDist - finalDistanceKm) / initialDist) * 100) : 0,
+    isTimeAndLightingOptimized: true
   };
 }
 

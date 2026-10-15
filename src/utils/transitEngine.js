@@ -773,7 +773,7 @@ export function createPandalHub(pandal) {
 }
 
 /**
- * Fuzzy & phonetic search to match input string to known hub or any of the 504 pandals
+ * Fuzzy & phonetic search to match input string to known hub or any of the 541 pandals
  */
 export function identifyHub(query) {
   if (!query) return null;
@@ -822,7 +822,7 @@ export function identifyHub(query) {
     }
   }
 
-  // 5. Search in 504 PANDALS_DATA (Exact, Containment, and Phonetic)
+  // 5. Search in 541 PANDALS_DATA (Exact, Containment, and Phonetic)
   const matchedPandal = PANDALS_DATA.find(p => {
     const pName = p.name.toLowerCase();
     const pLoc = (p.locality || "").toLowerCase();

@@ -82,8 +82,13 @@ export function openGoogleMapsUrl(url) {
   }
 }
 
+export function buildGoogleTransitUrl(destination, origin = null) {
+  return buildGoogleMapsNavUrl(destination, origin, "transit");
+}
+
 export default {
   buildGoogleMapsNavUrl,
+  buildGoogleTransitUrl,
   buildGoogleMapsSearchUrl,
   openGoogleMapsUrl
 };

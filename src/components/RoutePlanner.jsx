@@ -39,6 +39,7 @@ import {
   loadSavedRoutePlans,
   saveRoutePlans,
   optimizeRouteSequential,
+  optimizeRouteTimeAndLighting,
   calculateCircuitSummary,
   buildGoogleMapsCircuitUrl,
   encodePlanToUrl,
@@ -52,7 +53,8 @@ import { exportTripPlanToPdf } from "../utils/pdfExport";
 import { PANDALS_DATA } from "../data/pandalsData";
 import { RESTAURANTS_DATA } from "../data/restaurantsData";
 import { normalizePhonetic } from "../utils/phoneticSearch";
-import { buildGoogleMapsNavUrl } from "../utils/navigationHelper";
+import { buildGoogleMapsNavUrl, buildGoogleTransitUrl } from "../utils/navigationHelper";
+import { getPandalEnrichedMeta } from "../utils/pandalMetadataHelper";
 
 export const TRANSIT_ANCHOR_PRESETS = [
   { id: "howrah", name: "Howrah Railway Station", locality: "Howrah", lat: 22.5839, lng: 88.3426, icon: "🚂" },
@@ -72,7 +74,9 @@ export default function RoutePlanner({
   onSelectPlanForMap,
   onOpenModal,
   currentTravelMode = "smart",
-  onTravelModeChange
+  onTravelModeChange,
+  externalSpotToAdd,
+  onClearExternalSpot
 }) {
   const [plans, setPlans] = useState(() => loadSavedRoutePlans());
   const [activePlanIndex, setActivePlanIndex] = useState(0);
@@ -92,6 +96,39 @@ export default function RoutePlanner({
   const [customEndpointLat, setCustomEndpointLat] = useState("");
   const [customEndpointLng, setCustomEndpointLng] = useState("");
   const [customSearchQuery, setCustomSearchQuery] = useState("");
+
+  // AI Optimizer Strategy Mode ('lighting' | 'tsp')
+  const [optimizerMode, setOptimizerMode] = useState("lighting");
+
+  // Handle external spot added from PandalMap bottom drawer
+  useEffect(() => {
+    if (externalSpotToAdd && activePlan) {
+      const alreadyInPlan = activePlan.spots.some(
+        (s) => s.name === externalSpotToAdd.name || (s.id && s.id === externalSpotToAdd.id)
+      );
+      if (!alreadyInPlan) {
+        if (activePlan.spots.length >= MAX_SPOTS_PER_PLAN) {
+          alert(`Maximum ${MAX_SPOTS_PER_PLAN} spots per plan reached! Remove a spot to add more.`);
+        } else {
+          pushUndoSnapshot(`Added "${externalSpotToAdd.name}" from Map`);
+          const updatedSpots = [...activePlan.spots, externalSpotToAdd];
+          const updatedPlans = plans.map((p, idx) => {
+            if (idx === activePlanIndex) {
+              return { ...p, spots: updatedSpots, updatedAt: Date.now() };
+            }
+            return p;
+          });
+          setPlans(updatedPlans);
+          setShareToast(`✨ Added "${externalSpotToAdd.name}" to your itinerary!`);
+          setTimeout(() => setShareToast(""), 4000);
+        }
+      } else {
+        setShareToast(`ℹ️ "${externalSpotToAdd.name}" is already in this plan!`);
+        setTimeout(() => setShareToast(""), 3000);
+      }
+      if (onClearExternalSpot) onClearExternalSpot();
+    }
+  }, [externalSpotToAdd]);
 
   // Keep travelMode in sync with parent if prop updates
   useEffect(() => {
@@ -719,9 +756,11 @@ export default function RoutePlanner({
       return;
     }
 
-    pushUndoSnapshot("AI Route Optimization");
+    pushUndoSnapshot(optimizerMode === "lighting" ? "AI Time & Lighting Optimization" : "AI Route Distance Optimization");
 
-    const res = optimizeRouteSequential(activePlan.spots, effectiveStartCoords, effectiveEndCoords);
+    const res = optimizerMode === "lighting"
+      ? optimizeRouteTimeAndLighting(activePlan.spots, effectiveStartCoords, effectiveEndCoords)
+      : optimizeRouteSequential(activePlan.spots, effectiveStartCoords, effectiveEndCoords);
 
     const updatedPlans = plans.map((p, idx) => {
       if (idx === activePlanIndex) {
@@ -741,7 +780,12 @@ export default function RoutePlanner({
     if (effectiveEndCoords) anchorDetails.push(`To: ${effectiveEndCoords.name}`);
     const anchorSuffix = anchorDetails.length > 0 ? ` (${anchorDetails.join(" • ")})` : "";
 
-    if (res.savedDistanceKm > 0.1) {
+    if (optimizerMode === "lighting") {
+      setOptimizationNotice({
+        type: "success",
+        msg: `🌙 AI Time & Lighting Aware Optimized! Sequenced grand illumination pandals for peak dark hours while eliminating backtracking${anchorSuffix}.`
+      });
+    } else if (res.savedDistanceKm > 0.1) {
       setOptimizationNotice({
         type: "success",
         msg: `⚡ AI Route Optimized! Saved ${res.savedDistanceKm.toFixed(1)} km (~${res.percentSaved}%)${anchorSuffix} by eliminating backtracking.`
@@ -1244,9 +1288,9 @@ export default function RoutePlanner({
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
             {/* Starting Point Selector */}
-            <div className="p-2.5 rounded-xl bg-slate-950/70 border border-emerald-500/30 space-y-1.5">
-              <div className="flex items-center justify-between">
-                <label className="text-[11px] font-bold text-emerald-300 flex items-center space-x-1">
+            <div className="p-2.5 rounded-xl bg-slate-950/70 border border-emerald-500/30 space-y-1.5 min-w-0">
+              <div className="flex items-center justify-between min-w-0">
+                <label className="text-[11px] font-bold text-emerald-300 flex items-center space-x-1 shrink-0">
                   <span>🏁 Starting Point:</span>
                 </label>
                 {effectiveStartCoords && (
@@ -1256,7 +1300,7 @@ export default function RoutePlanner({
                 )}
               </div>
 
-              <div className="flex items-center space-x-1.5">
+              <div className="flex items-center space-x-1.5 min-w-0 w-full">
                 <select
                   value={activePlan.startPoint?.type === "custom" ? "custom" : (activePlan.startPoint?.id || activePlan.startPoint?.type || (startFromGps ? "gps" : "spot"))}
                   onChange={(e) => {
@@ -1284,7 +1328,7 @@ export default function RoutePlanner({
                       }
                     }
                   }}
-                  className="flex-1 bg-slate-900 text-slate-200 py-1.5 px-2.5 rounded-lg border border-white/15 focus:border-emerald-400 focus:outline-none text-xs font-semibold cursor-pointer"
+                  className="w-full min-w-0 max-w-full flex-1 bg-slate-900 text-slate-200 py-1.5 px-2.5 rounded-lg border border-white/15 focus:border-emerald-400 focus:outline-none text-xs font-semibold cursor-pointer truncate"
                 >
                   <option value="spot">🏁 1st Spot in Plan (Default)</option>
                   <option value="gps">📍 Live GPS Position (Your Phone)</option>
@@ -1301,7 +1345,7 @@ export default function RoutePlanner({
                 {activePlan.startPoint?.type === "custom" && (
                   <button
                     onClick={() => setShowEndpointModal("start")}
-                    className="px-2 py-1.5 rounded-lg bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-[10px] font-bold hover:bg-emerald-500/30"
+                    className="px-2 py-1.5 rounded-lg bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-[10px] font-bold hover:bg-emerald-500/30 shrink-0"
                     title="Edit Custom Start Location"
                   >
                     Edit
@@ -1311,9 +1355,9 @@ export default function RoutePlanner({
             </div>
 
             {/* Ending Point Selector */}
-            <div className="p-2.5 rounded-xl bg-slate-950/70 border border-blue-500/30 space-y-1.5">
-              <div className="flex items-center justify-between">
-                <label className="text-[11px] font-bold text-blue-300 flex items-center space-x-1">
+            <div className="p-2.5 rounded-xl bg-slate-950/70 border border-blue-500/30 space-y-1.5 min-w-0">
+              <div className="flex items-center justify-between min-w-0">
+                <label className="text-[11px] font-bold text-blue-300 flex items-center space-x-1 shrink-0">
                   <span>🎯 Ending Destination:</span>
                 </label>
                 {effectiveEndCoords && (
@@ -1323,7 +1367,7 @@ export default function RoutePlanner({
                 )}
               </div>
 
-              <div className="flex items-center space-x-1.5">
+              <div className="flex items-center space-x-1.5 min-w-0 w-full">
                 <select
                   value={activePlan.endPoint?.type === "custom" ? "custom" : (activePlan.endPoint?.id || activePlan.endPoint?.type || "spot")}
                   onChange={(e) => {
@@ -1350,7 +1394,7 @@ export default function RoutePlanner({
                       }
                     }
                   }}
-                  className="flex-1 bg-slate-900 text-slate-200 py-1.5 px-2.5 rounded-lg border border-white/15 focus:border-blue-400 focus:outline-none text-xs font-semibold cursor-pointer"
+                  className="w-full min-w-0 max-w-full flex-1 bg-slate-900 text-slate-200 py-1.5 px-2.5 rounded-lg border border-white/15 focus:border-blue-400 focus:outline-none text-xs font-semibold cursor-pointer truncate"
                 >
                   <option value="spot">🎯 Last Spot in Plan (Default)</option>
                   <option value="round">🔄 Return to Start (Round Trip)</option>
@@ -1368,7 +1412,7 @@ export default function RoutePlanner({
                 {activePlan.endPoint?.type === "custom" && (
                   <button
                     onClick={() => setShowEndpointModal("end")}
-                    className="px-2 py-1.5 rounded-lg bg-blue-500/20 text-blue-300 border border-blue-500/30 text-[10px] font-bold hover:bg-blue-500/30"
+                    className="px-2 py-1.5 rounded-lg bg-blue-500/20 text-blue-300 border border-blue-500/30 text-[10px] font-bold hover:bg-blue-500/30 shrink-0"
                     title="Edit Custom Destination"
                   >
                     Edit
@@ -1380,28 +1424,62 @@ export default function RoutePlanner({
         </div>
 
         {/* 4. AI OPTIMIZER & ACTION BAR */}
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 pt-2">
-          
-          <div className="flex items-center space-x-2 flex-wrap">
-            {/* AI Optimizer Button */}
-            <button
-              onClick={handleOptimizeRoute}
-              disabled={activePlan.spots.length < 2}
-              className={`px-5 py-3 rounded-2xl font-black text-xs sm:text-sm flex items-center justify-center space-x-2 transition shadow-xl ${
-                activePlan.spots.length >= 2
-                  ? "bg-gradient-to-r from-amber-500 via-rose-600 to-amber-500 hover:from-amber-400 hover:to-rose-500 text-slate-950 shadow-rose-900/30 hover:scale-[1.02] cursor-pointer"
-                  : "bg-white/5 text-slate-500 border border-white/5 cursor-not-allowed"
-              }`}
-            >
-              <Sparkles className="w-4 h-4 text-slate-950 animate-spin" />
-              <span>✨ AI Optimize Route (Sequential Hop)</span>
-            </button>
+        <div className="space-y-3 pt-2">
+          {/* Top Row: AI Optimizer button + Strategy Mode Selector + Undo */}
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 flex-1">
+              {/* AI Optimizer Button */}
+              <button
+                onClick={handleOptimizeRoute}
+                disabled={activePlan.spots.length < 2}
+                className={`px-4 py-2.5 rounded-2xl font-black text-xs sm:text-sm flex items-center justify-center space-x-2 transition shadow-xl ${
+                  activePlan.spots.length >= 2
+                    ? "bg-gradient-to-r from-amber-500 via-rose-600 to-amber-500 hover:from-amber-400 hover:to-rose-500 text-slate-950 shadow-rose-900/30 hover:scale-[1.02] cursor-pointer"
+                    : "bg-white/5 text-slate-500 border border-white/5 cursor-not-allowed"
+                }`}
+              >
+                <Sparkles className="w-4 h-4 text-slate-950 animate-spin" />
+                <span>
+                  {optimizerMode === "lighting"
+                    ? "✨ AI Optimize (Time & Lighting)"
+                    : "✨ AI Optimize (Shortest Distance)"}
+                </span>
+              </button>
+
+              {/* Optimizer Strategy Selector Pills */}
+              <div className="flex items-center bg-slate-950/80 p-1 rounded-xl border border-white/10 self-center sm:self-auto">
+                <button
+                  type="button"
+                  onClick={() => setOptimizerMode("lighting")}
+                  className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition flex items-center space-x-1 ${
+                    optimizerMode === "lighting"
+                      ? "bg-amber-500 text-slate-950 shadow-md"
+                      : "text-slate-400 hover:text-slate-200"
+                  }`}
+                  title="Schedule grand illumination pandals for peak dark hours while avoiding backtracking"
+                >
+                  <span>🌙 Time & Lighting</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setOptimizerMode("tsp")}
+                  className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition flex items-center space-x-1 ${
+                    optimizerMode === "tsp"
+                      ? "bg-amber-500 text-slate-950 shadow-md"
+                      : "text-slate-400 hover:text-slate-200"
+                  }`}
+                  title="Pure travel distance minimization (Kolkata TSP solver)"
+                >
+                  <span>⚡ Shortest Hop</span>
+                </button>
+              </div>
+            </div>
 
             {/* Undo Button with History Counter */}
             <button
               onClick={handleUndo}
               disabled={undoHistory.length === 0}
-              className={`px-3.5 py-3 rounded-2xl font-bold text-xs sm:text-sm flex items-center justify-center space-x-1.5 transition shadow-lg ${
+              className={`px-3.5 py-2.5 rounded-2xl font-bold text-xs sm:text-sm flex items-center justify-center space-x-1.5 transition shadow-lg ${
                 undoHistory.length > 0
                   ? "bg-slate-800 hover:bg-slate-700 text-amber-300 border border-amber-400/40 hover:scale-[1.02] cursor-pointer"
                   : "bg-white/5 text-slate-600 border border-white/5 cursor-not-allowed opacity-50"
@@ -1418,20 +1496,20 @@ export default function RoutePlanner({
             </button>
           </div>
 
-          {/* Action Launchers: PDF Download & Google Maps */}
-          <div className="flex items-center space-x-2 flex-wrap">
+          {/* Action Launchers: PDF Download & Google Maps Chunk Grid */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2 pt-1">
             <button
               onClick={handleDownloadPdf}
               disabled={activePlan.spots.length === 0}
-              className={`px-3.5 py-2.5 rounded-2xl text-xs font-bold transition flex items-center space-x-1.5 shadow-md flex-1 sm:flex-initial justify-center ${
+              className={`px-3.5 py-2.5 rounded-2xl text-xs font-bold transition flex items-center justify-center space-x-1.5 shadow-md ${
                 activePlan.spots.length > 0
                   ? "bg-amber-500/20 hover:bg-amber-500/35 text-amber-200 border border-amber-400/40 cursor-pointer"
                   : "bg-white/5 text-slate-500 border border-white/5 cursor-not-allowed"
               }`}
               title="Download step-by-step printable PDF itinerary"
             >
-              <FileDown className="w-3.5 h-3.5 text-amber-400" />
-              <span>📄 Download Plan as PDF</span>
+              <FileDown className="w-3.5 h-3.5 text-amber-400 flex-shrink-0" />
+              <span>📄 Download PDF</span>
             </button>
 
             {googleMapsChunks && googleMapsChunks.length > 0 ? (
@@ -1441,19 +1519,19 @@ export default function RoutePlanner({
                   href={chunk.url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="px-3.5 py-2.5 rounded-2xl bg-blue-600/30 hover:bg-blue-600/50 text-blue-200 border border-blue-400/40 text-xs font-bold transition flex items-center space-x-1.5 shadow-md flex-1 sm:flex-initial justify-center"
+                  className="px-3.5 py-2.5 rounded-2xl bg-blue-600/30 hover:bg-blue-600/50 text-blue-200 border border-blue-400/40 text-xs font-bold transition flex items-center justify-center space-x-1.5 shadow-md truncate"
                 >
-                  <Navigation className="w-3.5 h-3.5 text-blue-300" />
-                  <span>
+                  <Navigation className="w-3.5 h-3.5 text-blue-300 flex-shrink-0" />
+                  <span className="truncate">
                     {googleMapsChunks.length > 1
-                      ? `🗺️ Open in Google Maps (Part ${chunk.partNumber})`
+                      ? `🗺️ Maps (Part ${chunk.partNumber})`
                       : "🗺️ Open in Google Maps"}
                   </span>
-                  <ExternalLink className="w-3 h-3 ml-0.5" />
+                  <ExternalLink className="w-3 h-3 ml-0.5 flex-shrink-0" />
                 </a>
               ))
             ) : (
-              <span className="text-xs text-slate-500 italic py-2">
+              <span className="text-xs text-slate-500 italic py-2 sm:col-span-2 text-center sm:text-left">
                 Add at least 2 spots to generate Google Maps circuit
               </span>
             )}
@@ -1826,7 +1904,7 @@ export default function RoutePlanner({
                       onDragLeave={() => handleDragLeave(idx)}
                       onDrop={(e) => handleDrop(e, idx)}
                       onDragEnd={handleDragEnd}
-                      className={`p-3.5 rounded-2xl bg-black/50 border transition flex items-center justify-between gap-2.5 sm:gap-3 group select-none ${
+                      className={`p-3 sm:p-3.5 rounded-2xl bg-slate-950/80 border transition group select-none ${
                         dragOverIndex === idx
                           ? "border-amber-400 bg-amber-500/15 ring-2 ring-amber-400/50 scale-[1.01]"
                           : draggedIndex === idx
@@ -1834,98 +1912,115 @@ export default function RoutePlanner({
                           : "border-white/10 hover:border-amber-400/40"
                       }`}
                     >
-                      {/* Grip Drag Handle */}
-                      <div
-                        className="p-1 -ml-1 text-slate-500 group-hover:text-amber-400 cursor-grab active:cursor-grabbing hover:bg-white/5 rounded-lg transition"
-                        title="Drag / Slide to reorder stop"
-                      >
-                        <GripVertical className="w-4 h-4" />
-                      </div>
+                      {/* Desktop & Mobile Two-Tier Layout */}
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 sm:gap-3">
+                        {/* Top / Left Section: Drag Handle, Badge, Title, Badges */}
+                        <div className="flex items-start space-x-2.5 min-w-0 flex-1">
+                          {/* Grip Drag Handle */}
+                          <div
+                            className="p-1.5 -ml-1 text-slate-500 group-hover:text-amber-400 cursor-grab active:cursor-grabbing hover:bg-white/5 rounded-lg transition mt-0.5 flex-shrink-0"
+                            title="Drag / Slide to reorder stop"
+                          >
+                            <GripVertical className="w-4 h-4" />
+                          </div>
 
-                      {/* Step Number Badge & Name */}
-                      <div className="flex items-center space-x-3 min-w-0 flex-1">
-                        <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-gradient-to-tr from-amber-500 to-rose-600 text-slate-950 font-black text-xs sm:text-sm flex items-center justify-center flex-shrink-0 shadow-md">
-                          {idx + 1}
-                        </div>
+                          {/* Step Number Badge */}
+                          <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-gradient-to-tr from-amber-500 to-rose-600 text-slate-950 font-black text-xs sm:text-sm flex items-center justify-center flex-shrink-0 shadow-md mt-0.5">
+                            {idx + 1}
+                          </div>
 
-                        <div className="min-w-0 flex-1">
-                          <div className="flex items-center space-x-1.5 flex-wrap">
-                            <span className="font-bold text-xs sm:text-sm text-white group-hover:text-amber-300 transition truncate">
-                              {spot.name}
-                            </span>
-                            {spot.bengaliName && (
-                              <span className="text-[10px] text-amber-200/80 font-bengali truncate">
-                                ({spot.bengaliName})
+                          {/* Spot Titles & Details */}
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-center space-x-1.5 flex-wrap gap-y-1">
+                              <span className="font-bold text-xs sm:text-sm text-white group-hover:text-amber-300 transition break-words">
+                                {spot.name}
                               </span>
-                            )}
-                            <span className={`text-[9px] px-1.5 py-0.2 rounded-full font-bold ${
-                              spot.isRestaurant
-                                ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/30"
-                                : "bg-rose-500/20 text-rose-300 border border-rose-500/30"
-                            }`}>
-                              {spot.isRestaurant ? "🍽️ Food" : "🏛️ Pandal"}
-                            </span>
-                          </div>
+                              {spot.bengaliName && (
+                                <span className="text-[10px] text-amber-200/80 font-bengali">
+                                  ({spot.bengaliName})
+                                </span>
+                              )}
+                              <span className={`text-[9px] px-1.5 py-0.2 rounded-full font-bold ${
+                                spot.isRestaurant
+                                  ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/30"
+                                  : "bg-rose-500/20 text-rose-300 border border-rose-500/30"
+                              }`}>
+                                {spot.isRestaurant ? "🍽️ Food" : "🏛️ Pandal"}
+                              </span>
+                            </div>
 
-                          <div className="text-[11px] text-slate-400 flex items-center space-x-2 mt-0.5 flex-wrap">
-                            <span>{spot.locality || spot.zoneLabel}</span>
-                            {spot.metro && (
-                              <>
-                                <span>•</span>
-                                <span className="text-blue-300">🚊 {spot.metro}</span>
-                              </>
-                            )}
+                            <div className="text-[11px] text-slate-400 flex items-center space-x-2 mt-1 flex-wrap gap-y-1">
+                              <span>{spot.locality || spot.zoneLabel}</span>
+                              {spot.metro && (
+                                <>
+                                  <span>•</span>
+                                  <span className="text-blue-300">🚊 {spot.metro}</span>
+                                </>
+                              )}
+                              {(() => {
+                                const enriched = getPandalEnrichedMeta(spot.id || spot.rawId);
+                                if (!spot.isRestaurant && enriched?.bestTimeSummary) {
+                                  return (
+                                    <>
+                                      <span>•</span>
+                                      <span className="text-amber-300 font-medium">🕒 {enriched.bestTimeSummary}</span>
+                                    </>
+                                  );
+                                }
+                                return null;
+                              })()}
+                            </div>
                           </div>
                         </div>
-                      </div>
 
-                      {/* Controls (Move Up/Down, Delete, Nav) */}
-                      <div className="flex items-center space-x-1 flex-shrink-0">
-                        <button
-                          onClick={() => handleMoveSpot(idx, -1)}
-                          disabled={isFirst}
-                          className={`p-1.5 rounded-lg transition ${
-                            isFirst ? "text-slate-700 cursor-not-allowed" : "text-slate-400 hover:text-white hover:bg-white/10"
-                          }`}
-                          title="Move earlier in route"
-                        >
-                          <ChevronUp className="w-4 h-4" />
-                        </button>
+                        {/* Controls Toolbar (Move Up/Down, Delete, Nav) - responsive flex on mobile with 36-40px touch targets */}
+                        <div className="flex items-center justify-end space-x-1.5 pt-1.5 sm:pt-0 border-t border-white/5 sm:border-0 flex-shrink-0">
+                          <button
+                            onClick={() => handleMoveSpot(idx, -1)}
+                            disabled={isFirst}
+                            className={`p-2 rounded-xl transition ${
+                              isFirst ? "text-slate-700 cursor-not-allowed" : "text-slate-300 hover:text-white hover:bg-white/10 active:scale-95"
+                            }`}
+                            title="Move earlier in route"
+                          >
+                            <ChevronUp className="w-4 h-4" />
+                          </button>
 
-                        <button
-                          onClick={() => handleMoveSpot(idx, 1)}
-                          disabled={isLast}
-                          className={`p-1.5 rounded-lg transition ${
-                            isLast ? "text-slate-700 cursor-not-allowed" : "text-slate-400 hover:text-white hover:bg-white/10"
-                          }`}
-                          title="Move later in route"
-                        >
-                          <ChevronDown className="w-4 h-4" />
-                        </button>
+                          <button
+                            onClick={() => handleMoveSpot(idx, 1)}
+                            disabled={isLast}
+                            className={`p-2 rounded-xl transition ${
+                              isLast ? "text-slate-700 cursor-not-allowed" : "text-slate-300 hover:text-white hover:bg-white/10 active:scale-95"
+                            }`}
+                            title="Move later in route"
+                          >
+                            <ChevronDown className="w-4 h-4" />
+                          </button>
 
-                        <a
-                          href={buildGoogleMapsNavUrl(spot, userLocation, (travelMode === "road" || travelMode === "bike") ? "two_wheeler" : travelMode === "metro" ? "transit" : "walking")}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="p-1.5 rounded-lg text-blue-400 hover:bg-blue-600/20 transition"
-                          title={`Navigate to spot via Google Maps (${(travelMode === "road" || travelMode === "bike") ? "Road Route" : travelMode === "metro" ? "Metro Transit" : "Walking"})`}
-                        >
-                          <ExternalLink className="w-3.5 h-3.5" />
-                        </a>
+                          <a
+                            href={buildGoogleMapsNavUrl(spot, userLocation, (travelMode === "road" || travelMode === "bike") ? "two_wheeler" : travelMode === "metro" ? "transit" : "walking")}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="p-2 rounded-xl text-blue-400 hover:bg-blue-600/20 active:scale-95 transition"
+                            title={`Navigate to spot via Google Maps (${(travelMode === "road" || travelMode === "bike") ? "Road Route" : travelMode === "metro" ? "Metro Transit" : "Walking"})`}
+                          >
+                            <ExternalLink className="w-4 h-4" />
+                          </a>
 
-                        <button
-                          onClick={() => handleRemoveSpot(idx)}
-                          className="p-1.5 rounded-lg text-rose-400 hover:bg-rose-600/20 transition"
-                          title="Remove spot from plan"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
+                          <button
+                            onClick={() => handleRemoveSpot(idx)}
+                            className="p-2 rounded-xl text-rose-400 hover:bg-rose-600/20 active:scale-95 transition"
+                            title="Remove spot from plan"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
                       </div>
                     </div>
 
                     {/* INTER-LEG TRANSIT RECOMMENDATION BADGE */}
                     {idx < activePlan.spots.length - 1 && leg && (
-                      <div className="ml-4 sm:ml-6 pl-4 border-l-2 border-dashed border-amber-500/30 py-1.5 my-1">
+                      <div className="ml-3 sm:ml-6 pl-3 sm:pl-4 border-l-2 border-dashed border-amber-500/30 py-1.5 my-1">
                         <div className="p-3 rounded-2xl bg-[#170E24] border border-amber-500/35 space-y-2 shadow-md">
                           <div className="flex items-center justify-between flex-wrap gap-2">
                             <div className="flex items-center space-x-2 flex-wrap">
@@ -1955,20 +2050,51 @@ export default function RoutePlanner({
                               )}
                             </div>
 
-                            <a
-                              href={leg.navUrl}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="px-3 py-1 rounded-xl bg-blue-600/30 hover:bg-blue-600/50 text-blue-300 border border-blue-500/40 text-[11px] font-bold transition inline-flex items-center space-x-1 shadow-sm"
-                            >
-                              <span>Navigate Leg</span>
-                              <ExternalLink className="w-2.5 h-2.5" />
-                            </a>
+                            <div className="flex items-center space-x-1.5">
+                              {/* Direct Google Transit (Bus/Metro) Button */}
+                              {activePlan.spots[idx + 1] && (
+                                <a
+                                  href={buildGoogleTransitUrl(activePlan.spots[idx + 1], spot)}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="px-2.5 py-1 rounded-xl bg-emerald-600/30 hover:bg-emerald-600/50 text-emerald-300 border border-emerald-500/40 text-[10px] font-bold transition inline-flex items-center space-x-1 shadow-sm"
+                                  title="Check Kolkata Bus & Metro Transit on Google Maps"
+                                >
+                                  <span>🚌 Transit / Bus</span>
+                                  <ExternalLink className="w-2.5 h-2.5" />
+                                </a>
+                              )}
+
+                              <a
+                                href={leg.navUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="px-2.5 py-1 rounded-xl bg-blue-600/30 hover:bg-blue-600/50 text-blue-300 border border-blue-500/40 text-[10px] font-bold transition inline-flex items-center space-x-1 shadow-sm"
+                              >
+                                <span>Navigate</span>
+                                <ExternalLink className="w-2.5 h-2.5" />
+                              </a>
+                            </div>
                           </div>
 
                           <p className="text-[11px] text-slate-300 leading-relaxed font-sans">
                             {leg.recommendation}
                           </p>
+
+                          {/* Bus Corridor Recommendation */}
+                          {(() => {
+                            const nextSpot = activePlan.spots[idx + 1];
+                            const destMeta = nextSpot ? getPandalEnrichedMeta(nextSpot.id || nextSpot.rawId) : null;
+                            if (destMeta?.buses && destMeta.buses.length > 0) {
+                              return (
+                                <div className="text-[10px] text-emerald-300/90 bg-emerald-950/40 px-2 py-1 rounded-lg border border-emerald-500/20 flex items-center space-x-1.5 flex-wrap">
+                                  <span className="font-bold">🚌 Nearby Kolkata Buses:</span>
+                                  <span className="font-mono text-emerald-200">{destMeta.buses.join(", ")}</span>
+                                </div>
+                              );
+                            }
+                            return null;
+                          })()}
 
                           {/* Multi-modal Junction Comparison in Smart Mode */}
                           {travelMode === "smart" && leg.junctionAnalysis?.comparison && (

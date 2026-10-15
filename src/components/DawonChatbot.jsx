@@ -118,7 +118,7 @@ export default function DawonChatbot({ userLocation, onNavigateToPandal, isAudio
     return null;
   };
 
-  // Autocomplete suggestion filters matching hubs and all 504 pandals
+  // Autocomplete suggestion filters matching hubs and all 541 pandals
   const getSuggestions = (query) => {
     const q = query.trim().toLowerCase();
     if (!q) return SEARCHABLE_LOCATIONS.slice(0, 6);

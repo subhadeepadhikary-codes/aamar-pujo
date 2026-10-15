@@ -11,6 +11,7 @@ import Footer from "./components/Footer";
 import PandalModal from "./components/PandalModal";
 import FestiveWelcomeModal from "./components/FestiveWelcomeModal";
 import DawonChatbot from "./components/DawonChatbot";
+import TutorialSlideshowModal, { TOUR_STORAGE_KEY } from "./components/TutorialSlideshowModal";
 import { POPULAR_HUBS } from "./utils/geo";
 import { PUJO_SONGS } from "./data/songsData";
 import { ArrowUp, Music, Play, Pause, X, SkipForward, Disc3, Volume2, VolumeX } from "lucide-react";
@@ -20,6 +21,9 @@ import { getCurrentTithiSongIndex } from "./utils/tithiMusic";
 export default function App() {
   // Strictly Segregated Current Page State: 'home' | 'pipeline' | 'pandals' | 'map' | 'melodies' | 'about'
   const [currentPage, setCurrentPage] = useState("home");
+
+  // Tutorial Slideshow Modal State
+  const [showTutorialModal, setShowTutorialModal] = useState(false);
 
   // Geolocation & Filter State
   const [userLocation, setUserLocation] = useState(null);
@@ -78,6 +82,21 @@ export default function App() {
     handleHash();
     window.addEventListener("hashchange", handleHash);
     return () => window.removeEventListener("hashchange", handleHash);
+  }, []);
+
+  // Auto-prompt Feature Guide tour for first-time visitors with a gentle delay
+  useEffect(() => {
+    try {
+      const tourSeen = localStorage.getItem(TOUR_STORAGE_KEY);
+      if (!tourSeen) {
+        const timer = setTimeout(() => {
+          setShowTutorialModal(true);
+        }, 1500);
+        return () => clearTimeout(timer);
+      }
+    } catch {
+      // localStorage fallback
+    }
   }, []);
 
   const handleToggleAudio = () => {
@@ -250,6 +269,7 @@ export default function App() {
             setSearchQuery("");
           }
         }}
+        onOpenTutorial={() => setShowTutorialModal(true)}
       />
 
       {/* Main View Container: STRICT PAGE-BY-PAGE SEGREGATION */}
@@ -296,7 +316,7 @@ export default function App() {
           </div>
         )}
 
-        {/* PAGE 3: 500+ PANDALS DIRECTORY & FOOD NEAR ME */}
+        {/* PAGE 3: 541+ PANDALS DIRECTORY & FOOD NEAR ME */}
         {currentPage === "pandals" && (
           <div className="animate-fadeIn">
             <PandalExplorer
@@ -453,6 +473,12 @@ export default function App() {
           window.scrollTo({ top: 0, behavior: "smooth" });
         }}
         isAudioPlaying={isAudioPlaying && currentPage !== "melodies"}
+      />
+
+      {/* Feature Guide & Interactive Tutorial Slideshow Modal */}
+      <TutorialSlideshowModal
+        isOpen={showTutorialModal}
+        onClose={() => setShowTutorialModal(false)}
       />
 
     </div>
