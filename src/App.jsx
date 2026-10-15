@@ -12,6 +12,8 @@ import PandalModal from "./components/PandalModal";
 import FestiveWelcomeModal from "./components/FestiveWelcomeModal";
 import DawonChatbot from "./components/DawonChatbot";
 import TutorialSlideshowModal, { TOUR_STORAGE_KEY } from "./components/TutorialSlideshowModal";
+import FullscreenPromptModal from "./components/FullscreenPromptModal";
+import BottomTaskbar from "./components/BottomTaskbar";
 import { POPULAR_HUBS } from "./utils/geo";
 import { PUJO_SONGS } from "./data/songsData";
 import { ArrowUp, Music, Play, Pause, X, SkipForward, Disc3, Volume2, VolumeX } from "lucide-react";
@@ -231,8 +233,20 @@ export default function App() {
     nearMeWatchIdRef.current = id;
   };
 
+  const handleNavigateToHelpline = () => {
+    setCurrentPage("about");
+    setTimeout(() => {
+      const el = document.getElementById("emergency-helpline");
+      if (el) {
+        el.scrollIntoView({ behavior: "smooth", block: "start" });
+      } else {
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      }
+    }, 150);
+  };
+
   return (
-    <div className="min-h-screen bg-[#070509] text-slate-100 flex flex-col font-sans selection:bg-amber-500/30 selection:text-amber-200 overflow-x-hidden">
+    <div className="min-h-[100dvh] bg-[#070509] text-slate-100 flex flex-col font-sans selection:bg-amber-500/30 selection:text-amber-200 overflow-x-hidden">
       
       {/* Centralized Persistent HTML5 Audio Element */}
       <audio
@@ -273,7 +287,7 @@ export default function App() {
       />
 
       {/* Main View Container: STRICT PAGE-BY-PAGE SEGREGATION */}
-      <main className={`flex-1 w-full max-w-full overflow-x-hidden ${isAudioPlaying && currentPage !== "melodies" ? "pb-28 sm:pb-16" : ""}`}>
+      <main className={`flex-1 w-full max-w-full overflow-x-hidden ${isAudioPlaying && currentPage !== "melodies" ? "pb-44 sm:pb-16" : "pb-24 sm:pb-8"}`}>
         
         {/* PAGE 1: HOME (Hero Carousel + Search & Portal) */}
         {currentPage === "home" && (
@@ -397,7 +411,7 @@ export default function App() {
 
       {/* Persistent Mini Audio Player Strip (Mobile Responsive & Never Cuts Off) */}
       {isAudioPlaying && currentPage !== "melodies" && (
-        <div className="fixed bottom-3 left-3 right-3 sm:left-6 sm:right-auto sm:w-[410px] max-w-[calc(100vw-24px)] z-40 rounded-2xl p-2.5 sm:p-3 border-2 border-amber-500/50 shadow-2xl shadow-black/90 flex items-center justify-between animate-fadeIn bg-[#100B18]/95 backdrop-blur-xl">
+        <div className="fixed bottom-[68px] sm:bottom-4 left-3 right-3 sm:left-6 sm:right-auto sm:w-[410px] max-w-[calc(100vw-24px)] z-40 rounded-2xl p-2.5 sm:p-3 border-2 border-amber-500/50 shadow-2xl shadow-black/90 flex items-center justify-between animate-fadeIn bg-[#100B18]/95 backdrop-blur-xl">
           <div 
             onClick={() => {
               setCurrentPage("melodies");
@@ -475,10 +489,35 @@ export default function App() {
         isAudioPlaying={isAudioPlaying && currentPage !== "melodies"}
       />
 
+      {/* Mobile Persistent Bottom Taskbar */}
+      <BottomTaskbar
+        currentPage={currentPage}
+        setCurrentPage={setCurrentPage}
+        isNearMeActive={isNearMeActive}
+        onToggleNearMe={handleToggleNearMe}
+        isAudioPlaying={isAudioPlaying}
+        onToggleAudio={handleToggleAudio}
+        onNavigateToHelpline={handleNavigateToHelpline}
+      />
+
       {/* Feature Guide & Interactive Tutorial Slideshow Modal */}
       <TutorialSlideshowModal
         isOpen={showTutorialModal}
         onClose={() => setShowTutorialModal(false)}
+      />
+
+      {/* First-Visit Mobile Fullscreen Permission Popup (Clean English) */}
+      <FullscreenPromptModal
+        onComplete={() => {
+          try {
+            const tourSeen = localStorage.getItem(TOUR_STORAGE_KEY);
+            if (!tourSeen) {
+              setTimeout(() => setShowTutorialModal(true), 800);
+            }
+          } catch {
+            // fallback
+          }
+        }}
       />
 
     </div>

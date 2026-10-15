@@ -487,8 +487,8 @@ Amake bolo, jemon:
   return (
     <div className={`fixed z-50 font-sans transition-all duration-300 ${
       isAudioPlaying 
-        ? "bottom-20 right-3 sm:bottom-6 sm:right-6" 
-        : "bottom-5 right-3 sm:bottom-6 sm:right-6"
+        ? "bottom-[140px] right-3 sm:bottom-6 sm:right-6" 
+        : "bottom-[70px] right-3 sm:bottom-6 sm:right-6"
     }`}>
       
       {/* Floating Action Mascot Button */}

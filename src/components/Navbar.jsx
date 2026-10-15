@@ -21,7 +21,9 @@ import {
   ExternalLink,
   MessageSquareHeart,
   Check,
-  Navigation
+  Navigation,
+  Maximize2,
+  Minimize2
 } from "lucide-react";
 
 export default function Navbar({ 
@@ -39,7 +41,36 @@ export default function Navbar({
   const [metroModalOpen, setMetroModalOpen] = useState(false);
   const [metroDropdownOpen, setMetroDropdownOpen] = useState(false);
   const [metroLineFilter, setMetroLineFilter] = useState("all");
+  const [isFullscreen, setIsFullscreen] = useState(false);
   const metroDropdownRef = useRef(null);
+
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      setIsFullscreen(!!(document.fullscreenElement || document.webkitFullscreenElement));
+    };
+
+    document.addEventListener("fullscreenchange", handleFullscreenChange);
+    document.addEventListener("webkitfullscreenchange", handleFullscreenChange);
+    return () => {
+      document.removeEventListener("fullscreenchange", handleFullscreenChange);
+      document.removeEventListener("webkitfullscreenchange", handleFullscreenChange);
+    };
+  }, []);
+
+  const handleToggleFullscreen = async () => {
+    try {
+      if (!isFullscreen) {
+        const el = document.documentElement;
+        if (el.requestFullscreen) await el.requestFullscreen();
+        else if (el.webkitRequestFullscreen) await el.webkitRequestFullscreen();
+      } else {
+        if (document.exitFullscreen) await document.exitFullscreen();
+        else if (document.webkitExitFullscreen) await document.webkitExitFullscreen();
+      }
+    } catch (err) {
+      console.warn("Fullscreen toggle notice:", err);
+    }
+  };
 
   const navItems = [
     { id: "home", label: "Home", bengali: "হোম", icon: Home, desc: "Pujo Spotlight & Highlights" },
@@ -287,6 +318,24 @@ export default function Navbar({
                   <span className="hidden sm:inline text-xs text-slate-400 font-bold">Audio</span>
                 </>
               )}
+            </button>
+
+            {/* ⛶ Fullscreen Toggle */}
+            <button
+              onClick={handleToggleFullscreen}
+              className={`flex items-center space-x-1 p-2 sm:px-3 sm:py-2 rounded-xl text-xs font-bold transition-all border shadow-sm cursor-pointer ${
+                isFullscreen
+                  ? "bg-amber-400 text-slate-950 border-amber-300 font-black shadow-amber-400/30"
+                  : "bg-[#160E20] text-amber-300 border-amber-500/40 hover:border-amber-400 hover:bg-[#221630]"
+              }`}
+              title={isFullscreen ? "Exit Full Screen" : "Enter Full Screen View"}
+            >
+              {isFullscreen ? (
+                <Minimize2 className="w-3.5 h-3.5 flex-shrink-0" />
+              ) : (
+                <Maximize2 className="w-3.5 h-3.5 text-amber-400 flex-shrink-0" />
+              )}
+              <span className="hidden sm:inline text-xs font-bold">{isFullscreen ? "Exit" : "Full"}</span>
             </button>
 
           </div>

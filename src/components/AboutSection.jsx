@@ -11,6 +11,8 @@ import {
   CheckCircle2,
   HelpCircle,
   ShieldCheck,
+  Shield,
+  PhoneCall,
   MessageSquareHeart,
   ExternalLink,
   Mail
@@ -203,6 +205,68 @@ export default function AboutSection() {
             ))}
           </div>
 
+        </div>
+
+        {/* 🚨 24x7 Kolkata Police & Pujo Emergency Helplines */}
+        <div id="emergency-helpline" className="mt-14 scroll-mt-24 glass-card rounded-3xl p-6 sm:p-8 border-2 border-rose-500/40 bg-gradient-to-br from-rose-950/30 via-[#140B1C] to-[#0A070D] shadow-2xl relative overflow-hidden">
+          <div className="absolute top-0 right-0 w-80 h-80 bg-rose-500/10 rounded-full blur-3xl pointer-events-none"></div>
+
+          <div className="relative z-10 space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-rose-500/20 pb-3">
+              <div className="flex items-center space-x-2.5">
+                <div className="p-2 rounded-xl bg-rose-500/20 text-rose-400 border border-rose-500/40">
+                  <PhoneCall className="w-5 h-5 text-rose-400" />
+                </div>
+                <div>
+                  <h3 className="font-heritage text-lg sm:text-2xl font-black text-white">
+                    24x7 Kolkata Emergency & Safety Helplines
+                  </h3>
+                  <span className="text-xs text-rose-300/90 font-medium">
+                    জরুরি হেল্পলাইন নম্বর · Instant 1-tap phone dials for police, medical, fire & traffic
+                  </span>
+                </div>
+              </div>
+              <span className="self-start sm:self-auto px-3 py-1 rounded-full bg-rose-500/20 text-rose-300 border border-rose-500/40 text-[10px] font-bold uppercase tracking-wider">
+                Emergency Ready
+              </span>
+            </div>
+
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+              {[
+                { label: "Kolkata Police Control", number: "100", alt: "112", note: "Police Assistance" },
+                { label: "Traffic Police Helpline", number: "1073", note: "Traffic & Road Closures" },
+                { label: "Women Safety Helpline", number: "1091", note: "Dedicated Women Support" },
+                { label: "Metro Railway Helpline", number: "139", note: "Metro Rail Emergency" },
+                { label: "Emergency Ambulance", number: "102", alt: "108", note: "Medical Emergencies" },
+                { label: "Fire & Rescue Service", number: "101", note: "Fire Stations 24x7" },
+                { label: "Disaster Management", number: "1077", note: "Civic & Flood Control" },
+                { label: "Childline Support", number: "1098", note: "Lost Children at Pandals" }
+              ].map((item, idx) => (
+                <a
+                  key={idx}
+                  href={`tel:${item.number}`}
+                  className="p-3 rounded-2xl bg-[#110B18] border border-rose-500/25 hover:border-rose-400/60 transition group flex flex-col justify-between space-y-2 hover:scale-[1.02] shadow-md cursor-pointer"
+                >
+                  <div>
+                    <span className="text-[11px] font-bold text-slate-200 group-hover:text-white block truncate">
+                      {item.label}
+                    </span>
+                    <span className="text-[9px] text-slate-400 block truncate">
+                      {item.note}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between pt-1 border-t border-white/5">
+                    <span className="text-xs sm:text-sm font-black text-rose-400 font-mono tracking-wide group-hover:text-rose-300">
+                      {item.number} {item.alt ? `/ ${item.alt}` : ""}
+                    </span>
+                    <span className="px-2 py-0.5 rounded-lg bg-rose-500/20 text-rose-300 text-[10px] font-bold group-hover:bg-rose-500 group-hover:text-white transition">
+                      Call
+                    </span>
+                  </div>
+                </a>
+              ))}
+            </div>
+          </div>
         </div>
 
         {/* User Feedback & Suggestions Card (Google Form) */}

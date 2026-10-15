@@ -28,7 +28,9 @@ import {
   X,
   Plus,
   Check,
-  ChevronRight
+  ChevronRight,
+  Maximize2,
+  Minimize2
 } from "lucide-react";
 import RoutePlanner from "./RoutePlanner";
 import { fetchStreetRoute } from "../utils/streetRouter";
@@ -66,6 +68,25 @@ export default function PandalMap({ userLocation, onOpenModal, selectedZone, onU
   const [selectedSpotCard, setSelectedSpotCard] = useState(null);
   const [externalSpotToAdd, setExternalSpotToAdd] = useState(null);
   const [addedSpotToast, setAddedSpotToast] = useState("");
+  const [isMapFullscreen, setIsMapFullscreen] = useState(false);
+
+  const handleToggleMapFullscreen = () => {
+    const nextState = !isMapFullscreen;
+    setIsMapFullscreen(nextState);
+
+    if (nextState) {
+      const el = document.documentElement;
+      if (el.requestFullscreen && !document.fullscreenElement) {
+        el.requestFullscreen().catch(() => {});
+      }
+    }
+
+    setTimeout(() => {
+      if (mapInstanceRef.current) {
+        mapInstanceRef.current.invalidateSize();
+      }
+    }, 150);
+  };
 
   // Helper function to update user location marker and accuracy aura
   const updateUserMarkerAndCircle = (coords, accuracy, shouldPan = false) => {
@@ -266,7 +287,7 @@ export default function PandalMap({ userLocation, onOpenModal, selectedZone, onU
     if (restaurantsLayerRef.current) {
       const restLayer = restaurantsLayerRef.current;
       restLayer.clearLayers();
-      if (showRestaurants && (!isRouteFocused || (activeMapPlan?.spots?.length < 2))) {
+      if (showRestaurants) {
         const rests = targetRestaurantsRef.current || [];
         for (let i = 0; i < rests.length; i++) {
           const r = rests[i];
@@ -282,7 +303,7 @@ export default function PandalMap({ userLocation, onOpenModal, selectedZone, onU
         }
       }
     }
-  }, [showRestaurants, isRouteFocused, activeMapPlan?.spots?.length]);
+  }, [showRestaurants]);
 
   // Initialize Map Instance Once
   useEffect(() => {
@@ -345,7 +366,7 @@ export default function PandalMap({ userLocation, onOpenModal, selectedZone, onU
 
     targetRestaurantsRef.current = targetRestaurants;
     renderVisibleMarkers();
-  }, [showRestaurants, activeZone, isRouteFocused, activeMapPlan?.spots?.length, renderVisibleMarkers]);
+  }, [showRestaurants, activeZone, renderVisibleMarkers]);
 
   // Road-Snapped Street Polyline & Numbered Step Markers
   useEffect(() => {
@@ -724,12 +745,27 @@ export default function PandalMap({ userLocation, onOpenModal, selectedZone, onU
                 <ZoomIn className="w-3.5 h-3.5 text-rose-400" />
                 <span>Kolkata</span>
               </button>
+              {/* Bengal Preset */}
               <button
                 onClick={zoomToWestBengal}
                 className="px-2.5 py-1.5 rounded-xl bg-white/10 hover:bg-white/15 text-white text-xs font-bold border border-white/10 transition flex items-center space-x-1 flex-shrink-0"
               >
                 <Globe className="w-3.5 h-3.5 text-amber-400" />
                 <span>Bengal</span>
+              </button>
+
+              {/* Edge-to-Edge Fullscreen Map Toggle */}
+              <button
+                onClick={handleToggleMapFullscreen}
+                className={`px-2.5 py-1.5 rounded-xl text-xs font-bold border transition flex items-center space-x-1 flex-shrink-0 shadow-md cursor-pointer ${
+                  isMapFullscreen
+                    ? "bg-amber-400 text-slate-950 border-amber-300 font-black shadow-amber-400/30"
+                    : "bg-[#181124] hover:bg-[#221733] text-amber-300 border-amber-500/40"
+                }`}
+                title={isMapFullscreen ? "Exit Edge-to-Edge Map" : "Open Edge-to-Edge Fullscreen Map"}
+              >
+                {isMapFullscreen ? <Minimize2 className="w-3.5 h-3.5" /> : <Maximize2 className="w-3.5 h-3.5" />}
+                <span>{isMapFullscreen ? "Exit Full" : "⛶ Full Map"}</span>
               </button>
             </div>
 
@@ -763,9 +799,24 @@ export default function PandalMap({ userLocation, onOpenModal, selectedZone, onU
           </div>
         </div>
 
-        {/* Map Canvas Frame */}
-        <div className="relative rounded-3xl overflow-hidden border border-amber-500/30 shadow-2xl h-[520px] sm:h-[620px] bg-[#0E0A14]">
+        {/* Map Canvas Frame (Supports edge-to-edge full screen) */}
+        <div className={`transition-all duration-300 ${
+          isMapFullscreen
+            ? "fixed inset-0 z-50 rounded-none border-0 h-[100dvh] w-screen bg-[#0E0A14]"
+            : "relative rounded-3xl overflow-hidden border border-amber-500/30 shadow-2xl h-[520px] sm:h-[620px] bg-[#0E0A14]"
+        }`}>
           <div ref={mapContainerRef} className="w-full h-full z-10" />
+
+          {/* Floating Exit Button in Fullscreen Mode */}
+          {isMapFullscreen && (
+            <button
+              onClick={handleToggleMapFullscreen}
+              className="absolute top-4 right-4 z-30 px-3 py-1.5 rounded-xl bg-black/85 hover:bg-black text-white border border-amber-500/50 shadow-2xl backdrop-blur-md flex items-center space-x-1.5 text-xs font-bold cursor-pointer"
+            >
+              <Minimize2 className="w-4 h-4 text-amber-400" />
+              <span>Exit Full Map</span>
+            </button>
+          )}
 
           {/* Unified Responsive Top Control Bar (Never collides or overlaps on mobile!) */}
           {activeMapPlan?.spots?.length >= 2 && (

@@ -4,15 +4,16 @@ import {
   ChevronLeft,
   ChevronRight,
   Sparkles,
-  MapPin,
   Utensils,
   Footprints,
   Train,
   Clock,
   Bus,
   ZoomIn,
-  Eye,
-  CheckCircle2
+  Download,
+  CheckCircle2,
+  Share2,
+  Smartphone
 } from "lucide-react";
 
 export const TOUR_STORAGE_KEY = "aamar_pujo_tour_seen_v1";
@@ -32,7 +33,7 @@ const SLIDES = [
       {
         num: "①",
         bold: "Hero Spotlight Carousel:",
-        text: "Swipe through top trending pandals with 1-tap Google Maps navigation."
+        text: "Swipe through top trending pandals with 1-tap Google Maps directions."
       },
       {
         num: "②",
@@ -97,13 +98,13 @@ const SLIDES = [
         highlights: [
           {
             num: "①",
-            bold: "Near Me GPS & Radius:",
-            text: "Auto-sort spots within 2 km up to 20 km of your live GPS coordinates."
+            bold: "541+ Pandals vs 228+ Eateries:",
+            text: "Switch tabs instantly between puja pandals and Kolkata's legendary eateries."
           },
           {
             num: "②",
-            bold: "541+ Pandals vs 228+ Eateries:",
-            text: "Switch tabs instantly between puja pandals and Kolkata's legendary eateries."
+            bold: "Near Me GPS & Radius:",
+            text: "Auto-sort spots within 2 km up to 20 km of your live GPS coordinates."
           },
           {
             num: "③",
@@ -226,23 +227,23 @@ const SLIDES = [
     highlights: [
       {
         num: "①",
-        bold: "Live Bus Numbers:",
-        text: "Corridor recommendations (78/1, 219, 234/1, 240, 30B) connecting your stops."
+        bold: "Live Corridor Map:",
+        text: "Visual bus and public transport corridor line connecting your selected pandals."
       },
       {
         num: "②",
-        bold: "Scheduled Departures & Stops:",
-        text: "Shows boarding stops (Hedua More, Karbala) and scheduled departure intervals."
-      },
-      {
-        num: "③",
         bold: "1-Tap Google Transit:",
         text: "Launches Google Maps public transport mode directly from your active itinerary."
       },
       {
+        num: "③",
+        bold: "Live Bus Numbers:",
+        text: "Corridor recommendations (78/1, 219, 234/1, 240, 30B) connecting your stops."
+      },
+      {
         num: "④",
-        bold: "📄 Step-by-Step PDF Export:",
-        text: "1-click printable guide with addresses, distances, and notes to share on WhatsApp."
+        bold: "Scheduled Departures & Stops:",
+        text: "Shows boarding stops (Hedua More, Karbala) and scheduled departure intervals."
       }
     ]
   }
@@ -252,6 +253,34 @@ export default function TutorialSlideshowModal({ isOpen, onClose }) {
   const [currentSlide, setCurrentSlide] = useState(0);
   const [slide2SubView, setSlide2SubView] = useState("map"); // "map" | "directory"
   const [zoomedImage, setZoomedImage] = useState(null);
+  const [installPromptEvent, setInstallPromptEvent] = useState(null);
+  const [isInstalled, setIsInstalled] = useState(false);
+  const [showIosTip, setShowIosTip] = useState(false);
+
+  // Capture beforeinstallprompt for PWA install
+  useEffect(() => {
+    const handleBeforeInstallPrompt = (e) => {
+      e.preventDefault();
+      setInstallPromptEvent(e);
+    };
+
+    const handleAppInstalled = () => {
+      setIsInstalled(true);
+      setInstallPromptEvent(null);
+    };
+
+    window.addEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
+    window.addEventListener("appinstalled", handleAppInstalled);
+
+    if (window.matchMedia("(display-mode: standalone)").matches) {
+      setIsInstalled(true);
+    }
+
+    return () => {
+      window.removeEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
+      window.removeEventListener("appinstalled", handleAppInstalled);
+    };
+  }, []);
 
   // Close on Escape, navigate with Arrow keys
   useEffect(() => {
@@ -261,15 +290,17 @@ export default function TutorialSlideshowModal({ isOpen, onClose }) {
       if (e.key === "Escape") {
         if (zoomedImage) {
           setZoomedImage(null);
+        } else if (showIosTip) {
+          setShowIosTip(false);
         } else {
           handleDismiss();
         }
       } else if (e.key === "ArrowRight") {
-        if (!zoomedImage) {
+        if (!zoomedImage && !showIosTip) {
           setCurrentSlide((prev) => Math.min(prev + 1, SLIDES.length - 1));
         }
       } else if (e.key === "ArrowLeft") {
-        if (!zoomedImage) {
+        if (!zoomedImage && !showIosTip) {
           setCurrentSlide((prev) => Math.max(prev - 1, 0));
         }
       }
@@ -277,7 +308,7 @@ export default function TutorialSlideshowModal({ isOpen, onClose }) {
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [isOpen, zoomedImage]);
+  }, [isOpen, zoomedImage, showIosTip]);
 
   if (!isOpen) return null;
 
@@ -305,6 +336,24 @@ export default function TutorialSlideshowModal({ isOpen, onClose }) {
   const handlePrev = () => {
     if (!isFirst) {
       setCurrentSlide((prev) => prev - 1);
+    }
+  };
+
+  const handleInstallApp = async () => {
+    if (installPromptEvent) {
+      installPromptEvent.prompt();
+      const choiceResult = await installPromptEvent.userChoice;
+      if (choiceResult.outcome === "accepted") {
+        setIsInstalled(true);
+      }
+      setInstallPromptEvent(null);
+    } else {
+      const isIos = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+      if (isIos) {
+        setShowIosTip(true);
+      } else {
+        alert("To install Aamar Pujo on your device, tap your browser's menu (⋮) and select 'Add to Home screen' or 'Install App'.");
+      }
     }
   };
 
@@ -432,7 +481,7 @@ export default function TutorialSlideshowModal({ isOpen, onClose }) {
                   key={i}
                   className="p-2.5 sm:p-3 rounded-2xl bg-white/5 border border-white/10 hover:border-amber-400/30 transition flex items-start space-x-2.5 text-xs sm:text-sm text-slate-200"
                 >
-                  <span className="w-5 h-5 rounded-full bg-amber-500/20 border border-amber-400 text-amber-300 font-black flex items-center justify-center shrink-0 text-xs mt-0.5 shadow-sm">
+                  <span className="w-6 h-6 rounded-full bg-amber-500/20 border-2 border-amber-400 text-amber-300 font-black flex items-center justify-center shrink-0 text-xs mt-0.5 shadow-md">
                     {h.num}
                   </span>
                   <div className="space-y-0.5 leading-snug">
@@ -444,6 +493,44 @@ export default function TutorialSlideshowModal({ isOpen, onClose }) {
                 </div>
               ))}
             </div>
+
+            {/* On Last Slide: PWA "Add to Home Screen / Install App" Card */}
+            {isLast && (
+              <div className="mt-3 p-3.5 sm:p-4 rounded-2xl bg-gradient-to-r from-amber-500/15 via-rose-500/15 to-purple-500/15 border-2 border-amber-400/50 shadow-xl space-y-2.5 animate-fadeIn">
+                <div className="flex items-center space-x-2">
+                  <div className="p-2 rounded-xl bg-amber-400 text-slate-950 font-black shadow-md">
+                    <Smartphone className="w-4 h-4" />
+                  </div>
+                  <div className="min-w-0">
+                    <h4 className="text-xs sm:text-sm font-black text-white">
+                      📲 Add Aamar Pujo to Home Screen
+                    </h4>
+                    <p className="text-[10px] text-amber-200/90 font-medium">
+                      Enjoy the 100% full-screen app experience with zero browser bars!
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between gap-2 pt-1">
+                  <button
+                    onClick={handleInstallApp}
+                    className="flex-1 py-2 px-3 rounded-xl bg-gradient-to-r from-amber-400 via-rose-500 to-amber-400 text-slate-950 font-black text-xs shadow-lg hover:scale-[1.02] active:scale-95 transition flex items-center justify-center space-x-1.5 cursor-pointer"
+                  >
+                    {isInstalled ? (
+                      <>
+                        <CheckCircle2 className="w-3.5 h-3.5" />
+                        <span>Installed on Home Screen</span>
+                      </>
+                    ) : (
+                      <>
+                        <Download className="w-3.5 h-3.5" />
+                        <span>Install / Add to Home</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Footer Navigation Bar */}
@@ -517,6 +604,45 @@ export default function TutorialSlideshowModal({ isOpen, onClose }) {
             <p className="mt-3 text-xs text-amber-300/80 font-medium text-center">
               Tap anywhere outside or press ESC to return to guide
             </p>
+          </div>
+        </div>
+      )}
+
+      {/* iOS Safari Add to Home Screen Instructions Modal */}
+      {showIosTip && (
+        <div
+          className="fixed inset-0 z-[130] flex items-center justify-center bg-black/90 p-4 animate-fadeIn"
+          onClick={() => setShowIosTip(false)}
+        >
+          <div
+            className="w-full max-w-sm bg-[#120B1C] border-2 border-amber-500/50 rounded-3xl p-5 shadow-2xl space-y-4"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-2">
+                <Share2 className="w-5 h-5 text-amber-400" />
+                <h4 className="font-bold text-white text-sm">Add to Home Screen (iOS)</h4>
+              </div>
+              <button
+                onClick={() => setShowIosTip(false)}
+                className="p-1 rounded-lg text-slate-400 hover:text-white"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <ol className="text-xs text-slate-200 space-y-2.5 list-decimal list-inside leading-relaxed">
+              <li>Tap the <span className="font-bold text-amber-300">Share button</span> at the bottom of Safari.</li>
+              <li>Scroll down and tap <span className="font-bold text-amber-300">"Add to Home Screen"</span> (+).</li>
+              <li>Tap <span className="font-bold text-amber-300">"Add"</span> in the top right corner.</li>
+            </ol>
+
+            <button
+              onClick={() => setShowIosTip(false)}
+              className="w-full py-2.5 rounded-xl bg-amber-400 text-slate-950 font-black text-xs hover:bg-amber-300 transition"
+            >
+              Got it!
+            </button>
           </div>
         </div>
       )}
