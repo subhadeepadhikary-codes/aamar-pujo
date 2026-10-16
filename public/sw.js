@@ -1,5 +1,5 @@
 // Aamar Pujo 2026 - PWA Service Worker
-const CACHE_NAME = "aamar-pujo-shell-v1";
+const CACHE_NAME = "aamar-pujo-shell-v2";
 const ASSETS_TO_CACHE = [
   "/",
   "/index.html",
@@ -22,13 +22,14 @@ self.addEventListener("install", (event) => {
   self.skipWaiting();
 });
 
-// Activate Event: Clean old caches
+// Activate Event: Clean old caches immediately
 self.addEventListener("activate", (event) => {
   event.waitUntil(
     caches.keys().then((keys) => {
       return Promise.all(
         keys.map((key) => {
           if (key !== CACHE_NAME) {
+            console.log("[PWA Service Worker] Purging legacy cache:", key);
             return caches.delete(key);
           }
         })
@@ -41,8 +42,11 @@ self.addEventListener("activate", (event) => {
 // Fetch Event: Network-first with cache fallback for shell
 self.addEventListener("fetch", (event) => {
   const req = event.request;
-  // Only handle GET requests
+  // Only handle GET requests, ignore POST/PUT/DELETE
   if (req.method !== "GET") return;
+
+  // Never intercept API routes (e.g. /api/dawon) with cache
+  if (req.url.includes("/api/")) return;
 
   // For HTML navigations, try network first, then cache
   if (req.mode === "navigate") {
