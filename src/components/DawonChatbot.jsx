@@ -5,14 +5,12 @@ import {
   X, 
   Minimize2, 
   Maximize2, 
-  Settings, 
   Sparkles, 
   Train, 
   Navigation, 
   Compass, 
   Utensils, 
   ShieldCheck, 
-  Bot, 
   User, 
   RotateCcw,
   Flame,
@@ -33,36 +31,72 @@ import {
 } from "../utils/transitEngine";
 import { PANDALS_DATA } from "../data/pandalsData";
 import { normalizePhonetic } from "../utils/phoneticSearch";
+import { getCachedResponse, setCachedResponse } from "../utils/dawonCache";
+
+const DEFAULT_WELCOME_MSG = {
+  id: "msg-welcome",
+  sender: "dawon",
+  text: "Nomoshkar! Ami Dawon 🦁 — Maa Durga-r bahon ar tomader AI Pujo Transit Guide! Kothay jabe bolo? Metro, auto, walk koto door — step-by-step best rasta bole debo!",
+  time: "Just now"
+};
 
 export default function DawonChatbot({ userLocation, onNavigateToPandal, isAudioPlaying }) {
-  const [isOpen, setIsOpen] = useState(false);
+  // Session Persistence: restore open state if user switched away within 30 minutes
+  const [isOpen, setIsOpen] = useState(() => {
+    try {
+      const savedTime = localStorage.getItem("aamar_pujo_dawon_open_ts");
+      if (savedTime && Date.now() - Number(savedTime) < 30 * 60 * 1000) {
+        return localStorage.getItem("aamar_pujo_dawon_is_open") === "true";
+      }
+    } catch {
+      // fallback
+    }
+    return false;
+  });
+
   const [isMinimized, setIsMinimized] = useState(false);
-  const [showSettings, setShowSettings] = useState(false);
-  const [plannerMode, setPlannerMode] = useState(true); // Default to Journey Planner
+  const [plannerMode, setPlannerMode] = useState(() => {
+    try {
+      const savedMode = localStorage.getItem("aamar_pujo_dawon_mode");
+      if (savedMode !== null) return savedMode === "true";
+    } catch {
+      // fallback
+    }
+    return true; // Default to Journey Planner
+  });
 
   // Journey Planner state
   const [originInput, setOriginInput] = useState("");
   const [destInput, setDestInput] = useState("");
   const [showOriginSuggestions, setShowOriginSuggestions] = useState(false);
   const [showDestSuggestions, setShowDestSuggestions] = useState(false);
-  const [activeRoutePlan, setActiveRoutePlan] = useState(null);
   
-  // Ollama Settings
-  const [ollamaUrl, setOllamaUrl] = useState(() => localStorage.getItem("aamar_pujo_ollama_url") || "http://localhost:11434");
-  const [ollamaApiKey, setOllamaApiKey] = useState(() => localStorage.getItem("aamar_pujo_ollama_key") || "");
-  const [ollamaModel, setOllamaModel] = useState(() => localStorage.getItem("aamar_pujo_ollama_model") || "llama3.2");
+  // Persistent active route plan
+  const [activeRoutePlan, setActiveRoutePlan] = useState(() => {
+    try {
+      const saved = localStorage.getItem("aamar_pujo_dawon_active_route");
+      return saved ? JSON.parse(saved) : null;
+    } catch {
+      return null;
+    }
+  });
 
   const [inputMessage, setInputMessage] = useState("");
   const [isTyping, setIsTyping] = useState(false);
 
-  const [messages, setMessages] = useState([
-    {
-      id: "msg-welcome",
-      sender: "dawon",
-      text: "Nomoshkar! Ami Dawon 🦁 — Maa Durga-r bahon ar tomader AI Pujo Transit Guide! Kothay jabe bolo? Metro, auto, walk koto door — step-by-step best rasta bole debo!",
-      time: "Just now"
+  // Persistent chat message history
+  const [messages, setMessages] = useState(() => {
+    try {
+      const saved = localStorage.getItem("aamar_pujo_dawon_chat");
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
+    } catch {
+      // fallback
     }
-  ]);
+    return [DEFAULT_WELCOME_MSG];
+  });
 
   const messagesEndRef = useRef(null);
 
@@ -76,23 +110,64 @@ export default function DawonChatbot({ userLocation, onNavigateToPandal, isAudio
     }
   }, [messages, isOpen, isMinimized]);
 
-  // Handle Ollama Settings Save
-  const handleSaveSettings = (e) => {
-    e.preventDefault();
-    localStorage.setItem("aamar_pujo_ollama_url", ollamaUrl.trim());
-    localStorage.setItem("aamar_pujo_ollama_key", ollamaApiKey.trim());
-    localStorage.setItem("aamar_pujo_ollama_model", ollamaModel.trim());
-    setShowSettings(false);
-    
-    setMessages((prev) => [
-      ...prev,
+  // Persist messages to localStorage (capped at 40 messages)
+  useEffect(() => {
+    try {
+      const trimmed = messages.slice(-40);
+      localStorage.setItem("aamar_pujo_dawon_chat", JSON.stringify(trimmed));
+    } catch {
+      // fallback
+    }
+  }, [messages]);
+
+  // Persist active route plan
+  useEffect(() => {
+    try {
+      if (activeRoutePlan) {
+        localStorage.setItem("aamar_pujo_dawon_active_route", JSON.stringify(activeRoutePlan));
+      } else {
+        localStorage.removeItem("aamar_pujo_dawon_active_route");
+      }
+    } catch {
+      // fallback
+    }
+  }, [activeRoutePlan]);
+
+  // Persist open & mode states
+  useEffect(() => {
+    try {
+      localStorage.setItem("aamar_pujo_dawon_is_open", isOpen ? "true" : "false");
+      localStorage.setItem("aamar_pujo_dawon_open_ts", Date.now().toString());
+    } catch {
+      // fallback
+    }
+  }, [isOpen]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem("aamar_pujo_dawon_mode", plannerMode ? "true" : "false");
+    } catch {
+      // fallback
+    }
+  }, [plannerMode]);
+
+  // Clear chat history & reset session
+  const handleClearChat = () => {
+    setMessages([
       {
-        id: `sys-${Date.now()}`,
+        id: `msg-welcome-${Date.now()}`,
         sender: "dawon",
-        text: `⚙️ Settings updated! Connected to Ollama at "${ollamaUrl}" using model "${ollamaModel}".`,
-        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+        text: "Nomoshkar! Chat history reset. Kothay jabe bolo? Metro, auto, bus ba pandal route — ami sob bole debo! 🦁",
+        time: "Just now"
       }
     ]);
+    setActiveRoutePlan(null);
+    try {
+      localStorage.removeItem("aamar_pujo_dawon_chat");
+      localStorage.removeItem("aamar_pujo_dawon_active_route");
+    } catch {
+      // fallback
+    }
   };
 
   // Dynamic Route Resolver using Transit Engine
@@ -169,61 +244,85 @@ export default function DawonChatbot({ userLocation, onNavigateToPandal, isAudio
 
     const origin = originInput.trim() || "My Location";
     const dest = destInput.trim();
+    const cacheKey = `route:${origin}->${dest}`;
 
-    // 1. Generate core dynamic route using West Bengal transit engine
+    // 1. Check Smart Cache first (<5ms, 0 API quota!)
+    const cached = getCachedResponse(cacheKey);
+    if (cached) {
+      setIsTyping(false);
+      const dynamicRoute = generateDynamicRoute(originInput.trim() || null, dest, userLocation);
+      if (dynamicRoute) {
+        setActiveRoutePlan({
+          ...dynamicRoute,
+          aiNotes: cached.text
+        });
+      }
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: `usr-${Date.now()}`,
+          sender: "user",
+          text: `Directions from ${origin} to ${dest}`,
+          time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+        },
+        {
+          id: `dawon-${Date.now()}`,
+          sender: "dawon",
+          text: cached.text,
+          routeData: dynamicRoute,
+          source: "🦁 Gemini AI (Instant)",
+          time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+        }
+      ]);
+      return;
+    }
+
+    // 2. Generate core dynamic route using West Bengal transit engine
     const dynamicRoute = generateDynamicRoute(originInput.trim() || null, dest, userLocation);
     const destHub = identifyHub(dest);
 
-    // 2. Query Ollama if available for ChatGPT/Gemini-style step-by-step guidance
+    // 3. Query Gemini via /api/dawon proxy (with multi-key rotation on server)
     let aiResponse = null;
-    const cleanUrl = (ollamaUrl || "http://localhost:11434").replace(/\/+$/, "");
 
     try {
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 7000);
-
-      const headers = { "Content-Type": "application/json" };
-      if (ollamaApiKey) headers["Authorization"] = `Bearer ${ollamaApiKey}`;
+      const timeoutId = setTimeout(() => controller.abort(), 6000);
 
       const destContext = destHub ? `(Destination: ${destHub.name}, Nearest Metro: ${destHub.nearestMetro || 'Local Station'}, Feeder: ${destHub.lastMileFromMetro || 'Auto/Toto'}, Foods: ${destHub.famousFoods || 'Local street food'})` : '';
 
-      const prompt = `You are Dawon (সিংহ বাহন), an expert West Bengal Durga Puja Transit Guide operating with the intelligence and clarity of Google Gemini and ChatGPT. 
+      const prompt = `You are Dawon (সিংহ বাহন), an expert West Bengal Durga Puja Transit Guide operating with the intelligence and clarity of Google Gemini.
 The devotee asks for step-by-step navigation instructions from "${origin}" to "${dest}" in West Bengal.
 ${destContext}
-Give structured, ChatGPT/Gemini-style step-by-step navigation instructions:
+Give structured, Gemini-style step-by-step navigation instructions:
 1. 📍 Origin First-Mile: Auto/Toto/Bus or Suburban Rail station
 2. 🚇 Core Transit Spine: Intercity train / Eastern Railway / Kolkata Metro (Blue, Green, Purple, or Orange Line with interchange)
 3. 🛺 Last-Mile & Nearest Station Gate
 4. 🚶 Pandal Entry Corridor & Queue strategy
 5. 🍽️ Famous Nearby Food / Roll / Sweet Stop
-6. ⏱️ Total estimated travel time and approximate fare.
+6. ⏱️ Total estimated travel time and approximate fare in INR.
 7. 💡 Pro-Tip for crowd timing.
 Keep it crisp, friendly, and practical with emojis and Benglish charm.`;
 
-      const res = await fetch(`${cleanUrl}/api/generate`, {
+      const res = await fetch("/api/dawon", {
         method: "POST",
-        headers,
+        headers: { "Content-Type": "application/json" },
         signal: controller.signal,
         body: JSON.stringify({
-          model: ollamaModel || "llama3.2",
           prompt,
-          system: "You are Dawon (সিংহ বাহন), an expert West Bengal Durga Puja transit navigator operating with the depth, warmth, and precision of Google Gemini / ChatGPT.",
-          stream: false,
-          options: {
-            temperature: 0.5
-          }
+          systemInstruction: "You are Dawon (সিংহ বাহন), an expert West Bengal Durga Puja transit navigator operating with the depth, warmth, and precision of Google Gemini."
         })
       });
 
       clearTimeout(timeoutId);
       if (res.ok) {
         const data = await res.json();
-        if (data?.response) {
-          aiResponse = data.response;
+        if (data?.text) {
+          aiResponse = data.text;
+          setCachedResponse(cacheKey, { text: aiResponse, routeData: dynamicRoute });
         }
       }
     } catch (err) {
-      console.log("Ollama call skipped or offline, using Dawon Bengal transit engine:", err.message);
+      console.log("Gemini API call skipped or offline, using Dawon Bengal transit engine:", err.message);
     }
 
     setIsTyping(false);
@@ -249,14 +348,14 @@ Keep it crisp, friendly, and practical with emojis and Benglish charm.`;
           sender: "dawon",
           text: formattedGuide,
           routeData: dynamicRoute,
-          source: aiResponse ? `Ollama (${ollamaModel})` : "Dawon Bengal Transit AI",
+          source: aiResponse ? "🦁 Gemini AI" : "Dawon Bengal Transit AI",
           time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
         }
       ]);
     }
   };
 
-  // Send message handler (Ollama with Dynamic Local Fallback)
+  // Send message handler (Gemini with Smart Caching & Local Engine Fallback)
   const handleSendMessage = async (textToSend = inputMessage) => {
     const text = textToSend.trim();
     if (!text) return;
@@ -270,31 +369,45 @@ Keep it crisp, friendly, and practical with emojis and Benglish charm.`;
 
     setMessages((prev) => [...prev, userMsg]);
     setInputMessage("");
+
+    // 1. Check Smart Cache first (<5ms, 0 API quota!)
+    const cached = getCachedResponse(text);
+    if (cached) {
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: `dawon-${Date.now()}`,
+          sender: "dawon",
+          text: cached.text,
+          routeData: cached.routeData || null,
+          source: "🦁 Gemini AI (Instant)",
+          time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+        }
+      ]);
+      return;
+    }
+
     setIsTyping(true);
 
-    // 1. Check if user is asking for a transit route
+    // 2. Check if user is asking for a transit route
     const dynamicRoute = resolveQueryRoute(text);
 
-    // 2. Check for Specific Curated Restaurant Queries (e.g. "where is abhijato restaurant", "peter cat", etc.)
+    // 3. Check for Specific Curated Restaurant Queries (e.g. "where is abhijato restaurant", "peter cat", etc.)
     const matchedRestaurant = findRestaurantQuery(text);
 
     // Check if query is asking about a restaurant/food even if not in curated list
     const isFoodQuery = !matchedRestaurant && /restaurant|resturent|resturant|hotel|dhaba|cafe|cabin|eatery|biryani|roll|food|khabar|where to eat|where is/i.test(text);
 
-    // 3. Attempt Ollama API call if configured
+    // 4. Query Gemini via /api/dawon proxy (with multi-key rotation and failover)
     let aiResponse = null;
-    const cleanUrl = (ollamaUrl || "http://localhost:11434").replace(/\/+$/, "");
 
     try {
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 7000);
-
-      const headers = { "Content-Type": "application/json" };
-      if (ollamaApiKey) headers["Authorization"] = `Bearer ${ollamaApiKey}`;
+      const timeoutId = setTimeout(() => controller.abort(), 6000);
 
       let prompt = "";
       if (dynamicRoute) {
-        prompt = `You are Dawon (সিংহ বাহন), an expert West Bengal Durga Puja Transit Guide operating with the intelligence and clarity of Google Gemini and ChatGPT. 
+        prompt = `You are Dawon (সিংহ বাহন), an expert West Bengal Durga Puja Transit Guide operating with the intelligence and clarity of Google Gemini.
 The devotee asks: "${text}".
 Provide clear, step-by-step navigation instructions:
 1. 📍 Origin First-Mile (Auto/Toto/Bus/Train)
@@ -309,7 +422,7 @@ Keep it crisp, friendly, and practical with emojis and Benglish charm.`;
           ? matchedRestaurant.mustTryDishes.join(", ") 
           : matchedRestaurant.specialty;
 
-        prompt = `You are Dawon (সিংহ বাহন), an expert West Bengal Durga Puja guide and culinary navigator behaving with the depth, warmth, and precision of Google Gemini / ChatGPT.
+        prompt = `You are Dawon (সিংহ বাহন), an expert West Bengal Durga Puja guide and culinary navigator behaving with the depth, warmth, and precision of Google Gemini.
 The devotee asks: "${text}".
 
 Verified Ground-Truth Database Information:
@@ -324,7 +437,7 @@ Verified Ground-Truth Database Information:
 • Pujo Festive Timings: ${matchedRestaurant.pujoTimings || "Open late night during Puja"}
 • Google Maps Link: ${matchedRestaurant.googleMapsUrl}
 
-Provide an optimal, structured Gemini/ChatGPT-style response with:
+Provide an optimal, structured Gemini-style response with:
 1. 📍 Exact Location, Neighborhood, and Landmarks
 2. 🚇 How to Reach (Nearest Metro Station, Exit Gate, Shared Auto/Bus connection)
 3. 🍽️ What to Eat & Signature Delicacies (Detailed culinary advice)
@@ -332,7 +445,7 @@ Provide an optimal, structured Gemini/ChatGPT-style response with:
 5. 🗺️ Direct Google Maps navigation link.
 Use warm Benglish/English festive hospitality with clear formatting and emojis.`;
       } else if (isFoodQuery) {
-        prompt = `You are Dawon (সিংহ বাহন), an intelligent West Bengal Durga Puja transit and culinary navigator operating with the expertise, detail, and structure of Google Gemini and ChatGPT.
+        prompt = `You are Dawon (সিংহ বাহন), an intelligent West Bengal Durga Puja transit and culinary navigator operating with the expertise, detail, and structure of Google Gemini.
 The user asks: "${text}".
 Provide an optimal, highly detailed answer:
 1. 📍 Exact location, neighborhood, and landmarks in Kolkata or West Bengal.
@@ -342,36 +455,32 @@ Provide an optimal, highly detailed answer:
 5. 🗺️ Direct Google Maps search advice.
 Keep it crisp, warmly welcoming, and well-structured with markdown and emojis.`;
       } else {
-        prompt = `You are Dawon, a friendly Bengali AI Durga Puja transit navigator and festive cultural companion for Kolkata and West Bengal operating like Google Gemini and ChatGPT. 
+        prompt = `You are Dawon, a friendly Bengali AI Durga Puja transit navigator and festive cultural companion for Kolkata and West Bengal operating like Google Gemini. 
 The user asks: "${text}".
 Explain the best path or answer clearly using Kolkata Metro, auto routes, rituals, and food tips. 
 Be concise, cheerful, and use colloquial Benglish phrases with clean formatting.`;
       }
 
-      const res = await fetch(`${cleanUrl}/api/generate`, {
+      const res = await fetch("/api/dawon", {
         method: "POST",
-        headers,
+        headers: { "Content-Type": "application/json" },
         signal: controller.signal,
         body: JSON.stringify({
-          model: ollamaModel || "llama3.2",
           prompt,
-          system: "You are Dawon (সিংহ বাহন), an expert West Bengal Durga Puja transit guide and culinary navigator with the depth, warmth, and structure of Google Gemini and ChatGPT.",
-          stream: false,
-          options: {
-            temperature: 0.5
-          }
+          systemInstruction: "You are Dawon (সিংহ বাহন), an expert West Bengal Durga Puja transit guide and culinary navigator with the depth, warmth, and structure of Google Gemini."
         })
       });
 
       clearTimeout(timeoutId);
       if (res.ok) {
         const data = await res.json();
-        if (data?.response) {
-          aiResponse = data.response;
+        if (data?.text) {
+          aiResponse = data.text;
+          setCachedResponse(text, { text: aiResponse, routeData: dynamicRoute || null });
         }
       }
     } catch (err) {
-      console.log("Ollama call skipped or offline, using Dawon internal transit engine:", err.message);
+      console.log("Gemini API call skipped or offline, using Dawon internal transit engine:", err.message);
     }
 
     setIsTyping(false);
@@ -384,7 +493,7 @@ Be concise, cheerful, and use colloquial Benglish phrases with clean formatting.
           sender: "dawon",
           text: aiResponse,
           routeData: dynamicRoute || null,
-          source: `Ollama (${ollamaModel})`,
+          source: "🦁 Gemini AI",
           time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
         }
       ]);
@@ -532,8 +641,9 @@ Amake bolo, jemon:
                   <h3 className="font-heritage text-sm font-black text-white">
                     Dawon <span className="font-bengali text-amber-300 text-xs">(ডাওন)</span>
                   </h3>
-                  <span className="text-[9px] px-1.5 py-0.2 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 font-bold">
-                    Ollama AI
+                  <span className="text-[9px] px-2 py-0.5 rounded-full bg-gradient-to-r from-amber-500/20 via-rose-500/20 to-amber-500/20 text-amber-300 border border-amber-400/40 font-bold flex items-center gap-1 shadow-sm">
+                    <Sparkles className="w-2.5 h-2.5 text-amber-400" />
+                    <span>Gemini AI</span>
                   </span>
                 </div>
                 <p className="text-[10px] text-slate-400">
@@ -544,11 +654,12 @@ Amake bolo, jemon:
 
             <div className="flex items-center space-x-1 text-slate-400">
               <button
-                onClick={() => setShowSettings(!showSettings)}
-                className="p-1.5 rounded-lg hover:bg-white/10 hover:text-amber-300 transition"
-                title="Ollama API Settings"
+                onClick={handleClearChat}
+                className="p-1.5 rounded-lg hover:bg-white/10 hover:text-amber-300 text-slate-400 transition"
+                title="Clear Chat History (New Journey)"
+                aria-label="Clear Chat History"
               >
-                <Settings className="w-4 h-4" />
+                <RotateCcw className="w-3.5 h-3.5" />
               </button>
               <button
                 onClick={() => setIsMinimized(!isMinimized)}
@@ -566,72 +677,6 @@ Amake bolo, jemon:
               </button>
             </div>
           </div>
-
-          {/* Settings Drawer */}
-          {!isMinimized && showSettings && (
-            <div className="p-4 bg-[#190E24] border-b border-amber-500/20 text-xs space-y-3 animate-fadeIn">
-              <div className="flex items-center justify-between">
-                <span className="font-bold text-amber-300 flex items-center space-x-1">
-                  <Bot className="w-3.5 h-3.5" />
-                  <span>Ollama AI Configuration</span>
-                </span>
-                <span className="text-[10px] text-slate-400">
-                  Optional / Auto-fallback
-                </span>
-              </div>
-              
-              <form onSubmit={handleSaveSettings} className="space-y-2.5">
-                <div>
-                  <label className="text-[10px] text-slate-400 block mb-0.5">Ollama Server Base URL:</label>
-                  <input
-                    type="text"
-                    value={ollamaUrl}
-                    onChange={(e) => setOllamaUrl(e.target.value)}
-                    placeholder="http://localhost:11434"
-                    className="w-full py-1.5 px-2.5 bg-black/50 border border-white/10 rounded-lg text-slate-200 text-xs focus:outline-none focus:border-amber-400"
-                  />
-                </div>
-
-                <div>
-                  <label className="text-[10px] text-slate-400 block mb-0.5">Ollama Model Name:</label>
-                  <input
-                    type="text"
-                    value={ollamaModel}
-                    onChange={(e) => setOllamaModel(e.target.value)}
-                    placeholder="llama3.2, mistral, gemma2..."
-                    className="w-full py-1.5 px-2.5 bg-black/50 border border-white/10 rounded-lg text-slate-200 text-xs focus:outline-none focus:border-amber-400"
-                  />
-                </div>
-
-                <div>
-                  <label className="text-[10px] text-slate-400 block mb-0.5">Ollama API Key / Bearer Token (if hosted):</label>
-                  <input
-                    type="password"
-                    value={ollamaApiKey}
-                    onChange={(e) => setOllamaApiKey(e.target.value)}
-                    placeholder="Optional token for remote Ollama servers"
-                    className="w-full py-1.5 px-2.5 bg-black/50 border border-white/10 rounded-lg text-slate-200 text-xs focus:outline-none focus:border-amber-400"
-                  />
-                </div>
-
-                <div className="flex items-center justify-end space-x-2 pt-1">
-                  <button
-                    type="button"
-                    onClick={() => setShowSettings(false)}
-                    className="px-2.5 py-1 rounded-lg bg-white/5 text-slate-400 hover:text-white text-[11px]"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    className="px-3 py-1 rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-[11px]"
-                  >
-                    Save Settings
-                  </button>
-                </div>
-              </form>
-            </div>
-          )}
 
           {/* Mode Switcher Tabs */}
           {!isMinimized && (
@@ -854,11 +899,11 @@ Amake bolo, jemon:
                     )}
                   </div>
 
-                  {/* Ollama AI Insights Banner */}
+                  {/* Gemini AI Insights Banner */}
                   {activeRoutePlan.aiNotes && (
                     <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-400/30 text-amber-200 text-[11px] leading-relaxed whitespace-pre-line shadow-inner">
                       <div className="font-bold text-amber-300 flex items-center gap-1.5 mb-1.5 text-xs">
-                        <span>🦁 Ollama AI Navigation Advice</span>
+                        <span>🦁 Dawon Gemini AI Guide</span>
                         <span className="text-[9px] px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-300 font-mono">Live Guidance</span>
                       </div>
                       <p className="text-slate-200 leading-relaxed">{activeRoutePlan.aiNotes}</p>

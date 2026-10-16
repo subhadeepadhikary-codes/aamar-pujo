@@ -22,8 +22,26 @@ import { ArrowUp, Music, Play, Pause, X, SkipForward, Disc3, Volume2, VolumeX } 
 import { getCurrentTithiSongIndex } from "./utils/tithiMusic";
 
 export default function App() {
-  // Strictly Segregated Current Page State: 'home' | 'pipeline' | 'pandals' | 'map' | 'melodies' | 'about'
-  const [currentPage, setCurrentPage] = useState("home");
+  // Strictly Segregated Current Page State with Persistence: 'home' | 'pipeline' | 'pandals' | 'map' | 'melodies' | 'about'
+  const [currentPage, setCurrentPage] = useState(() => {
+    // 1. Check window.location.hash first
+    const hash = window.location.hash;
+    if (hash.startsWith("#p=") || hash.startsWith("#plan=") || hash === "#map") return "map";
+    if (hash === "#pipeline") return "pipeline";
+    if (hash === "#pandals") return "pandals";
+    if (hash === "#melodies") return "melodies";
+    if (hash === "#about") return "about";
+    // 2. Check localStorage for last active page so returning from phone sleep stays in context
+    try {
+      const savedPage = localStorage.getItem("aamar_pujo_last_page");
+      if (savedPage && ["home", "pipeline", "pandals", "map", "melodies", "about"].includes(savedPage)) {
+        return savedPage;
+      }
+    } catch {
+      // fallback
+    }
+    return "home";
+  });
 
   // Tutorial Slideshow Modal State
   const [showTutorialModal, setShowTutorialModal] = useState(false);
@@ -31,7 +49,13 @@ export default function App() {
   // Geolocation & Filter State
   const [userLocation, setUserLocation] = useState(null);
   const [isNearMeActive, setIsNearMeActive] = useState(false);
-  const [selectedZone, setSelectedZone] = useState("all");
+  const [selectedZone, setSelectedZone] = useState(() => {
+    try {
+      return localStorage.getItem("aamar_pujo_last_zone") || "all";
+    } catch {
+      return "all";
+    }
+  });
   const [selectedMetroStation, setSelectedMetroStation] = useState(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [activeModalPandal, setActiveModalPandal] = useState(null);
@@ -64,6 +88,27 @@ export default function App() {
       }
     }
   }, [isAudioPlaying, trackIndex, volume, isMuted]);
+
+  // Persist current page & zone to localStorage whenever they change
+  useEffect(() => {
+    try {
+      localStorage.setItem("aamar_pujo_last_page", currentPage);
+      localStorage.setItem("aamar_pujo_last_zone", selectedZone);
+      // Synchronize window.location.hash smoothly if not already on a specific pandal or plan route
+      if (currentPage === "home") {
+        if (window.location.hash && window.location.hash !== "#" && window.location.hash !== "#home") {
+          window.history.replaceState(null, "", window.location.pathname);
+        }
+      } else {
+        const targetHash = `#${currentPage}`;
+        if (!window.location.hash.startsWith(targetHash) && !window.location.hash.startsWith("#p=") && !window.location.hash.startsWith("#plan=")) {
+          window.history.replaceState(null, "", targetHash);
+        }
+      }
+    } catch {
+      // localStorage fallback
+    }
+  }, [currentPage, selectedZone]);
 
   // Synchronize URL hash with page navigation (handles #plan=... and footer quick links)
   useEffect(() => {
