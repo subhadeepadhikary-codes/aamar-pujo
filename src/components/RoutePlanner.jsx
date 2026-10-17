@@ -850,8 +850,8 @@ export default function RoutePlanner({
         setShareToast("🔗 Ultra-compact route link copied to clipboard! Share it on WhatsApp with friends.");
         setTimeout(() => setShareToast(""), 4500);
       });
-    } else {
-      prompt("Copy this shareable route link:", url);
+    } else if (typeof window !== "undefined") {
+      window.prompt("Copy this shareable route link:", url);
     }
   };
 

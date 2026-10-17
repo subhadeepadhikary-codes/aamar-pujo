@@ -1,5 +1,5 @@
 // Aamar Pujo 2026 - PWA Service Worker
-const CACHE_NAME = "aamar-pujo-shell-v2";
+const CACHE_NAME = "aamar-pujo-shell-v3";
 const ASSETS_TO_CACHE = [
   "/",
   "/index.html",

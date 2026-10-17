@@ -77,6 +77,7 @@ export default function PandalMap({ userLocation, onOpenModal, selectedZone, onU
   const [isMapFullscreen, setIsMapFullscreen] = useState(false);
   const [visitedCount, setVisitedCount] = useState(() => getVisitedCount());
   const [hideVisitedOnMap, setHideVisitedOnMap] = useState(false);
+  const [isExpressModalOpen, setIsExpressModalOpen] = useState(false);
   const hideVisitedOnMapRef = useRef(false);
   hideVisitedOnMapRef.current = hideVisitedOnMap;
 

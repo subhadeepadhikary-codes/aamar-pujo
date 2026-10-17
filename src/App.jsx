@@ -21,6 +21,7 @@ import { isApkPlatform } from "./utils/platform";
 import { getStoredApkUser } from "./utils/firebaseAuth";
 import { POPULAR_HUBS } from "./utils/geo";
 import { PUJO_SONGS } from "./data/songsData";
+import ErrorBoundary from "./components/ErrorBoundary";
 import { ArrowUp, Music, Play, Pause, X, SkipForward, Disc3, Volume2, VolumeX } from "lucide-react";
 
 import { getCurrentTithiSongIndex } from "./utils/tithiMusic";
@@ -433,12 +434,14 @@ export default function App() {
         {/* PAGE 4: INTERACTIVE MAP (Free OpenStreetMap West Bengal & Kolkata) */}
         {currentPage === "map" && (
           <div className="animate-fadeIn">
-            <PandalMap
-              userLocation={userLocation}
-              selectedZone={selectedZone}
-              onOpenModal={(pandal) => setActiveModalPandal(pandal)}
-              onUpdateUserLocation={(newLoc) => setUserLocation(newLoc)}
-            />
+            <ErrorBoundary onReset={() => setCurrentPage("map")}>
+              <PandalMap
+                userLocation={userLocation}
+                selectedZone={selectedZone}
+                onOpenModal={(pandal) => setActiveModalPandal(pandal)}
+                onUpdateUserLocation={(newLoc) => setUserLocation(newLoc)}
+              />
+            </ErrorBoundary>
           </div>
         )}
 

@@ -1324,8 +1324,8 @@ export function decodePlanFromUrl(hashString) {
   if (hashString.includes("#plan=")) {
     try {
       const base64 = hashString.split("#plan=")[1]?.trim();
-      if (!base64) return null;
-      const jsonStr = decodeURIComponent(escape(atob(base64)));
+      if (!base64 || typeof window === "undefined") return null;
+      const jsonStr = decodeURIComponent(escape(window.atob(base64)));
       const compact = JSON.parse(jsonStr);
 
       return {
