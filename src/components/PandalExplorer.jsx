@@ -260,7 +260,7 @@ export default function PandalExplorer({
           <div>
             <div className="inline-flex items-center space-x-1.5 px-3 py-0.5 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-300 text-[10px] sm:text-xs font-semibold mb-2">
               <Compass className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
-              <span>Full Bengal Directory · 541+ Verified Pandals & 228+ Iconic Eateries</span>
+              <span>Full Bengal Directory · 661+ Verified Pandals & 228+ Iconic Eateries</span>
             </div>
             <h2 className="font-heritage text-xl sm:text-3xl md:text-5xl font-black text-white">
               Pujo & Food <span className="text-gold-gradient">Navigation Hub</span>
@@ -286,7 +286,7 @@ export default function PandalExplorer({
           </div>
         </div>
 
-        {/* Tab Switcher: 541+ Pandals vs 228+ Eateries */}
+        {/* Tab Switcher: 661+ Pandals vs 228+ Eateries */}
         <div className="grid grid-cols-2 gap-2 sm:gap-3 mb-6">
           <button
             onClick={() => handleTabSwitch("pandals")}
@@ -297,7 +297,7 @@ export default function PandalExplorer({
             }`}
           >
             <Compass className="w-3.5 h-3.5 sm:w-4 sm:h-4 flex-shrink-0" />
-            <span className="whitespace-nowrap font-bold">541+ Pandals</span>
+            <span className="whitespace-nowrap font-bold">661+ Pandals</span>
           </button>
 
           <button
@@ -356,7 +356,7 @@ export default function PandalExplorer({
               <span className="w-2.5 h-2.5 rounded-full bg-rose-500 animate-ping"></span>
               <span className="text-xs font-bold text-white">Live GPS Proximity Filter:</span>
               <span className="text-xs text-rose-300">
-                {userLocation?.lat ? "Coordinates locked" : "Detecting browser GPS..."}
+                {userLocation?.lat ? (userLocation.accuracy ? `Coordinates locked (±${Math.round(userLocation.accuracy)}m)` : "Coordinates locked") : "Detecting browser GPS..."}
               </span>
             </div>
 
@@ -384,7 +384,7 @@ export default function PandalExplorer({
           
           {/* Top Search Input */}
           <div className="space-y-2">
-            <div className="relative">
+            <div className="relative" data-tour="search-filters">
               <Search className="w-4 h-4 text-slate-400 absolute left-4 top-1/2 -translate-y-1/2" />
               <input
                 type="text"
@@ -395,7 +395,7 @@ export default function PandalExplorer({
                 }}
                 placeholder={
                   activeTab === "pandals"
-                    ? "Search 541+ pandals (e.g. Sribhumi, Jorasanko Daw Bari, Beleghata Karmi)..."
+                    ? "Search 661+ pandals (e.g. Sribhumi, Jorasanko Daw Bari, Beleghata Karmi)..."
                     : "Search 228+ eateries (e.g. Peter Cat, Arsalan, Mitra Cafe, Dada Boudi)..."
                 }
                 className="w-full py-3.5 pl-11 pr-4 bg-[#140E1B] border border-white/10 rounded-2xl text-xs sm:text-sm text-white placeholder-slate-400 focus:outline-none focus:border-amber-400/50"
@@ -596,7 +596,7 @@ export default function PandalExplorer({
                 <Compass className="w-12 h-12 text-amber-400 mx-auto mb-3 opacity-60" />
                 <h3 className="font-heritage text-xl font-bold text-white mb-2">No Pandals Found</h3>
                 <p className="text-xs text-slate-300 mb-6">
-                  We couldn't find any pandal matching your current filter criteria. Try clicking Reset Filters to view all 541+ pandals.
+                  We couldn't find any pandal matching your current filter criteria. Try clicking Reset Filters to view all 661+ pandals.
                 </p>
                 <button
                   onClick={handleResetFilters}

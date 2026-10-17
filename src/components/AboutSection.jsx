@@ -30,7 +30,7 @@ export default function AboutSection() {
       title: "Missing Out on Incredible 'Hidden Gem' Art",
       bengali: "হাইপের আড়ালে হারিয়ে যাওয়া খাঁটি শিল্প",
       problem: "People from outside Kolkata, students, and tourists only hear about 2 or 3 heavily televised pandals. They wait 4 hours in a single queue and completely miss the breathtaking, award-winning artisan themes in North Kolkata paras.",
-      solution: "Our curated 541+ pandal directory puts both iconic giants and intimate neighborhood masterpieces side-by-side with theme categories."
+      solution: "Our curated 661+ pandal directory puts both iconic giants and intimate neighborhood masterpieces side-by-side with theme categories."
     },
     {
       title: "Metro & Transport Guesswork",
@@ -42,7 +42,7 @@ export default function AboutSection() {
       title: "The Real-Time Distance Dilemma",
       bengali: "'আর কত দূর?' — এই প্রশ্নের সমাধান",
       problem: "In massive crowds, asking pedestrians often leads to conflicting directions. Hoppers waste precious festive hours wandering between distant clubs.",
-      solution: "One-tap 'Near Me' GPS filter instantly recalculates and sorts all 541+ pandals by real-time walking proximity from your live phone location."
+      solution: "One-tap 'Near Me' GPS filter instantly recalculates and sorts all 661+ pandals by real-time walking proximity from your live phone location."
     }
   ];
 

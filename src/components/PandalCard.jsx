@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { 
   MapPin, 
   Navigation, 
@@ -7,17 +7,38 @@ import {
   Sparkles, 
   ChevronRight, 
   Eye, 
-  ExternalLink 
+  ExternalLink,
+  Check
 } from "lucide-react";
 import { formatDistance } from "../utils/geo";
 import { getDurgaFace } from "../utils/imageFallback";
 import { buildGoogleMapsNavUrl } from "../utils/navigationHelper";
+import { isPandalVisited, togglePandalVisited } from "../utils/visitedStorage";
+import { getInstaBuzzByPandal } from "../utils/instaBuzzData";
 
 export default function PandalCard({ pandal, userLocation, onOpenModal }) {
   const [photoIndex, setPhotoIndex] = useState(0);
+  const [isVisited, setIsVisited] = useState(() => isPandalVisited(pandal?.id));
 
+  useEffect(() => {
+    const handleVisitedChange = (e) => {
+      if (e?.detail?.pandalId === pandal?.id) {
+        setIsVisited(e.detail.isVisited);
+      }
+    };
+    window.addEventListener("aamar-visited-changed", handleVisitedChange);
+    return () => window.removeEventListener("aamar-visited-changed", handleVisitedChange);
+  }, [pandal?.id]);
+
+  const instaBuzz = getInstaBuzzByPandal(pandal);
   const fallbackImg = getDurgaFace(pandal.id);
   const images = pandal.images && pandal.images.length > 0 ? pandal.images : [fallbackImg];
+
+  const handleToggleVisited = (e) => {
+    e.stopPropagation();
+    const next = togglePandalVisited(pandal.id);
+    setIsVisited(next);
+  };
 
   // Generalized Google Maps Turn-by-Turn Directions URL (Coordinates + Verified Venue Name/Address)
   const navUrl = buildGoogleMapsNavUrl(pandal, userLocation);
@@ -35,7 +56,11 @@ export default function PandalCard({ pandal, userLocation, onOpenModal }) {
   return (
     <div 
       onClick={() => onOpenModal(pandal)}
-      className="glass-card rounded-2xl overflow-hidden border border-white/10 hover:border-amber-400/50 transition-all duration-300 group flex flex-col cursor-pointer hover:shadow-2xl hover:shadow-amber-500/10 hover:-translate-y-1.5"
+      className={`glass-card rounded-2xl overflow-hidden border transition-all duration-300 group flex flex-col cursor-pointer hover:shadow-2xl hover:-translate-y-1.5 ${
+        isVisited 
+          ? "border-slate-600/70 bg-[#0E0C14]/90 opacity-85 hover:opacity-100" 
+          : "border-white/10 hover:border-amber-400/50 hover:shadow-amber-500/10"
+      }`}
     >
       {/* Top Image Slideshow Header */}
       <div className="relative h-48 sm:h-52 w-full overflow-hidden bg-black/60">
@@ -85,10 +110,15 @@ export default function PandalCard({ pandal, userLocation, onOpenModal }) {
         )}
 
         {/* Top Badges */}
-        <div className="absolute top-2.5 left-2.5 flex flex-wrap gap-1.5 z-10">
+        <div className="absolute top-2.5 left-2.5 flex flex-wrap gap-1.5 z-10 max-w-[calc(100%-80px)]">
           <span className="px-2.5 py-0.5 rounded-md bg-[#120D1A]/90 text-amber-300 border border-amber-400/30 text-[10px] font-bold backdrop-blur-md">
             {pandal.zoneLabel}
           </span>
+          {instaBuzz?.likesFormatted && (
+            <span className="px-2 py-0.5 rounded-md bg-slate-950/85 text-rose-300 border border-rose-500/40 text-[10px] font-black backdrop-blur-md shadow-sm">
+              {instaBuzz.likesFormatted}
+            </span>
+          )}
           {pandal.isBonediBari && (
             <span className="px-2 py-0.5 rounded-md bg-gradient-to-r from-amber-400 to-amber-600 text-slate-950 text-[10px] font-black flex items-center space-x-1 shadow-md shadow-amber-500/20">
               <span>🏛️ Bonedi Bari {pandal.heritageYear ? `· ${pandal.heritageYear}` : ""}</span>
@@ -102,9 +132,24 @@ export default function PandalCard({ pandal, userLocation, onOpenModal }) {
           )}
         </div>
 
-        {/* Live Distance Badge if GPS available */}
+        {/* Top Right: Seen Checkmark Button */}
+        <button
+          onClick={handleToggleVisited}
+          data-tour="visited-btn"
+          className={`absolute top-2.5 right-2.5 z-20 px-2 py-0.5 rounded-md text-[10px] font-black transition flex items-center space-x-1 shadow-md backdrop-blur-md cursor-pointer ${
+            isVisited
+              ? "bg-slate-800/90 text-emerald-300 border border-emerald-500/50 shadow-emerald-500/10"
+              : "bg-black/60 hover:bg-black/90 text-slate-300 border border-white/20 hover:text-white"
+          }`}
+          title={isVisited ? "Mark as unvisited" : "Mark as seen (turns grey on map)"}
+        >
+          <Check className={`w-3 h-3 ${isVisited ? "text-emerald-400" : "text-slate-400"}`} />
+          <span>{isVisited ? "Seen ✓" : "Seen?"}</span>
+        </button>
+
+        {/* Live Distance Badge if GPS available (positioned below the Seen button) */}
         {pandal.distanceKm !== undefined && (
-          <div className="absolute top-2.5 right-2.5 px-2.5 py-0.5 rounded-md bg-rose-600/90 text-white text-[10px] font-black shadow-md backdrop-blur-md animate-pulse">
+          <div className="absolute top-9 right-2.5 px-2 py-0.5 rounded-md bg-rose-600/90 text-white text-[9px] font-black shadow-md backdrop-blur-md animate-pulse">
             📍 {formatDistance(pandal.distanceKm)}
           </div>
         )}

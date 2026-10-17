@@ -97,6 +97,7 @@ export default function BottomTaskbar({
           return (
             <button
               key={tab.id}
+              data-tour={tab.id === "map" ? "nav-map" : undefined}
               onClick={tab.action}
               className={`flex-1 flex flex-col items-center justify-center py-1 px-1 rounded-2xl transition-all duration-200 cursor-pointer min-h-[48px] relative ${
                 tab.isActive

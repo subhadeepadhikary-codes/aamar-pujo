@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Aamar Pujo</string>
+    <string name="title_activity_main">Aamar Pujo</string>
+    <string name="package_name">com.aamarpujo.app</string>
+    <string name="custom_url_scheme">com.aamarpujo.app</string>
+</resources>

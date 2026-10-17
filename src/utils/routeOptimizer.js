@@ -629,8 +629,8 @@ export function buildGoogleMapsCircuitUrl(spots, travelModeOrOptions = "walking"
     const destQuery = encodeURIComponent(`${destSpot.name}, ${destSpot.address || destSpot.locality || "Kolkata"}`);
 
     const url = waypoints.length > 0
-      ? `https://www.google.com/maps/dir/?api=1&origin=${origin}&destination=${destination}&destination_query=${destQuery}&waypoints=${waypoints}&travelmode=${gmapsTravelMode}`
-      : `https://www.google.com/maps/dir/?api=1&origin=${origin}&destination=${destination}&destination_query=${destQuery}&travelmode=${gmapsTravelMode}`;
+      ? `https://www.google.com/maps/dir/?api=1&origin=${origin}&destination=${destination}&waypoints=${waypoints}&travelmode=${gmapsTravelMode}`
+      : `https://www.google.com/maps/dir/?api=1&origin=${origin}&destination=${destination}&travelmode=${gmapsTravelMode}`;
 
     chunks.push({
       partNumber: chunks.length + 1,

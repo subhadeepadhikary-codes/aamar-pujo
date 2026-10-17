@@ -89,7 +89,7 @@ export default function Hero({
             “এবার পুজো, অন্য ভাবে — এক ক্লিকে গোটা বাংলার পুজো ম্যাপ”
           </p>
           <p className="text-sm sm:text-base text-slate-300 max-w-2xl mx-auto mb-7 font-normal leading-relaxed">
-            Navigate through <strong className="text-amber-400 font-semibold">541+ pandals</strong> across Kolkata & West Bengal. 
+            Navigate through <strong className="text-amber-400 font-semibold">661+ pandals</strong> across Kolkata & West Bengal. 
             Direct <strong className="text-rose-400 font-semibold">Google Maps turn-by-turn routing</strong> from your phone's live GPS location, 
             Metro connections, and authentic daily audio.
           </p>
@@ -104,7 +104,7 @@ export default function Hero({
                   type="text"
                   value={searchInput}
                   onChange={(e) => setSearchInput(e.target.value)}
-                  placeholder="Search 541+ pandals (e.g. Sribhumi, Beleghata Karmi, Suruchi, Bagbazar...)"
+                  placeholder="Search 661+ pandals (e.g. Sribhumi, Beleghata Karmi, Suruchi, Bagbazar...)"
                   className="w-full py-4 px-3.5 bg-transparent text-sm sm:text-base text-white placeholder-slate-400 focus:outline-none"
                 />
                 <button
@@ -167,7 +167,7 @@ export default function Hero({
               className="glass-card rounded-2xl p-4 text-left border-amber-500/20 hover:border-amber-400/50 transition group"
             >
               <Compass className="w-6 h-6 text-amber-400 mb-2 group-hover:scale-110 transition" />
-              <div className="font-heritage text-lg font-bold text-white">541+ Pandals</div>
+              <div className="font-heritage text-lg font-bold text-white">661+ Pandals</div>
               <div className="text-[11px] text-slate-400">Directory & GPS ➔</div>
             </button>
 

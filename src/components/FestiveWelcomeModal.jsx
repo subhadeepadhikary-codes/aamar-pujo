@@ -111,7 +111,7 @@ export default function FestiveWelcomeModal({ onStartWithMusic, onExplore }) {
             className="w-full py-3 px-4 rounded-2xl bg-[#1A1126] hover:bg-[#251736] text-slate-300 hover:text-white font-bold text-xs flex items-center justify-center space-x-2 border border-white/10 transition cursor-pointer"
           >
             <Compass className="w-4 h-4 text-amber-400" />
-            <span>🌟 Explore All 541+ Pandals</span>
+            <span>🌟 Explore All 661+ Pandals</span>
           </button>
         </div>
 

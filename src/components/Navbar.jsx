@@ -35,7 +35,8 @@ export default function Navbar({
   onToggleAudio,
   selectedMetroStation,
   onSelectMetroStation,
-  onOpenTutorial
+  onOpenTutorial,
+  onOpenSpotlightTour
 }) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [metroModalOpen, setMetroModalOpen] = useState(false);
@@ -75,7 +76,7 @@ export default function Navbar({
   const navItems = [
     { id: "home", label: "Home", bengali: "হোম", icon: Home, desc: "Pujo Spotlight & Highlights" },
     { id: "pipeline", label: "Pipeline Flow", bengali: "পুজো প্রবাহ", icon: Calendar, badge: "11 Days", desc: "Mahalaya to Bijoya Dashami" },
-    { id: "pandals", label: "541+ Pandals", bengali: "প্যান্ডেল ও খাদ্য", icon: Compass, desc: "Full Directory & Food Trail" },
+    { id: "pandals", label: "661+ Pandals", bengali: "প্যান্ডেল ও খাদ্য", icon: Compass, desc: "Full Directory & Food Trail" },
     { id: "map", label: "Map & Route Planner", bengali: "ম্যাপ ও রুট প্ল্যানার", icon: MapPin, desc: "Interactive Map & AI Sequential Planner" },
     { id: "melodies", label: "Daily Melodies", bengali: "শারদীয় সুর", icon: Music, desc: "Curated Agomoni Songs" },
     { id: "about", label: "About Creator", bengali: "আমাদের কথা", icon: Info, desc: "Story, Fair Use & Feedback" }
@@ -179,6 +180,7 @@ export default function Navbar({
               return (
                 <button
                   key={item.id}
+                  data-tour={item.id === "map" ? "nav-map" : undefined}
                   onClick={() => handleNavClick(item.id)}
                   className={`flex items-center space-x-1.5 px-3 py-2 rounded-xl text-xs font-bold transition-all ${
                     isActive
@@ -400,7 +402,7 @@ export default function Navbar({
                   </span>
                 </div>
                 <p className="text-[11px] text-slate-300 mb-2.5">
-                  Filter all 541+ pandals by your nearest Kolkata Metro station:
+                  Filter all 661+ pandals by your nearest Kolkata Metro station:
                 </p>
                 <button
                   onClick={() => {
@@ -487,7 +489,29 @@ export default function Navbar({
                       </div>
                       <div>
                         <span className="text-xs font-bold block text-white">💡 Feature Guide & Tour</span>
-                        <span className="text-[10px] text-amber-200/80 block">Interactive walkthrough of all features</span>
+                        <span className="text-[10px] text-amber-200/80 block">Slideshow overview of all features</span>
+                      </div>
+                    </div>
+                    <ChevronRight className="w-4 h-4 text-amber-400" />
+                  </button>
+                )}
+
+                {/* 🎮 FC Mobile Game-Style Clickable Spotlight Tour Button */}
+                {onOpenSpotlightTour && (
+                  <button
+                    onClick={() => {
+                      onOpenSpotlightTour();
+                      setMobileMenuOpen(false);
+                    }}
+                    className="w-full p-2.5 rounded-xl bg-gradient-to-r from-amber-500/25 via-rose-500/20 to-amber-500/25 border border-amber-400/80 hover:scale-[1.02] active:scale-[0.98] transition flex items-center justify-between text-left shadow-lg shadow-amber-500/15"
+                  >
+                    <div className="flex items-center space-x-2.5">
+                      <div className="p-1.5 rounded-lg bg-gradient-to-tr from-amber-400 to-rose-500 text-slate-950 font-black text-sm">
+                        🎮
+                      </div>
+                      <div>
+                        <span className="text-xs font-black block text-amber-300">🎮 Live Interactive Game Tour</span>
+                        <span className="text-[10px] text-slate-300 block">FC Mobile style clickable live spotlight</span>
                       </div>
                     </div>
                     <ChevronRight className="w-4 h-4 text-amber-400" />
@@ -580,7 +604,7 @@ export default function Navbar({
                     Pujo by Metro <span className="font-bengali text-blue-300 text-xs sm:text-sm">(মেট্রো স্টেশন)</span>
                   </h3>
                   <p className="text-[11px] text-slate-400">
-                    Select a station to filter all 541+ pandals within walking proximity
+                    Select a station to filter all 661+ pandals within walking proximity
                   </p>
                 </div>
               </div>

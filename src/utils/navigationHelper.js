@@ -51,7 +51,8 @@ export function buildGoogleMapsNavUrl(destination, origin = null, travelMode = "
     gmapsMode = "walking";
   }
 
-  return `https://www.google.com/maps/dir/?api=1${originPart}&destination=${destCoords}&destination_query=${query}&travelmode=${gmapsMode}`;
+  // Use exact coordinates for destination to prevent Google Maps from resolving to wrong locations
+  return `https://www.google.com/maps/dir/?api=1${originPart}&destination=${destCoords}&travelmode=${gmapsMode}`;
 }
 
 /**

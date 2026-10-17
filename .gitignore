@@ -27,3 +27,7 @@ dist-ssr
 .env*
 scratch/
 Aamar_Pujo_Trailer_Masterguide_for_NotebookLM.pdf
+
+*.apk
+local.properties
+scripts/

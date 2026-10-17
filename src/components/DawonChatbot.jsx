@@ -193,7 +193,7 @@ export default function DawonChatbot({ userLocation, onNavigateToPandal, isAudio
     return null;
   };
 
-  // Autocomplete suggestion filters matching hubs and all 541 pandals
+  // Autocomplete suggestion filters matching hubs and all 661 pandals
   const getSuggestions = (query) => {
     const q = query.trim().toLowerCase();
     if (!q) return SEARCHABLE_LOCATIONS.slice(0, 6);
@@ -607,6 +607,7 @@ Amake bolo, jemon:
             setIsOpen(true);
             setIsMinimized(false);
           }}
+          data-tour="dawon-mascot"
           className="relative group w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-gradient-to-tr from-amber-500 via-rose-600 to-amber-400 p-0.5 shadow-2xl shadow-rose-950/80 border-2 border-amber-300 hover:scale-110 active:scale-95 transition-all duration-300 flex items-center justify-center cursor-pointer"
           title="Open Dawon - AI Pujo Transit & Food Guide"
           aria-label="Open Dawon AI Guide"

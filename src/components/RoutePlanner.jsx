@@ -55,6 +55,7 @@ import { RESTAURANTS_DATA } from "../data/restaurantsData";
 import { normalizePhonetic } from "../utils/phoneticSearch";
 import { buildGoogleMapsNavUrl, buildGoogleTransitUrl } from "../utils/navigationHelper";
 import { getPandalEnrichedMeta } from "../utils/pandalMetadataHelper";
+import { isPandalVisited, togglePandalVisited } from "../utils/visitedStorage";
 
 export const TRANSIT_ANCHOR_PRESETS = [
   { id: "howrah", name: "Howrah Railway Station", locality: "Howrah", lat: 22.5839, lng: 88.3426, icon: "🚂" },
@@ -76,11 +77,22 @@ export default function RoutePlanner({
   currentTravelMode = "smart",
   onTravelModeChange,
   externalSpotToAdd,
-  onClearExternalSpot
+  onClearExternalSpot,
+  onOpenExpressHop
 }) {
   const [plans, setPlans] = useState(() => loadSavedRoutePlans());
   const [activePlanIndex, setActivePlanIndex] = useState(0);
   const [travelMode, setTravelMode] = useState(currentTravelMode || "smart");
+  const [visitedTick, setVisitedTick] = useState(0);
+  const [hideVisitedInRoute, setHideVisitedInRoute] = useState(false);
+
+  useEffect(() => {
+    const handleVisitedChange = () => {
+      setVisitedTick((prev) => prev + 1);
+    };
+    window.addEventListener("aamar-visited-changed", handleVisitedChange);
+    return () => window.removeEventListener("aamar-visited-changed", handleVisitedChange);
+  }, []);
 
   // Undo History Stack (stores last 25 route snapshots)
   const [undoHistory, setUndoHistory] = useState([]);
@@ -511,6 +523,28 @@ export default function RoutePlanner({
     setUndoHistory(rest);
     setShareToast(`↩️ Reverted: ${latest.description || "Previous change"}`);
     setTimeout(() => setShareToast(""), 3500);
+  };
+
+  // Prune all visited pandals from the active plan
+  const handlePruneVisitedFromPlan = () => {
+    if (!activePlan || !activePlan.spots) return;
+    const visitedCount = activePlan.spots.filter((s) => !s.isRestaurant && !s.cuisine && isPandalVisited(s.id)).length;
+    if (visitedCount === 0) {
+      setShareToast("ℹ️ No visited pandals in this plan to remove.");
+      setTimeout(() => setShareToast(""), 3000);
+      return;
+    }
+    pushUndoSnapshot(`Pruned ${visitedCount} visited spots`);
+    const remainingSpots = activePlan.spots.filter((s) => s.isRestaurant || s.cuisine || !isPandalVisited(s.id));
+    const updatedPlans = plans.map((p, idx) => {
+      if (idx === activePlanIndex) {
+        return { ...p, spots: remainingSpots, updatedAt: Date.now() };
+      }
+      return p;
+    });
+    setPlans(updatedPlans);
+    setShareToast(`✅ Removed ${visitedCount} visited pandals from this plan!`);
+    setTimeout(() => setShareToast(""), 4000);
   };
 
   // Keyboard shortcut listener: Ctrl+Z / Cmd+Z for instant undo
@@ -1580,7 +1614,7 @@ export default function RoutePlanner({
                     if (!showAddMenu) setShowAddMenu(true);
                   }}
                   onFocus={() => setShowAddMenu(true)}
-                  placeholder="Search 541+ pandals or eateries (e.g. Sreebhumi, Bagbazar, 76 Pally, Peter Cat)..."
+                  placeholder="Search 661+ pandals or eateries (e.g. Sreebhumi, Bagbazar, 76 Pally, Peter Cat)..."
                   className="w-full py-2.5 px-3.5 pl-9 pr-8 rounded-2xl bg-black/60 border border-white/15 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-amber-400 transition"
                 />
                 <Compass className="w-4 h-4 text-slate-500 absolute left-3 top-3" />
@@ -1816,14 +1850,101 @@ export default function RoutePlanner({
 
         {/* 6. SEQUENTIAL HOP TIMELINE (1 TO 40 SPOTS) */}
         <div className="space-y-3 pt-2">
-          <div className="flex items-center justify-between text-xs text-slate-400 pb-1">
-            <span className="font-bold text-slate-200">
-              Sequential Hopping Itinerary ({activePlan.spots.length} Spots)
-            </span>
-            <span className="text-[11px] text-slate-500">
-              Drag ⋮⋮ handle to slide order, 🔼 🔽 for 1-tap, or click AI Optimize
-            </span>
-          </div>
+          {/* Progress Bar & Visited Controls */}
+          {(() => {
+            const planPandalSpots = activePlan?.spots ? activePlan.spots.filter((s) => !s.isRestaurant && !s.cuisine) : [];
+            const visitedInPlanCount = planPandalSpots.filter((s) => isPandalVisited(s.id)).length;
+            const totalPlanSpots = activePlan?.spots?.length || 0;
+            const unvisitedPlanSpots = totalPlanSpots - visitedInPlanCount;
+            const progressPercent = totalPlanSpots > 0 ? Math.round((visitedInPlanCount / totalPlanSpots) * 100) : 0;
+
+            return (
+              <div className="space-y-2">
+                <div className="flex items-center justify-between text-xs text-slate-400 pb-1">
+                  <span className="font-bold text-slate-200">
+                    Sequential Hopping Itinerary ({activePlan?.spots?.length || 0} Spots)
+                  </span>
+                  <span className="text-[11px] text-slate-500 hidden sm:inline">
+                    Drag ⋮⋮ handle to slide order, 🔼 🔽 for 1-tap, or click AI Optimize
+                  </span>
+                </div>
+
+                {totalPlanSpots > 0 && (
+                  <div className="p-3 sm:p-3.5 rounded-2xl bg-gradient-to-r from-emerald-950/40 via-slate-900/90 to-slate-950 border border-emerald-500/30 shadow-lg space-y-2.5">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+                      {/* Progress bar info */}
+                      <div className="flex items-center space-x-3 min-w-0">
+                        <div className="w-8 h-8 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 flex items-center justify-center font-black text-sm flex-shrink-0 shadow-inner">
+                          ✓
+                        </div>
+                        <div className="min-w-0">
+                          <div className="text-xs font-bold text-white flex items-center space-x-1.5 flex-wrap">
+                            <span>Route Progress:</span>
+                            <span className="text-emerald-400 font-extrabold">{visitedInPlanCount} of {totalPlanSpots} Seen</span>
+                            <span className="text-[10px] text-slate-400 font-mono">({progressPercent}%)</span>
+                          </div>
+                          {/* Progress track */}
+                          <div className="w-40 sm:w-56 h-1.5 bg-slate-800 rounded-full mt-1.5 overflow-hidden">
+                            <div
+                              className="h-full bg-gradient-to-r from-emerald-500 to-teal-400 rounded-full transition-all duration-300"
+                              style={{ width: `${progressPercent}%` }}
+                            />
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Leftover toggles & Actions */}
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        {/* Leftover Only Toggle */}
+                        {visitedInPlanCount > 0 && (
+                          <button
+                            type="button"
+                            onClick={() => setHideVisitedInRoute((prev) => !prev)}
+                            className={`px-2.5 py-1.5 rounded-xl text-xs font-bold transition flex items-center space-x-1 active:scale-95 shadow-sm ${
+                              hideVisitedInRoute
+                                ? "bg-emerald-500 text-slate-950 border border-emerald-400 font-black"
+                                : "bg-white/10 hover:bg-white/15 text-slate-300 border border-white/10"
+                            }`}
+                            title={hideVisitedInRoute ? "Showing only remaining leftover pandals" : "Click to hide already seen pandals"}
+                          >
+                            <span>{hideVisitedInRoute ? "👁️ Leftover Only" : `👁️ Hide Seen (${visitedInPlanCount})`}</span>
+                          </button>
+                        )}
+
+                        {/* 1-tap Prune Visited from Plan */}
+                        {visitedInPlanCount > 0 && (
+                          <button
+                            type="button"
+                            onClick={handlePruneVisitedFromPlan}
+                            className="px-2.5 py-1.5 rounded-xl bg-rose-500/15 hover:bg-rose-500/25 text-rose-300 border border-rose-500/30 text-xs font-bold transition flex items-center space-x-1 active:scale-95"
+                            title="Permanently remove seen pandals from this plan"
+                          >
+                            <span>✂️ Prune Seen</span>
+                          </button>
+                        )}
+
+                        {/* Express Shortlist Trigger Button */}
+                        {totalPlanSpots >= 2 && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (onOpenExpressHop) onOpenExpressHop();
+                              else window.dispatchEvent(new CustomEvent("open-express-hop-modal"));
+                            }}
+                            className="px-3 py-1.5 rounded-xl bg-gradient-to-r from-amber-500 to-rose-600 hover:from-amber-400 hover:to-rose-500 text-slate-950 font-black text-xs transition flex items-center space-x-1 shadow-md shadow-amber-500/20 active:scale-95 cursor-pointer"
+                            title="Short on time? Pick top 2 to 5 pandals from this plan!"
+                          >
+                            <Sparkles className="w-3.5 h-3.5 text-slate-950 fill-current" />
+                            <span>⚡ Express Shortlist</span>
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            );
+          })()}
 
           {activePlan.spots.length > 0 ? (
             <div className="space-y-2">
@@ -1893,6 +2014,12 @@ export default function RoutePlanner({
                 const leg = intermediateLegs[idx];
                 const isFirst = idx === 0;
                 const isLast = idx === activePlan.spots.length - 1;
+                const isRestaurant = spot.isRestaurant || spot.cuisine;
+                const isVisited = !isRestaurant && isPandalVisited(spot.id);
+
+                if (hideVisitedInRoute && isVisited) {
+                  return null;
+                }
 
                 return (
                   <React.Fragment key={spot.id || idx}>
@@ -1904,12 +2031,14 @@ export default function RoutePlanner({
                       onDragLeave={() => handleDragLeave(idx)}
                       onDrop={(e) => handleDrop(e, idx)}
                       onDragEnd={handleDragEnd}
-                      className={`p-3 sm:p-3.5 rounded-2xl bg-slate-950/80 border transition group select-none ${
-                        dragOverIndex === idx
+                      className={`p-3 sm:p-3.5 rounded-2xl border transition group select-none ${
+                        isVisited
+                          ? "bg-emerald-950/20 border-emerald-500/35 opacity-75"
+                          : dragOverIndex === idx
                           ? "border-amber-400 bg-amber-500/15 ring-2 ring-amber-400/50 scale-[1.01]"
                           : draggedIndex === idx
                           ? "opacity-50 border-dashed border-amber-500/40"
-                          : "border-white/10 hover:border-amber-400/40"
+                          : "bg-slate-950/80 border-white/10 hover:border-amber-400/40"
                       }`}
                     >
                       {/* Desktop & Mobile Two-Tier Layout */}
@@ -1924,15 +2053,28 @@ export default function RoutePlanner({
                             <GripVertical className="w-4 h-4" />
                           </div>
 
-                          {/* Step Number Badge */}
-                          <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-gradient-to-tr from-amber-500 to-rose-600 text-slate-950 font-black text-xs sm:text-sm flex items-center justify-center flex-shrink-0 shadow-md mt-0.5">
-                            {idx + 1}
-                          </div>
+                          {/* Step Number Badge or Visited Checkmark */}
+                          {isVisited ? (
+                            <button
+                              type="button"
+                              onClick={() => togglePandalVisited(spot.id)}
+                              className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-xs sm:text-sm flex items-center justify-center flex-shrink-0 shadow-md shadow-emerald-500/30 mt-0.5 cursor-pointer ring-2 ring-emerald-400/60 active:scale-90 transition"
+                              title="Visited pandal! Tap to unmark"
+                            >
+                              <Check className="w-4 h-4 stroke-[3]" />
+                            </button>
+                          ) : (
+                            <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-gradient-to-tr from-amber-500 to-rose-600 text-slate-950 font-black text-xs sm:text-sm flex items-center justify-center flex-shrink-0 shadow-md mt-0.5">
+                              {idx + 1}
+                            </div>
+                          )}
 
                           {/* Spot Titles & Details */}
                           <div className="min-w-0 flex-1">
                             <div className="flex items-center space-x-1.5 flex-wrap gap-y-1">
-                              <span className="font-bold text-xs sm:text-sm text-white group-hover:text-amber-300 transition break-words">
+                              <span className={`font-bold text-xs sm:text-sm transition break-words ${
+                                isVisited ? "text-emerald-200 line-through decoration-emerald-500/50" : "text-white group-hover:text-amber-300"
+                              }`}>
                                 {spot.name}
                               </span>
                               {spot.bengaliName && (
@@ -1941,11 +2083,13 @@ export default function RoutePlanner({
                                 </span>
                               )}
                               <span className={`text-[9px] px-1.5 py-0.2 rounded-full font-bold ${
-                                spot.isRestaurant
+                                isRestaurant
                                   ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/30"
+                                  : isVisited
+                                  ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/40"
                                   : "bg-rose-500/20 text-rose-300 border border-rose-500/30"
                               }`}>
-                                {spot.isRestaurant ? "🍽️ Food" : "🏛️ Pandal"}
+                                {isRestaurant ? "🍽️ Food" : isVisited ? "✓ Visited" : "🏛️ Pandal"}
                               </span>
                             </div>
 
@@ -1973,8 +2117,25 @@ export default function RoutePlanner({
                           </div>
                         </div>
 
-                        {/* Controls Toolbar (Move Up/Down, Delete, Nav) - responsive flex on mobile with 36-40px touch targets */}
+                        {/* Controls Toolbar (Visited Toggle, Move Up/Down, Delete, Nav) */}
                         <div className="flex items-center justify-end space-x-1.5 pt-1.5 sm:pt-0 border-t border-white/5 sm:border-0 flex-shrink-0">
+                          {/* 1-Tap Visited Toggle Button */}
+                          {!isRestaurant && (
+                            <button
+                              type="button"
+                              onClick={() => togglePandalVisited(spot.id)}
+                              className={`px-2 py-1.5 rounded-xl text-xs font-bold transition flex items-center space-x-1 active:scale-95 ${
+                                isVisited
+                                  ? "bg-emerald-500/25 hover:bg-emerald-500/40 text-emerald-300 border border-emerald-500/50 shadow-sm"
+                                  : "bg-white/5 hover:bg-white/10 text-slate-400 hover:text-emerald-300 border border-white/10"
+                              }`}
+                              title={isVisited ? "Marked as Visited (Click to unmark)" : "Mark as Visited / Seen"}
+                            >
+                              <Check className={`w-3.5 h-3.5 ${isVisited ? "text-emerald-400 stroke-[3]" : ""}`} />
+                              <span className="text-[11px] font-semibold">{isVisited ? "Seen ✓" : "Seen?"}</span>
+                            </button>
+                          )}
+
                           <button
                             onClick={() => handleMoveSpot(idx, -1)}
                             disabled={isFirst}

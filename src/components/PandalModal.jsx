@@ -12,19 +12,29 @@ import {
   Share2, 
   ChevronLeft, 
   ChevronRight,
-  ExternalLink
+  ExternalLink,
+  Check
 } from "lucide-react";
 import { formatDistance } from "../utils/geo";
 import { getDurgaFace } from "../utils/imageFallback";
 import { buildGoogleMapsNavUrl } from "../utils/navigationHelper";
+import { isPandalVisited, togglePandalVisited } from "../utils/visitedStorage";
+import { getInstaBuzzByPandal } from "../utils/instaBuzzData";
 
 export default function PandalModal({ pandal, userLocation, onClose }) {
   const [activePhotoIdx, setActivePhotoIdx] = useState(0);
+  const [isVisited, setIsVisited] = useState(() => isPandalVisited(pandal?.id));
 
   if (!pandal) return null;
 
+  const instaBuzz = getInstaBuzzByPandal(pandal);
   const fallbackImg = getDurgaFace(pandal.id);
   const images = pandal.images && pandal.images.length > 0 ? pandal.images : [fallbackImg];
+
+  const handleToggleVisited = () => {
+    const next = togglePandalVisited(pandal.id);
+    setIsVisited(next);
+  };
 
   // Generalized Google Maps Turn-by-Turn Navigation URL
   const navUrl = buildGoogleMapsNavUrl(pandal, userLocation);
@@ -54,6 +64,20 @@ export default function PandalModal({ pandal, userLocation, onClose }) {
         
         {/* Modal Header Bar with Close */}
         <div className="absolute top-4 right-4 z-20 flex items-center space-x-2">
+          {/* Quick Seen Toggle */}
+          <button
+            onClick={handleToggleVisited}
+            className={`px-3 py-1.5 rounded-full backdrop-blur-md border text-xs font-bold transition flex items-center space-x-1.5 shadow-md ${
+              isVisited
+                ? "bg-slate-800/90 text-emerald-300 border-emerald-500/50"
+                : "bg-black/60 hover:bg-black/80 text-slate-200 border-white/20"
+            }`}
+            title={isVisited ? "Mark as unvisited" : "Mark as visited / seen"}
+          >
+            <Check className={`w-3.5 h-3.5 ${isVisited ? "text-emerald-400" : "text-slate-400"}`} />
+            <span>{isVisited ? "Seen ✓" : "Mark Seen"}</span>
+          </button>
+
           <button
             onClick={handleShare}
             className="p-2.5 rounded-full bg-black/60 hover:bg-black/90 text-white backdrop-blur-md border border-white/10 transition"
@@ -123,6 +147,11 @@ export default function PandalModal({ pandal, userLocation, onClose }) {
               <span className="px-3 py-1 rounded-full bg-rose-600/90 text-white text-xs font-bold backdrop-blur-md shadow-md">
                 {pandal.zoneLabel}
               </span>
+              {instaBuzz?.likesFormatted && (
+                <span className="px-3 py-1 rounded-full bg-slate-950/85 text-rose-300 border border-rose-500/40 text-xs font-black backdrop-blur-md shadow-md flex items-center space-x-1">
+                  <span>{instaBuzz.likesFormatted}</span>
+                </span>
+              )}
               {pandal.award && (
                 <span className="px-3 py-1 rounded-full bg-amber-500/90 text-slate-950 text-xs font-bold backdrop-blur-md flex items-center space-x-1">
                   <Award className="w-3.5 h-3.5" />
@@ -143,6 +172,12 @@ export default function PandalModal({ pandal, userLocation, onClose }) {
                 <span>{pandal.category}</span>
                 <span>·</span>
                 <span className="text-slate-400">{pandal.locality}</span>
+                {instaBuzz?.viralBadge && (
+                  <>
+                    <span>·</span>
+                    <span className="text-rose-400 font-bold">{instaBuzz.viralBadge}</span>
+                  </>
+                )}
               </div>
               <h2 className="font-heritage text-2xl sm:text-4xl font-extrabold text-white">
                 {pandal.name}
@@ -190,6 +225,29 @@ export default function PandalModal({ pandal, userLocation, onClose }) {
 
             </div>
 
+            {/* 2026 Instagram & Reels Viral Insight Card */}
+            {instaBuzz && (
+              <div className="p-3.5 rounded-2xl bg-gradient-to-r from-rose-950/40 via-[#1F1026] to-amber-950/30 border border-amber-500/30 space-y-1.5 shadow-lg">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-black text-amber-300 flex items-center space-x-1.5">
+                    <Sparkles className="w-3.5 h-3.5 text-rose-400" />
+                    <span>This Year's Instagram & Viral Art Buzz</span>
+                  </span>
+                  <div className="flex items-center space-x-2">
+                    <span className="text-[11px] font-black text-rose-300 bg-rose-500/20 px-2.5 py-0.5 rounded-full border border-rose-500/30">
+                      {instaBuzz.likesFormatted}
+                    </span>
+                    <span className="text-[11px] font-black text-amber-300 bg-amber-500/20 px-2.5 py-0.5 rounded-full border border-amber-500/30">
+                      {instaBuzz.viewsFormatted}
+                    </span>
+                  </div>
+                </div>
+                <p className="text-xs text-slate-200 font-medium leading-relaxed">
+                  {instaBuzz.themeConcept}
+                </p>
+              </div>
+            )}
+
             {/* Description & Theme Highlight */}
             <div className="space-y-2">
               <h4 className="text-xs font-bold text-slate-300 uppercase tracking-wider">
@@ -218,8 +276,21 @@ export default function PandalModal({ pandal, userLocation, onClose }) {
               </div>
             )}
 
-            {/* Action Buttons: Navigate with Google Maps */}
+            {/* Action Buttons: Navigate with Google Maps & Mark Seen */}
             <div className="pt-4 border-t border-white/10 flex flex-col sm:flex-row items-center gap-3">
+              <button
+                onClick={handleToggleVisited}
+                className={`w-full sm:w-auto py-3.5 px-5 rounded-2xl font-bold text-sm flex items-center justify-center space-x-2 transition shadow-lg ${
+                  isVisited
+                    ? "bg-slate-700 hover:bg-slate-600 text-emerald-300 border border-emerald-500/40"
+                    : "bg-white/10 hover:bg-white/15 text-white border border-white/15"
+                }`}
+                title={isVisited ? "Mark as unvisited" : "Mark as seen (turns grey on map)"}
+              >
+                <Check className={`w-4 h-4 ${isVisited ? "text-emerald-400" : "text-slate-400"}`} />
+                <span>{isVisited ? "Seen / Visited ✓" : "Mark as Seen"}</span>
+              </button>
+
               <a
                 href={navUrl}
                 target="_blank"

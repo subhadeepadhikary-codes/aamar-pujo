@@ -1,0 +1,6 @@
+{
+  "appId": "com.aamarpujo.app",
+  "appName": "Aamar Pujo",
+  "webDir": "dist",
+  "bundledWebRuntime": false
+}

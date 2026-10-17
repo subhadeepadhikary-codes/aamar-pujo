@@ -188,7 +188,7 @@ export default function HeroCarousel({ userLocation, onSelectPandal, onNavigateT
               onClick={onNavigateToPandals}
               className="py-3 px-5 rounded-2xl bg-black/60 hover:bg-black/80 text-amber-300 font-semibold text-xs sm:text-sm border border-amber-500/40 backdrop-blur-md transition flex items-center space-x-1.5"
             >
-              <span>Explore 541+ Pandals</span>
+              <span>Explore 661+ Pandals</span>
               <ArrowRight className="w-4 h-4" />
             </button>
 

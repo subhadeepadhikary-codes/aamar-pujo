@@ -15,6 +15,10 @@ import TutorialSlideshowModal, { TOUR_STORAGE_KEY } from "./components/TutorialS
 import FullscreenPromptModal from "./components/FullscreenPromptModal";
 import BottomTaskbar from "./components/BottomTaskbar";
 import PwaInstallBanner from "./components/PwaInstallBanner";
+import InteractiveSpotlightTour, { TOUR_COMPLETED_KEY } from "./components/InteractiveSpotlightTour";
+import ApkAuthModal from "./components/ApkAuthModal";
+import { isApkPlatform } from "./utils/platform";
+import { getStoredApkUser } from "./utils/firebaseAuth";
 import { POPULAR_HUBS } from "./utils/geo";
 import { PUJO_SONGS } from "./data/songsData";
 import { ArrowUp, Music, Play, Pause, X, SkipForward, Disc3, Volume2, VolumeX } from "lucide-react";
@@ -45,6 +49,25 @@ export default function App() {
 
   // Tutorial Slideshow Modal State
   const [showTutorialModal, setShowTutorialModal] = useState(false);
+
+  // FC Mobile Game-Style Clickable Spotlight Live Tutorial State
+  const [showSpotlightTour, setShowSpotlightTour] = useState(false);
+
+  // Android APK Google Firebase Auth Modal State (Strictly isolated to APK)
+  const [showApkAuth, setShowApkAuth] = useState(() => {
+    if (typeof window !== "undefined" && isApkPlatform()) {
+      return !getStoredApkUser();
+    }
+    return false;
+  });
+
+  const handleApkAuthSuccess = (user) => {
+    setShowApkAuth(false);
+    // Trigger live game tutorial for newly authenticated APK user!
+    setTimeout(() => {
+      setShowSpotlightTour(true);
+    }, 600);
+  };
 
   // Geolocation & Filter State
   const [userLocation, setUserLocation] = useState(null);
@@ -254,27 +277,33 @@ export default function App() {
 
     const id = navigator.geolocation.watchPosition(
       (position) => {
-        setUserLocation({
-          lat: position.coords.latitude,
-          lng: position.coords.longitude,
-          accuracy: position.coords.accuracy,
-          isLive: true
+        const { latitude, longitude, accuracy } = position.coords;
+        setUserLocation((prev) => {
+          // If we already hold an accurate GPS lock (< 25m), ignore wild cell-tower jumps (> 120m)
+          if (prev?.isLive && prev.accuracy && prev.accuracy < 25 && accuracy > 120) {
+            return prev;
+          }
+          return {
+            lat: latitude,
+            lng: longitude,
+            accuracy: Math.round(accuracy),
+            isLive: true
+          };
         });
         setIsNearMeActive(true);
       },
       (error) => {
         console.warn("GPS error / permission denied:", error);
-        const fallback = POPULAR_HUBS[1]; // Gariahat Crossing
-        setUserLocation({
-          lat: fallback.lat,
-          lng: fallback.lng,
-          name: fallback.name,
-          isLive: false
-        });
-        setIsNearMeActive(true);
-        alert("GPS access was not granted. Using Gariahat Crossing (South Kolkata) as your center point.");
+        if (error.code === error.PERMISSION_DENIED) {
+          alert("📍 Location permission was denied. Please allow location access in your browser or phone settings to use Near Me GPS tracking.");
+        } else if (error.code === error.TIMEOUT) {
+          alert("📍 GPS search timed out while waiting for high-accuracy satellite lock. Please ensure Location is turned on with 'High Accuracy' mode in your phone settings.");
+        } else {
+          alert("📍 Unable to retrieve high-accuracy GPS coordinates at the moment. Please check your device location settings.");
+        }
+        setIsNearMeActive(false);
       },
-      { enableHighAccuracy: true, timeout: 10000, maximumAge: 3000 }
+      { enableHighAccuracy: true, timeout: 20000, maximumAge: 0 }
     );
     nearMeWatchIdRef.current = id;
   };
@@ -330,6 +359,7 @@ export default function App() {
           }
         }}
         onOpenTutorial={() => setShowTutorialModal(true)}
+        onOpenSpotlightTour={() => setShowSpotlightTour(true)}
       />
 
       {/* Main View Container: STRICT PAGE-BY-PAGE SEGREGATION */}
@@ -376,7 +406,7 @@ export default function App() {
           </div>
         )}
 
-        {/* PAGE 3: 541+ PANDALS DIRECTORY & FOOD NEAR ME */}
+        {/* PAGE 3: 661+ PANDALS DIRECTORY & FOOD NEAR ME */}
         {currentPage === "pandals" && (
           <div className="animate-fadeIn">
             <PandalExplorer
@@ -568,6 +598,22 @@ export default function App() {
           }
         }}
       />
+
+      {/* FC Mobile Game-Style Clickable Live Spotlight Tour */}
+      <InteractiveSpotlightTour
+        isOpen={showSpotlightTour}
+        onComplete={() => setShowSpotlightTour(false)}
+        onSkip={() => setShowSpotlightTour(false)}
+      />
+
+      {/* Android APK Google Firebase Auth Modal (ONLY in APK / ?platform=apk) */}
+      {showApkAuth && (
+        <ApkAuthModal
+          isOpen={showApkAuth}
+          onClose={() => setShowApkAuth(false)}
+          onSuccess={handleApkAuthSuccess}
+        />
+      )}
 
     </div>
   );

@@ -33,8 +33,10 @@ import {
   Minimize2
 } from "lucide-react";
 import RoutePlanner from "./RoutePlanner";
+import ExpressHopModal from "./ExpressHopModal";
 import { fetchStreetRoute } from "../utils/streetRouter";
 import { buildGoogleMapsNavUrl, buildGoogleTransitUrl } from "../utils/navigationHelper";
+import { isPandalVisited, togglePandalVisited, getVisitedCount } from "../utils/visitedStorage";
 
 export default function PandalMap({ userLocation, onOpenModal, selectedZone, onUpdateUserLocation }) {
   const mapContainerRef = useRef(null);
@@ -73,6 +75,27 @@ export default function PandalMap({ userLocation, onOpenModal, selectedZone, onU
   const [externalSpotToAdd, setExternalSpotToAdd] = useState(null);
   const [addedSpotToast, setAddedSpotToast] = useState("");
   const [isMapFullscreen, setIsMapFullscreen] = useState(false);
+  const [visitedCount, setVisitedCount] = useState(() => getVisitedCount());
+  const [hideVisitedOnMap, setHideVisitedOnMap] = useState(false);
+  const hideVisitedOnMapRef = useRef(false);
+  hideVisitedOnMapRef.current = hideVisitedOnMap;
+
+  // Listen to open-express-hop-modal event dispatched from RoutePlanner or elsewhere
+  useEffect(() => {
+    const handleOpenExpress = () => setIsExpressModalOpen(true);
+    window.addEventListener("open-express-hop-modal", handleOpenExpress);
+    return () => window.removeEventListener("open-express-hop-modal", handleOpenExpress);
+  }, []);
+
+  // Listen to visited pandals reactive updates
+  useEffect(() => {
+    const handleVisitedChange = (e) => {
+      setVisitedCount(e?.detail?.totalCount ?? getVisitedCount());
+      renderVisibleMarkersRef.current?.();
+    };
+    window.addEventListener("aamar-visited-changed", handleVisitedChange);
+    return () => window.removeEventListener("aamar-visited-changed", handleVisitedChange);
+  }, []);
 
   const handleToggleMapFullscreen = () => {
     const nextState = !isMapFullscreen;
@@ -164,11 +187,15 @@ export default function PandalMap({ userLocation, onOpenModal, selectedZone, onU
     const id = navigator.geolocation.watchPosition(
       (pos) => {
         const { latitude, longitude, accuracy } = pos.coords;
-        setCurrentAccuracy(accuracy);
+        // If current accuracy is already high (< 25m), don't let a degraded reading (> 120m) cause marker jumps
+        if (currentAccuracy && currentAccuracy < 25 && accuracy > 120) {
+          return;
+        }
+        setCurrentAccuracy(Math.round(accuracy));
         const newCoords = {
           lat: latitude,
           lng: longitude,
-          accuracy,
+          accuracy: Math.round(accuracy),
           isLive: true
         };
         if (onUpdateUserLocation) {
@@ -180,7 +207,7 @@ export default function PandalMap({ userLocation, onOpenModal, selectedZone, onU
       (err) => {
         console.warn("Live GPS watchPosition error:", err);
       },
-      { enableHighAccuracy: true, timeout: 10000, maximumAge: 5000 }
+      { enableHighAccuracy: true, timeout: 20000, maximumAge: 0 }
     );
 
     watchIdRef.current = id;
@@ -199,8 +226,39 @@ export default function PandalMap({ userLocation, onOpenModal, selectedZone, onU
     }
   }, [userLocation]);
 
-  // Custom Festive Marker Icon Generator (Hardware-Accelerated)
-  const createFestiveIcon = (zone) => {
+  // Custom Festive Marker Icon Generator (Hardware-Accelerated, Visited-Aware)
+  const createFestiveIcon = (zone, isVisited = false) => {
+    if (isVisited) {
+      return L.divIcon({
+        className: "custom-pandal-marker visited-pandal-marker",
+        html: `
+          <div style="
+            background: #64748B;
+            width: 22px;
+            height: 22px;
+            border-radius: 50% 50% 50% 0;
+            transform: rotate(-45deg);
+            border: 2px solid #94A3B8;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.6);
+            opacity: 0.7;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+          ">
+            <div style="
+              width: 6px;
+              height: 6px;
+              background: #F1F5F9;
+              border-radius: 50%;
+            "></div>
+          </div>
+        `,
+        iconSize: [22, 22],
+        iconAnchor: [11, 22],
+        popupAnchor: [0, -22]
+      });
+    }
+
     let colorClass = "#F59E0B";
     if (zone === "south") colorClass = "#E11D48";
     if (zone === "north") colorClass = "#F59E0B";
@@ -287,8 +345,13 @@ export default function PandalMap({ userLocation, onOpenModal, selectedZone, onU
     for (let i = 0; i < pandals.length; i++) {
       const p = pandals[i];
       if (bounds.contains([p.lat, p.lng])) {
+        const isVisited = isPandalVisited(p.id);
+        if (hideVisitedOnMapRef.current && isVisited) {
+          continue;
+        }
         const marker = L.marker([p.lat, p.lng], {
-          icon: createFestiveIcon(p.zone)
+          icon: createFestiveIcon(p.zone, isVisited),
+          zIndexOffset: isVisited ? -100 : 0
         });
         marker.on("click", () => {
           setSelectedSpotCard({ spot: p, type: "pandal" });
@@ -407,17 +470,20 @@ export default function PandalMap({ userLocation, onOpenModal, selectedZone, onU
     const spots = activeMapPlan.spots;
     let isCancelled = false;
 
+    // Filter out seen/visited pandals so they are pruned from leftover walking route plan
+    const leftoverSpots = spots.filter((s) => s.isRestaurant || s.cuisine || !isPandalVisited(s.id));
+
     // Assemble complete route sequence including optional startPoint and endPoint
     const fullRoutePoints = [];
     if (activeMapPlan.startPoint && activeMapPlan.startPoint.lat && activeMapPlan.startPoint.lng) {
-      if (!spots[0] || spots[0].lat !== activeMapPlan.startPoint.lat || spots[0].lng !== activeMapPlan.startPoint.lng) {
+      if (!leftoverSpots[0] || leftoverSpots[0].lat !== activeMapPlan.startPoint.lat || leftoverSpots[0].lng !== activeMapPlan.startPoint.lng) {
         fullRoutePoints.push({
           ...activeMapPlan.startPoint,
           isStartAnchor: true
         });
       }
     }
-    fullRoutePoints.push(...spots);
+    fullRoutePoints.push(...leftoverSpots);
     if (activeMapPlan.endPoint && activeMapPlan.endPoint.lat && activeMapPlan.endPoint.lng) {
       const last = fullRoutePoints[fullRoutePoints.length - 1];
       if (!last || last.lat !== activeMapPlan.endPoint.lat || last.lng !== activeMapPlan.endPoint.lng) {
@@ -549,29 +615,31 @@ export default function PandalMap({ userLocation, onOpenModal, selectedZone, onU
       }
     }
 
-    // Numbered Sequential Route Markers (1 to N)
+    // Sequential Route Markers (1 to N, slate grey if already seen!)
     spots.forEach((spot, idx) => {
       const stepNum = idx + 1;
       const isRestaurant = spot.isRestaurant || spot.cuisine;
+      const isVisited = !isRestaurant && isPandalVisited(spot.id);
 
       const stepIcon = L.divIcon({
         className: "route-step-marker",
         html: `
           <div style="
-            background: ${isRestaurant ? "#10B981" : "#E11D48"};
+            background: ${isVisited ? "#64748B" : isRestaurant ? "#10B981" : "#E11D48"};
             color: #ffffff;
             width: 28px;
             height: 28px;
             border-radius: 50%;
-            border: 2px solid #ffffff;
-            box-shadow: 0 0 14px ${isRestaurant ? "#10B981aa" : "#E11D48aa"};
+            border: 2px solid ${isVisited ? "#94A3B8" : "#ffffff"};
+            box-shadow: 0 0 14px ${isVisited ? "#64748B88" : isRestaurant ? "#10B981aa" : "#E11D48aa"};
             display: flex;
             align-items: center;
             justify-content: center;
             font-weight: 900;
             font-size: 13px;
+            opacity: ${isVisited ? "0.65" : "1"};
           ">
-            ${isRestaurant ? "🍽️" : stepNum}
+            ${isVisited ? "✓" : isRestaurant ? "🍽️" : stepNum}
           </div>
         `,
         iconSize: [28, 28],
@@ -581,7 +649,7 @@ export default function PandalMap({ userLocation, onOpenModal, selectedZone, onU
 
       const marker = L.marker([spot.lat, spot.lng], {
         icon: stepIcon,
-        zIndexOffset: 1000 + idx
+        zIndexOffset: isVisited ? 500 + idx : 1000 + idx
       });
 
       marker.on("click", () => {
@@ -636,7 +704,7 @@ export default function PandalMap({ userLocation, onOpenModal, selectedZone, onU
     return () => {
       isCancelled = true;
     };
-  }, [activeMapPlan, travelMode]);
+  }, [activeMapPlan, travelMode, visitedCount]);
 
   const zoomToActiveRoute = () => {
     if (mapInstanceRef.current && activeMapPlan?.spots?.length >= 2) {
@@ -685,7 +753,7 @@ export default function PandalMap({ userLocation, onOpenModal, selectedZone, onU
           <div>
             <div className="inline-flex items-center space-x-2 px-3.5 py-1 rounded-full bg-amber-500/15 border border-amber-500/30 text-amber-300 text-xs font-semibold mb-2">
               <Sparkles className="w-3.5 h-3.5 text-amber-400" />
-              <span>West Bengal Geospatial Map · 541+ Verified Pandals · 228+ Iconic Eateries</span>
+              <span>West Bengal Geospatial Map · 661+ Verified Pandals · 228+ Iconic Eateries</span>
             </div>
             <h2 className="font-heritage text-2xl sm:text-3xl md:text-5xl font-black text-white">
               Map & <span className="text-gold-gradient">AI Route Planner</span>
@@ -699,6 +767,22 @@ export default function PandalMap({ userLocation, onOpenModal, selectedZone, onU
           <div className="space-y-2.5 max-w-full">
             {/* Row 1: Primary Utility Switches */}
             <div className="flex items-center gap-2 overflow-x-auto no-scrollbar py-0.5">
+              {/* ⚡ Time-Crunch Express Shortlist Modal Trigger */}
+              <button
+                onClick={() => setIsExpressModalOpen(true)}
+                data-tour="express-hop-btn"
+                className="px-3 py-1.5 rounded-xl text-xs font-black border transition flex items-center space-x-1.5 flex-shrink-0 shadow-lg bg-gradient-to-r from-amber-500 to-rose-600 hover:from-amber-400 hover:to-rose-500 text-slate-950 border-amber-300 shadow-amber-500/25 active:scale-95 cursor-pointer"
+                title="Short on time? Pick top 2 to 10 breakout art pandals trending on Instagram!"
+              >
+                <Sparkles className="w-3.5 h-3.5 text-slate-950 fill-current" />
+                <span>⚡ Express Hop</span>
+                {visitedCount > 0 && (
+                  <span className="ml-1 px-1.5 py-0.2 rounded-full bg-slate-950/40 text-[10px] text-amber-200 font-bold">
+                    {visitedCount} seen
+                  </span>
+                )}
+              </button>
+
               {/* Route Focus Mode (if plan has >= 2 spots) */}
               {activeMapPlan?.spots?.length >= 2 && (
                 <button
@@ -718,6 +802,27 @@ export default function PandalMap({ userLocation, onOpenModal, selectedZone, onU
                 >
                   <Route className="w-3.5 h-3.5" />
                   <span>{isRouteFocused ? "👁️ All Pins" : `🎯 Focus Route (${activeMapPlan.spots.length})`}</span>
+                </button>
+              )}
+
+              {/* Visited Pins Filter Switch */}
+              {visitedCount > 0 && (
+                <button
+                  onClick={() => {
+                    const next = !hideVisitedOnMap;
+                    setHideVisitedOnMap(next);
+                    hideVisitedOnMapRef.current = next;
+                    renderVisibleMarkersRef.current?.();
+                  }}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-bold border transition flex items-center space-x-1.5 flex-shrink-0 shadow-sm ${
+                    hideVisitedOnMap
+                      ? "bg-slate-700 text-emerald-300 border-emerald-500/40 font-bold"
+                      : "bg-white/10 hover:bg-white/15 text-slate-300 border-white/10"
+                  }`}
+                  title={hideVisitedOnMap ? "Currently hiding visited pandals from map. Tap to show grey pins." : "Tap to hide visited pandals completely from map"}
+                >
+                  <Check className="w-3.5 h-3.5 text-emerald-400" />
+                  <span>{hideVisitedOnMap ? "🙈 Hiding Seen" : `👁️ Seen (${visitedCount})`}</span>
                 </button>
               )}
 
@@ -759,7 +864,7 @@ export default function PandalMap({ userLocation, onOpenModal, selectedZone, onU
                 title="Toggle continuous live GPS tracking as you walk"
               >
                 <Radio className={`w-3.5 h-3.5 ${isLiveTracking ? "text-blue-400 animate-spin" : "text-slate-400"}`} />
-                <span>{isLiveTracking ? "GPS: ON" : "Live GPS"}</span>
+                <span>{isLiveTracking ? (currentAccuracy ? `GPS (±${currentAccuracy}m)` : "GPS: ON") : "Live GPS"}</span>
               </button>
 
               {/* Center Me */}
@@ -809,10 +914,10 @@ export default function PandalMap({ userLocation, onOpenModal, selectedZone, onU
             {/* Row 2: Smooth Horizontal Scrollable Zones Chip Bar (Never wraps!) */}
             <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-0.5">
               {[
-                { id: "all", label: "All Pandals (541)" },
-                { id: "south", label: "South (185)" },
-                { id: "north", label: "North (114)" },
-                { id: "central", label: "Central (63)" },
+                { id: "all", label: "All Pandals (661)" },
+                { id: "south", label: "South (244)" },
+                { id: "north", label: "North (156)" },
+                { id: "central", label: "Central (82)" },
                 { id: "east", label: "East (56)" },
                 { id: "howrah", label: "Howrah (20)" },
                 { id: "siliguri", label: "Siliguri (20)" }
@@ -1020,6 +1125,25 @@ export default function PandalMap({ userLocation, onOpenModal, selectedZone, onU
 
                 {/* Actions */}
                 <div className="flex items-center gap-2 pt-1">
+                  {!isRestaurant && (
+                    <button
+                      onClick={() => {
+                        togglePandalVisited(spot.id);
+                        renderVisibleMarkers();
+                      }}
+                      data-tour="visited-btn"
+                      className={`py-2 px-2.5 rounded-xl font-bold text-xs transition flex items-center space-x-1 shadow-md ${
+                        isPandalVisited(spot.id)
+                          ? "bg-slate-700 hover:bg-slate-600 text-emerald-300 border border-emerald-500/40"
+                          : "bg-white/10 hover:bg-white/20 text-slate-200 border border-white/20"
+                      }`}
+                      title={isPandalVisited(spot.id) ? "Mark as unvisited" : "Mark as seen (turns grey on map)"}
+                    >
+                      <Check className={`w-3.5 h-3.5 ${isPandalVisited(spot.id) ? "text-emerald-400" : "text-slate-400"}`} />
+                      <span>{isPandalVisited(spot.id) ? "Seen ✓" : "Seen?"}</span>
+                    </button>
+                  )}
+
                   <a
                     href={navUrl}
                     target="_blank"
@@ -1093,6 +1217,10 @@ export default function PandalMap({ userLocation, onOpenModal, selectedZone, onU
               <span className="w-2.5 h-2.5 rounded-full bg-blue-400" />
               <span className="text-slate-300">East & Salt Lake (56)</span>
             </div>
+            <div className="flex items-center space-x-2">
+              <span className="w-2.5 h-2.5 rounded-full bg-slate-500 border border-slate-400" />
+              <span className="text-slate-400">Seen / Visited (Grey)</span>
+            </div>
             {showRestaurants && (
               <div className="flex items-center space-x-2 pt-1 border-t border-white/10">
                 <span className="text-xs">🍴</span>
@@ -1116,8 +1244,30 @@ export default function PandalMap({ userLocation, onOpenModal, selectedZone, onU
             onOpenModal={onOpenModal}
             externalSpotToAdd={externalSpotToAdd}
             onClearExternalSpot={() => setExternalSpotToAdd(null)}
+            onOpenExpressHop={() => setIsExpressModalOpen(true)}
           />
         </div>
+
+        {/* Express Shortlist Modal (Time-Crunch Mode) */}
+        <ExpressHopModal
+          isOpen={isExpressModalOpen}
+          onClose={() => setIsExpressModalOpen(false)}
+          userLocation={userLocation}
+          activeZone={activeZone}
+          currentPlanSpots={activeMapPlan?.spots || []}
+          activePlanTitle={activeMapPlan?.title || ""}
+          onActivatePlan={(plan) => {
+            setActiveMapPlan(plan);
+            setTravelMode("smart");
+            setIsRouteFocused(true);
+            setTimeout(() => {
+              if (mapInstanceRef.current && plan?.spots?.length >= 2) {
+                const latlngs = plan.spots.map((s) => [s.lat, s.lng]);
+                mapInstanceRef.current.fitBounds(L.latLngBounds(latlngs), { padding: [50, 50], maxZoom: 15 });
+              }
+            }, 200);
+          }}
+        />
 
       </div>
     </section>
