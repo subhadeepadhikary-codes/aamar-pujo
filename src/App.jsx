@@ -406,7 +406,7 @@ export default function App() {
           </div>
         )}
 
-        {/* PAGE 3: 661+ PANDALS DIRECTORY & FOOD NEAR ME */}
+        {/* PAGE 3: 781+ PANDALS DIRECTORY & FOOD NEAR ME */}
         {currentPage === "pandals" && (
           <div className="animate-fadeIn">
             <PandalExplorer

@@ -1,5 +1,5 @@
 // Kolkata Metro Station Hubs for Durga Puja Navigation
-// Connecting 661+ Pandals across North-South (Blue Line) and East-West (Green Line)
+// Connecting 781+ Pandals across North-South (Blue Line) and East-West (Green Line)
 
 export const METRO_STATIONS = [
   // --- BLUE LINE (NORTH-SOUTH) ---

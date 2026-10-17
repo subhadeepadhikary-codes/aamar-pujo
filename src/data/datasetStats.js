@@ -2,10 +2,10 @@
 import { PANDALS_DATA } from './pandalsData';
 import { RESTAURANTS_DATA } from './restaurantsData';
 
-export const TOTAL_PANDALS_COUNT = PANDALS_DATA.length;       // Exactly 661
+export const TOTAL_PANDALS_COUNT = PANDALS_DATA.length;       // Exactly 781
 export const TOTAL_RESTAURANTS_COUNT = RESTAURANTS_DATA.length; // Exactly 228
 
-export const PANDALS_LABEL = `${TOTAL_PANDALS_COUNT}+`;         // "661+"
+export const PANDALS_LABEL = `${TOTAL_PANDALS_COUNT}+`;         // "781+"
 export const RESTAURANTS_LABEL = `${TOTAL_RESTAURANTS_COUNT}+`; // "228+"
 
 export const DATASET_STATS = {

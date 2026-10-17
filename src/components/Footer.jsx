@@ -94,7 +94,7 @@ export default function Footer() {
               </li>
               <li>
                 <a href="#pandals" className="hover:text-amber-300 transition">
-                  🏛️ 661+ Pandals Directory
+                  🏛️ 781+ Pandals Directory
                 </a>
               </li>
               <li>

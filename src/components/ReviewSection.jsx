@@ -36,7 +36,7 @@ const INITIAL_REVIEWS = [
     tag: "Suburban Devotee",
     rating: 5,
     date: "Yesterday",
-    comment: "The pipeline countdown from Prothoma to Dashami is brilliant. Finally a clean website that lists all 661+ pandals instead of just the top 5 sponsored ones. Subhadeep da, darun kaaj!",
+    comment: "The pipeline countdown from Prothoma to Dashami is brilliant. Finally a clean website that lists all 781+ pandals instead of just the top 5 sponsored ones. Subhadeep da, darun kaaj!",
     helpful: 19
   }
 ];
@@ -226,7 +226,7 @@ export default function ReviewSection() {
                 {[
                   "📍 Accurate GPS Routing",
                   "🎵 Loved Mahalaya Audio",
-                  "🏛️ Great 661+ Pandals List",
+                  "🏛️ Great 781+ Pandals List",
                   "🚊 Useful Metro Timings"
                 ].map((chip, i) => (
                   <button

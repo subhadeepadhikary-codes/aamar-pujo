@@ -1614,7 +1614,7 @@ export default function RoutePlanner({
                     if (!showAddMenu) setShowAddMenu(true);
                   }}
                   onFocus={() => setShowAddMenu(true)}
-                  placeholder="Search 661+ pandals or eateries (e.g. Sreebhumi, Bagbazar, 76 Pally, Peter Cat)..."
+                  placeholder="Search 781+ pandals or eateries (e.g. Sreebhumi, Bagbazar, 76 Pally, Peter Cat)..."
                   className="w-full py-2.5 px-3.5 pl-9 pr-8 rounded-2xl bg-black/60 border border-white/15 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-amber-400 transition"
                 />
                 <Compass className="w-4 h-4 text-slate-500 absolute left-3 top-3" />

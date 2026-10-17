@@ -76,7 +76,7 @@ export default function Navbar({
   const navItems = [
     { id: "home", label: "Home", bengali: "হোম", icon: Home, desc: "Pujo Spotlight & Highlights" },
     { id: "pipeline", label: "Pipeline Flow", bengali: "পুজো প্রবাহ", icon: Calendar, badge: "11 Days", desc: "Mahalaya to Bijoya Dashami" },
-    { id: "pandals", label: "661+ Pandals", bengali: "প্যান্ডেল ও খাদ্য", icon: Compass, desc: "Full Directory & Food Trail" },
+    { id: "pandals", label: "781+ Pandals", bengali: "প্যান্ডেল ও খাদ্য", icon: Compass, desc: "Full Directory & Food Trail" },
     { id: "map", label: "Map & Route Planner", bengali: "ম্যাপ ও রুট প্ল্যানার", icon: MapPin, desc: "Interactive Map & AI Sequential Planner" },
     { id: "melodies", label: "Daily Melodies", bengali: "শারদীয় সুর", icon: Music, desc: "Curated Agomoni Songs" },
     { id: "about", label: "About Creator", bengali: "আমাদের কথা", icon: Info, desc: "Story, Fair Use & Feedback" }
@@ -402,7 +402,7 @@ export default function Navbar({
                   </span>
                 </div>
                 <p className="text-[11px] text-slate-300 mb-2.5">
-                  Filter all 661+ pandals by your nearest Kolkata Metro station:
+                  Filter all 781+ pandals by your nearest Kolkata Metro station:
                 </p>
                 <button
                   onClick={() => {
@@ -604,7 +604,7 @@ export default function Navbar({
                     Pujo by Metro <span className="font-bengali text-blue-300 text-xs sm:text-sm">(মেট্রো স্টেশন)</span>
                   </h3>
                   <p className="text-[11px] text-slate-400">
-                    Select a station to filter all 661+ pandals within walking proximity
+                    Select a station to filter all 781+ pandals within walking proximity
                   </p>
                 </div>
               </div>

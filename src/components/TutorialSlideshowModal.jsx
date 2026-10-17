@@ -38,7 +38,7 @@ const SLIDES = [
       {
         num: "②",
         bold: "Universal Search Bar:",
-        text: "Search instantly across all 661+ pandals by name, locality, or metro station."
+        text: "Search instantly across all 781+ pandals by name, locality, or metro station."
       },
       {
         num: "③",
@@ -94,11 +94,11 @@ const SLIDES = [
         label: "Directory View",
         icon: "📋",
         image: "/screenshots/guide_step_2_directory.webp",
-        imageAlt: "661 Pandals vs 228 Eateries Proximity Directory",
+        imageAlt: "781 Pandals vs 228 Eateries Proximity Directory",
         highlights: [
           {
             num: "①",
-            bold: "661+ Pandals vs 228+ Eateries:",
+            bold: "781+ Pandals vs 228+ Eateries:",
             text: "Switch tabs instantly between puja pandals and Kolkata's legendary eateries."
           },
           {
@@ -158,7 +158,7 @@ const SLIDES = [
     tag: "Pujo by Metro",
     title: "24 Metro Stations Network",
     bengali: "মেট্রো দিয়ে পুজো পরিক্রমা",
-    subtitle: "Filter all 661+ pandals by your nearest Blue or Green Line station",
+    subtitle: "Filter all 781+ pandals by your nearest Blue or Green Line station",
     icon: Train,
     gradient: "from-emerald-500 via-teal-600 to-cyan-500",
     image: "/screenshots/guide_step_4_metro.webp",

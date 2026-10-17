@@ -753,7 +753,7 @@ export default function PandalMap({ userLocation, onOpenModal, selectedZone, onU
           <div>
             <div className="inline-flex items-center space-x-2 px-3.5 py-1 rounded-full bg-amber-500/15 border border-amber-500/30 text-amber-300 text-xs font-semibold mb-2">
               <Sparkles className="w-3.5 h-3.5 text-amber-400" />
-              <span>West Bengal Geospatial Map · 661+ Verified Pandals · 228+ Iconic Eateries</span>
+              <span>West Bengal Geospatial Map · 781+ Verified Pandals · 228+ Iconic Eateries</span>
             </div>
             <h2 className="font-heritage text-2xl sm:text-3xl md:text-5xl font-black text-white">
               Map & <span className="text-gold-gradient">AI Route Planner</span>
@@ -914,10 +914,10 @@ export default function PandalMap({ userLocation, onOpenModal, selectedZone, onU
             {/* Row 2: Smooth Horizontal Scrollable Zones Chip Bar (Never wraps!) */}
             <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-0.5">
               {[
-                { id: "all", label: "All Pandals (661)" },
-                { id: "south", label: "South (244)" },
-                { id: "north", label: "North (156)" },
-                { id: "central", label: "Central (82)" },
+                { id: "all", label: "All Pandals (781)" },
+                { id: "south", label: "South (304)" },
+                { id: "north", label: "North (197)" },
+                { id: "central", label: "Central (101)" },
                 { id: "east", label: "East (56)" },
                 { id: "howrah", label: "Howrah (20)" },
                 { id: "siliguri", label: "Siliguri (20)" }

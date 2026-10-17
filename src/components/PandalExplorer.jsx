@@ -260,7 +260,7 @@ export default function PandalExplorer({
           <div>
             <div className="inline-flex items-center space-x-1.5 px-3 py-0.5 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-300 text-[10px] sm:text-xs font-semibold mb-2">
               <Compass className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
-              <span>Full Bengal Directory · 661+ Verified Pandals & 228+ Iconic Eateries</span>
+              <span>Full Bengal Directory · 781+ Verified Pandals & 228+ Iconic Eateries</span>
             </div>
             <h2 className="font-heritage text-xl sm:text-3xl md:text-5xl font-black text-white">
               Pujo & Food <span className="text-gold-gradient">Navigation Hub</span>
@@ -286,7 +286,7 @@ export default function PandalExplorer({
           </div>
         </div>
 
-        {/* Tab Switcher: 661+ Pandals vs 228+ Eateries */}
+        {/* Tab Switcher: 781+ Pandals vs 228+ Eateries */}
         <div className="grid grid-cols-2 gap-2 sm:gap-3 mb-6">
           <button
             onClick={() => handleTabSwitch("pandals")}
@@ -297,7 +297,7 @@ export default function PandalExplorer({
             }`}
           >
             <Compass className="w-3.5 h-3.5 sm:w-4 sm:h-4 flex-shrink-0" />
-            <span className="whitespace-nowrap font-bold">661+ Pandals</span>
+            <span className="whitespace-nowrap font-bold">781+ Pandals</span>
           </button>
 
           <button
@@ -395,7 +395,7 @@ export default function PandalExplorer({
                 }}
                 placeholder={
                   activeTab === "pandals"
-                    ? "Search 661+ pandals (e.g. Sribhumi, Jorasanko Daw Bari, Beleghata Karmi)..."
+                    ? "Search 781+ pandals (e.g. Sribhumi, Jorasanko Daw Bari, Beleghata Karmi)..."
                     : "Search 228+ eateries (e.g. Peter Cat, Arsalan, Mitra Cafe, Dada Boudi)..."
                 }
                 className="w-full py-3.5 pl-11 pr-4 bg-[#140E1B] border border-white/10 rounded-2xl text-xs sm:text-sm text-white placeholder-slate-400 focus:outline-none focus:border-amber-400/50"
@@ -596,7 +596,7 @@ export default function PandalExplorer({
                 <Compass className="w-12 h-12 text-amber-400 mx-auto mb-3 opacity-60" />
                 <h3 className="font-heritage text-xl font-bold text-white mb-2">No Pandals Found</h3>
                 <p className="text-xs text-slate-300 mb-6">
-                  We couldn't find any pandal matching your current filter criteria. Try clicking Reset Filters to view all 661+ pandals.
+                  We couldn't find any pandal matching your current filter criteria. Try clicking Reset Filters to view all 781+ pandals.
                 </p>
                 <button
                   onClick={handleResetFilters}

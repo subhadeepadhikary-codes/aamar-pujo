@@ -1,7 +1,7 @@
 /**
  * Pandal Metadata & Transit Enhancement Helper
  * Computes verified "Best Time to Visit" (Lighting vs Crowd wait),
- * Lighting Tiers, Peak Rush advisories, and Kolkata Bus Routes for all 661+ pandals.
+ * Lighting Tiers, Peak Rush advisories, and Kolkata Bus Routes for all 781+ pandals.
  */
 
 // Major Kolkata Bus Corridors
